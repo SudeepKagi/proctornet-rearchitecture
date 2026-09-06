@@ -11,13 +11,17 @@
     "start": "node src/server.js",
     "dev": "node --watch --env-file=.env src/server.js",
     "test": "node --test",
-    "test:watch": "node --test --watch"
+    "test:watch": "node --test --watch",
+    "db:migrate": "node src/infrastructure/postgres/migrate.js up",
+    "db:rollback": "node src/infrastructure/postgres/migrate.js down",
+    "db:create": "npx node-pg-migrate create --migrations-dir migrations --migration-file-language js"
   },
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "helmet": "^8.0.0",
+    "node-pg-migrate": "^9.0.0",
     "pg": "^8.13.3",
     "pino": "^9.6.0",
     "pino-http": "^10.4.0",
