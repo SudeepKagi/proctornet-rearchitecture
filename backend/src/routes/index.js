@@ -3,6 +3,7 @@ import { healthRouter } from './health.routes.js';
 import { authRouter } from '../modules/auth/auth.routes.js';
 import { examsRouter } from '../modules/exams/exams.routes.js';
 import { sessionsRouter } from '../modules/sessions/sessions.routes.js';
+import { attemptsRouter } from '../modules/attempts/attempts.routes.js';
 
 export const rootRouter = Router();
 
@@ -28,6 +29,9 @@ v1Router.use('/exams', examsRouter);
 
 // Phase 5: Sessions, Scheduling, Rosters & Invigilation
 v1Router.use('/sessions', sessionsRouter);
+
+// Phase 6: Attempts, Question Mapping & Resumption
+v1Router.use('/attempts', attemptsRouter);
 
 // Mount /api/v1
 rootRouter.use('/api/v1', v1Router);
