@@ -42,10 +42,10 @@ $$\text{Plan} \longrightarrow \text{Implement} \longrightarrow \text{Test} \long
 
 ### Phase 1 — Backend Foundation
 - [ ] **Status:** Pending
-- **Objective:** Initialize the Node.js 24 LTS + Express backend service with TypeScript, configuration management, environment validation, error handling, and structured logging.
+- **Objective:** Initialize the Node.js 24 LTS + Express backend service with JavaScript (ES Modules), configuration management, environment validation, error handling, and structured logging.
 - **Dependencies:** Phase 0
 - **Major Tasks:**
-  - Initialize `backend/` workspace with Node.js 24 LTS baseline and TypeScript configuration (`tsconfig.json`).
+  - Initialize `backend/` workspace with Node.js 24 LTS baseline, `"type": "module"`, and JavaScript ES Modules (`.js` files).
   - Configure ESLint, Prettier, and code standards.
   - Implement centralized configuration loader with strict environment variable validation (using Zod or Joi).
   - Implement standardized HTTP response format, custom error classes, and global error middleware.
@@ -201,7 +201,7 @@ $$\text{Plan} \longrightarrow \text{Implement} \longrightarrow \text{Test} \long
 - **Objective:** Build the modern React SPA covering Candidate Exam UI, Proctor Monitoring Dashboard, and Admin/Teacher Management.
 - **Dependencies:** Phase 9
 - **Major Tasks:**
-  - Initialize React application with modern tooling (Vite/TypeScript) and modular UI components.
+  - Initialize React application with modern JavaScript tooling (Vite / JavaScript JSX) and modular UI components.
   - Implement Candidate Exam Interface: clean question navigator, countdown timer synced to server time, autosave indicator, network offline warning banner.
   - Implement Proctoring Dashboard: candidate grid, live alerts feed, flag candidates, event timeline.
   - Implement Admin / Instructor Portals: exam authoring, question bank, grading dashboard, student management.

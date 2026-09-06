@@ -22,8 +22,8 @@ All implementation adheres strictly to the finalized architecture specification:
 
 ```
 .
-├── backend/          # Node.js 24 LTS + Express (TypeScript) Modular Monolith (API, domain services, workers)
-├── frontend/         # React SPA (Candidate exam UI, proctor dashboard, admin portal)
+├── backend/          # Node.js 24 LTS + Express (JavaScript, ES Modules) Modular Monolith
+├── frontend/         # React (JavaScript SPA)
 ├── infrastructure/   # Terraform (AWS IaC), Docker Compose, and deployment scripts
 └── docs/             # Master architecture, phased plans, development rules, ADRs, tests
     ├── ARCHITECTURE.md
@@ -37,8 +37,8 @@ All implementation adheres strictly to the finalized architecture specification:
 
 ## Target Technology Stack
 
-- **Frontend**: React (SPA)
-- **Backend**: Node.js 24 LTS + Express (TypeScript)
+- **Frontend**: React (JavaScript SPA)
+- **Backend**: Node.js 24 LTS + Express (JavaScript, ES Modules)
 - **Primary Database**: PostgreSQL (Authoritative source of business-critical state)
 - **Caching & Ephemeral Sync**: Redis (Non-authoritative)
 - **Message Broker**: RabbitMQ (Decoupled async worker tasks & Transactional Outbox)

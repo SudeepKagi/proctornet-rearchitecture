@@ -4,7 +4,10 @@ This directory is reserved for the ProctorNet core backend service, API endpoint
 
 ## Tooling & Runtime Baseline
 - **Runtime**: Node.js 24 LTS
-- **Language**: TypeScript
+- **Language**: JavaScript (ES Modules / `import` & `export`)
+- **File Extension**: `.js`
+- **Framework**: Express
+- **TypeScript**: Not used (strictly excluded from this project)
 
 Implementation begins in **Phase 1 — Backend Foundation** according to [DEVELOPMENT_PLAN.md](../docs/DEVELOPMENT_PLAN.md).
 

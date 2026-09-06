@@ -98,7 +98,7 @@ The project testing pyramid encompasses ten distinct categories:
 - **Database Testing:** Testcontainers / localized PostgreSQL docker instances with transaction rollback per test.
 - **Load Testing:** k6 / Artillery.
 - **Frontend E2E Testing:** Playwright.
-- **Static Analysis & Security:** ESLint, TypeScript compiler (`tsc --noEmit`), Checkov/tfsec.
+- **Static Analysis & Security:** ESLint, Checkov/tfsec.
 
 ---
 
