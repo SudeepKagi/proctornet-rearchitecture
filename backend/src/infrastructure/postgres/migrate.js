@@ -25,7 +25,7 @@ export function getDatabaseUrl() {
  * @param {number} [count]
  * @returns {Promise<any>}
  */
-export async function runMigrations(direction = 'up', count = Infinity) {
+export async function runMigrations(direction = 'up', count = (direction === 'down' ? 1 : Infinity)) {
   const databaseUrl = getDatabaseUrl();
   const options = {
     databaseUrl,
@@ -41,7 +41,7 @@ export async function runMigrations(direction = 'up', count = Infinity) {
     log: (msg) => logger.info({ migrationLog: msg }, 'Migration runner output')
   };
 
-  logger.info({ direction, migrationsDir }, 'Starting database migrations...');
+  logger.info({ direction, count, migrationsDir }, 'Starting database migrations...');
   const results = await runner(options);
   logger.info({ count: results?.length || 0, direction }, 'Database migrations completed');
   return results;
@@ -50,7 +50,9 @@ export async function runMigrations(direction = 'up', count = Infinity) {
 // CLI invocation handling
 if (process.argv[1] === __filename) {
   const command = process.argv[2] || 'up';
-  const countArg = process.argv[3] ? parseInt(process.argv[3], 10) : undefined;
+  const countArg = process.argv[3]
+    ? parseInt(process.argv[3], 10)
+    : (command === 'down' ? 1 : Infinity);
 
   runMigrations(command, countArg)
     .then(() => {
