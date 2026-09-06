@@ -78,18 +78,19 @@ $$\text{Plan} \longrightarrow \text{Implement} \longrightarrow \text{Test} \long
 ---
 
 ### Phase 3 — Core Domain & State Machines
-- [ ] **Status:** Pending
-- **Objective:** Model core domain entities, value objects, and deterministic state machines for exams, attempts, and question workflows.
+- [x] **Status:** Completed
+- **Objective:** Model core domain entities, value objects, and deterministic state machines for exams, attempts, question workflows, and evaluation status.
 - **Dependencies:** Phase 2
 - **Major Tasks:**
-  - Define domain interfaces, enums, and types (`ExamStatus`, `AttemptStatus`, `QuestionType`, `EvaluationStatus`).
-  - Implement deterministic state machine for `Exam` lifecycle (`DRAFT` $\to$ `PUBLISHED` $\to$ `ACTIVE` $\to$ `CONCLUDED` $\to$ `ARCHIVED`).
-  - Implement deterministic state machine for `Attempt` lifecycle (`NOT_STARTED` $\to$ `IN_PROGRESS` $\to$ `SUBMITTED` $\to$ `EVALUATING` $\to$ `EVALUATED` $\to$ `EXPIRED` $\to$ `ABORTED`).
-  - Implement domain invariant validators preventing illegal state transitions.
+  - Define domain enums and types (`ExamStatus`, `AttemptStatus`, `QuestionType`, `EvaluationStatus`).
+  - Implement deterministic state machine for authoritative `Exam` lifecycle (`DRAFT` $\to$ `PUBLISHED` $\to$ `SCHEDULED` $\to$ `LIVE` $\to$ `ENDED` $\to$ `EVALUATED` $\to$ `RESULT_PUBLISHED`).
+  - Implement deterministic state machine for authoritative `Attempt` lifecycle (`READY` $\to$ `ACTIVE` $\to$ `SUBMITTED` / `TERMINATED` / `EXPIRED`).
+  - Implement question invariant validation for `MCQ`, `TRUE_FALSE`, and `NUMERIC` types.
+  - Implement domain invariant validators preventing illegal state transitions and unauthorized answer mutations.
 - **Acceptance Criteria:**
-  - State machines reject invalid transitions with domain-specific exceptions.
+  - State machines reject invalid transitions with domain-specific exceptions (`InvalidStateTransitionError`, `DomainInvariantError`).
   - Core domain logic has zero external I/O or network dependencies (pure domain logic).
-- **Tests Required:** Comprehensive unit tests covering all valid and invalid state machine transitions.
+- **Tests Required:** Comprehensive unit tests covering all valid and invalid state machine transitions, invariants, and question types.
 
 ---
 
