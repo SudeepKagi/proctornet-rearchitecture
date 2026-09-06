@@ -25,7 +25,7 @@ The platform supports:
 | Layer | Technology | Primary Role / Justification |
 | :--- | :--- | :--- |
 | **Frontend** | React (SPA) | Modern, responsive, component-driven examination and proctoring interface. |
-| **Backend** | Node.js + Express | Fast, asynchronous, modular monolith API service handling exam lifecycle and business rules. |
+| **Backend** | Node.js 24 LTS + Express (TypeScript) | Fast, asynchronous, modular monolith API service handling exam lifecycle and business rules. |
 | **Authoritative DB** | PostgreSQL | Sole authoritative source of business-critical state with strict ACID guarantees and transactional outbox. |
 | **Cache & State Sync** | Redis | Ephemeral session caching, rate-limiting tokens, and WebSocket pub/sub synchronization (non-authoritative). |
 | **Message Broker** | RabbitMQ | Reliable asynchronous message queuing for decoupled worker processing (evaluation, notifications, media transcoding). |

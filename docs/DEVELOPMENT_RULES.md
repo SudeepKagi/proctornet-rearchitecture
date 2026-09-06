@@ -24,6 +24,7 @@ These rules govern all engineering workflows, architectural decisions, and contr
 6. **Correctness Over Superficial Availability**: Ensuring data integrity, atomic state transitions, and zero data loss on candidate answers takes precedence over false superficial availability.
 7. **Security Rules are Non-Negotiable**: Resource-level authorization (RBAC/ABAC), input sanitization, parameterized queries, and least privilege access must be enforced on every endpoint.
 8. **Measure Before Optimizing**: Do not introduce premature optimizations or complex caching layers without empirical benchmark measurements.
+9. **Backend Runtime Baseline**: The backend runtime baseline is strictly **Node.js 24 LTS** with **TypeScript**. Future implementation phases must not silently choose, assume, or downgrade to an alternative Node.js major version without an explicit ADR.
 
 ---
 

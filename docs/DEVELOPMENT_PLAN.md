@@ -42,10 +42,10 @@ $$\text{Plan} \longrightarrow \text{Implement} \longrightarrow \text{Test} \long
 
 ### Phase 1 — Backend Foundation
 - [ ] **Status:** Pending
-- **Objective:** Initialize the Node.js + Express backend service with TypeScript, configuration management, environment validation, error handling, and structured logging.
+- **Objective:** Initialize the Node.js 24 LTS + Express backend service with TypeScript, configuration management, environment validation, error handling, and structured logging.
 - **Dependencies:** Phase 0
 - **Major Tasks:**
-  - Initialize `backend/` package and TypeScript configuration (`tsconfig.json`).
+  - Initialize `backend/` workspace with Node.js 24 LTS baseline and TypeScript configuration (`tsconfig.json`).
   - Configure ESLint, Prettier, and code standards.
   - Implement centralized configuration loader with strict environment variable validation (using Zod or Joi).
   - Implement standardized HTTP response format, custom error classes, and global error middleware.
