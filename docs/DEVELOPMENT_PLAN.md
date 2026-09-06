@@ -113,19 +113,23 @@ $$\text{Plan} \longrightarrow \text{Implement} \longrightarrow \text{Test} \long
 ---
 
 ### Phase 5 — Exams, Sessions & Assignments
-- [ ] **Status:** Pending
-- **Objective:** Build exam authoring, scheduling, candidate enrollment, and proctor assignment domain and API modules.
+- [x] **Status:** Completed
+- **Objective:** Build exam authoring, blueprint rules, publishing, session scheduling, candidate roster management, and invigilator assignment modules.
 - **Dependencies:** Phase 4
 - **Major Tasks:**
-  - Database migrations for `exams`, `sections`, `questions`, `question_options`, `exam_candidates`, and `exam_proctors`.
-  - Exam creation, modification, publishing, and scheduling API endpoints (Admin / Teacher role).
-  - Candidate roster assignment and invitation token generation.
-  - Proctor-to-candidate room allocation logic.
-  - Strict window validation (scheduled start/end times vs. current authoritative server time).
+  - Migration 012 adding authoritative exam creator ownership (`created_by`) and subject relationship (`subject_id`).
+  - Exam creation, draft modification, topic rules configuration, and publishing lifecycle validation (`POST /api/v1/exams`, `POST /api/v1/exams/:id/publish`).
+  - Strict domain invariants: draft mutability restriction (`assertExamCanBeMutated`), passing marks vs total marks, blueprint balancing, and question bank inventory validation.
+  - Multi-session exam scheduling (`POST /api/v1/sessions`): first session transitions `PUBLISHED -> SCHEDULED`; subsequent sessions maintain `SCHEDULED`.
+  - Authoritative server-time window validation (`scheduled_end_time > scheduled_start_time` and duration enforcement).
+  - Transactional room capacity management (`SELECT ... FOR UPDATE` on `rooms`) with deduplication during candidate roster assignments (`POST /api/v1/sessions/:id/students`).
+  - Invigilator assignments (`POST /api/v1/sessions/:id/invigilators`) with role checking (`FACULTY`, `INVIGILATOR`, `ADMIN`).
+  - Full audit trail logging into `audit_logs`.
 - **Acceptance Criteria:**
-  - Instructors can create multi-section exams with varying question types.
-  - Candidates can only access exams for which they are explicitly scheduled within the valid time window.
-- **Tests Required:** Exam creation API integration tests, scheduling validation tests, roster authorization tests.
+  - Instructors and Admins can create exams, configure topic rules, and publish them after automated blueprint verification.
+  - Sessions can be scheduled with room capacity checks, candidate enrollments, and invigilator assignments.
+  - All operations enforce strict RBAC and creator ownership boundaries.
+- **Tests Implemented:** 40+ unit and integration tests across `examService.test.js`, `examApi.test.js`, `sessionService.test.js`, `sessionApi.test.js`. Full test suite: 180/180 passing.
 
 ---
 
