@@ -95,20 +95,20 @@ $$\text{Plan} \longrightarrow \text{Implement} \longrightarrow \text{Test} \long
 ---
 
 ### Phase 4 — Authentication & Authorization
-- [ ] **Status:** Pending
+- [x] **Status:** Completed
 - **Objective:** Implement secure candidate, proctor, and administrator authentication, password hashing, JWT/session management, and RBAC/ABAC authorization.
 - **Dependencies:** Phase 3
 - **Major Tasks:**
-  - Implement password hashing using Argon2 / bcrypt with constant-time verification.
+  - Implement password hashing using bcrypt with constant-time verification.
   - Implement user registration, login, token refresh, and logout endpoints.
   - Implement JWT token issue and verification with strict claims and expiration.
-  - Implement resource-level authorization middleware (`requireRole`, `requirePermission`, `requireOwnership`).
-  - Add brute-force protection and account lockout mechanics.
+  - Implement resource-level authorization middleware (`authenticate`, `requireRole`, `requireOwnership`, `requireResourceScope`).
+  - Add brute-force protection and account lockout mechanics (5 attempts threshold, 15m duration).
 - **Acceptance Criteria:**
   - Unauthorized requests are rejected with `401 Unauthorized`.
-  - Resource access across unauthorized tenants/users is rejected with `403 Forbidden`.
+  - Resource access across unauthorized roles/users is rejected with `403 Forbidden`.
   - Authentication tokens are securely signed and verified.
-- **Tests Required:** Auth unit tests, token expiration tests, RBAC/ABAC boundary integration tests.
+- **Tests Required:** Auth unit tests, token expiration tests, RBAC/ABAC boundary integration tests, account lockout tests.
 
 ---
 
