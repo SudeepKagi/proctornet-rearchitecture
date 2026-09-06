@@ -18,6 +18,7 @@ import {
   handleCreateRoom,
   handleListRooms
 } from './sessions.controller.js';
+import { startAttempt, getMyAttempt } from '../attempts/attempts.controller.js';
 
 export const sessionsRouter = Router();
 
@@ -38,3 +39,7 @@ sessionsRouter.delete('/:id/students/:studentId', authenticate, requireRole('FAC
 // Session invigilator assignment routes
 sessionsRouter.post('/:id/invigilators', authenticate, requireRole('FACULTY', 'ADMIN'), handleAssignInvigilator);
 sessionsRouter.delete('/:id/invigilators/:userId', authenticate, requireRole('FACULTY', 'ADMIN'), handleRemoveInvigilator);
+
+// Phase 6: Candidate Attempt Start & Status for Session
+sessionsRouter.post('/:id/attempts', authenticate, requireRole('STUDENT'), startAttempt);
+sessionsRouter.get('/:id/my-attempt', authenticate, requireRole('STUDENT'), getMyAttempt);

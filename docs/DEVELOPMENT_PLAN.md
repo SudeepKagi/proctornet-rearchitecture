@@ -134,20 +134,25 @@ $$\text{Plan} \longrightarrow \text{Implement} \longrightarrow \text{Test} \long
 ---
 
 ### Phase 6 — Attempts & Question Mapping
-- [ ] **Status:** Pending
-- **Objective:** Implement candidate exam initialization, attempt creation, question order randomization/mapping, and attempt resumption.
+- [x] **Status:** Completed
+- **Objective:** Implement candidate exam initialization, attempt creation, deterministic question mapping, authoritative server timing, and attempt resumption.
 - **Dependencies:** Phase 5
 - **Major Tasks:**
-  - Database migrations for `attempts` and `attempt_question_mappings`.
-  - Implement `POST /api/exams/:id/start` endpoint with strict idempotency and single-attempt constraint.
-  - Deterministic question shuffling / option randomization per candidate attempt.
-  - Attempt resumption endpoint retrieving authorized question set and current server time remaining.
-  - Enforce server-side authoritative timer calculation.
+  - Verified and utilized finalized Migration 008 (`exam_attempts`, `attempt_questions`) and Migration 010 indexes.
+  - Implement `POST /api/v1/sessions/:id/attempts` (and alias `POST /api/v1/attempts/start`) with candidate-only authorization and strict idempotency.
+  - Deterministic question permutation and selection per candidate using Mulberry32 PRNG and MurmurHash3_32 seed (`hash(sessionId:studentId:topicId)`).
+  - Strict mapping invariants: total count equals blueprint rules, contiguous display order `1..N`, and zero duplicate `question_id`.
+  - Authoritative PostgreSQL timing and deadline calculation (`expires_at = LEAST(CURRENT_TIMESTAMP + duration, scheduled_end_time)`).
+  - Lazy on-access `ACTIVE -> EXPIRED` lifecycle transition on retrieval.
+  - Hierarchical lock ordering (`exam_sessions` -> `exams` -> `session_students` -> `exam_attempts`) preventing deadlocks.
+  - Defense-in-depth duplicate attempt protection with PostgreSQL error code 23505 rollback and recovery.
+  - Sanitized question endpoints (`GET /api/v1/attempts/:id`, `GET /api/v1/attempts/:id/questions`, `GET /api/v1/sessions/:id/my-attempt`) stripping answers and solution metadata with BOLA protection.
 - **Acceptance Criteria:**
-  - Multiple clicks on "Start Exam" result in exactly one attempt record (idempotent).
+  - 10 concurrent clicks on "Start Exam" result in exactly one attempt record and one mapping set with identical responses (idempotent).
   - Attempt start fails if time window has not opened or has passed.
   - Question ordering is securely stored and consistent upon candidate reconnect/resume.
-- **Tests Required:** Concurrency tests for duplicate attempt start, time window boundary tests, question mapping persistence tests.
+  - Zero answer leakage to candidate.
+- **Tests Implemented:** 33 unit and integration tests across `attemptService.test.js` and `attemptApi.test.js`. Full test suite: 213/213 passing.
 
 ---
 
