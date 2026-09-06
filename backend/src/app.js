@@ -1,6 +1,7 @@
 import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import { config } from './config/env.js';
 import { requestIdMiddleware } from './middleware/requestId.js';
 import { requestLogger } from './middleware/requestLogger.js';
@@ -25,6 +26,9 @@ export function createApp() {
       credentials: true
     })
   );
+
+  // Cookie parsing for secure refresh token cookies
+  app.use(cookieParser());
 
   // Body parsing with safe size bounds
   app.use(express.json({ limit: '1mb' }));

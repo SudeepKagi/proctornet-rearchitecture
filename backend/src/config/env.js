@@ -50,7 +50,33 @@ const envSchema = z.object({
     .string()
     .regex(/^\d+$/, { message: 'DB_IDLE_TIMEOUT_MS must be a valid integer' })
     .transform(Number)
-    .default('30000')
+    .default('30000'),
+
+  // Authentication & Security configuration
+  JWT_ACCESS_SECRET: z
+    .string()
+    .min(16, { message: 'JWT_ACCESS_SECRET must be at least 16 characters' })
+    .default('proctornet-dev-jwt-access-secret-32-chars-long'),
+  JWT_ACCESS_EXPIRATION: z
+    .string()
+    .default('15m'),
+  JWT_REFRESH_SECRET: z
+    .string()
+    .min(16, { message: 'JWT_REFRESH_SECRET must be at least 16 characters' })
+    .default('proctornet-dev-jwt-refresh-secret-32-chars-long'),
+  JWT_REFRESH_EXPIRATION: z
+    .string()
+    .default('7d'),
+  AUTH_LOCKOUT_MAX_ATTEMPTS: z
+    .string()
+    .regex(/^\d+$/, { message: 'AUTH_LOCKOUT_MAX_ATTEMPTS must be a valid integer' })
+    .transform(Number)
+    .default('5'),
+  AUTH_LOCKOUT_DURATION_MINUTES: z
+    .string()
+    .regex(/^\d+$/, { message: 'AUTH_LOCKOUT_DURATION_MINUTES must be a valid integer' })
+    .transform(Number)
+    .default('15')
 });
 
 /**
