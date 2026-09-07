@@ -2,3 +2,12 @@ export { evaluateQuestionAnswer, aggregateEvaluationResults, NUMERIC_TOLERANCE }
 export { evaluateAttempt } from './evaluation.service.js';
 export { EvaluationWorker, evaluationWorker } from './evaluation.worker.js';
 export * as evaluationRepo from './evaluation.repository.js';
+export {
+  handleEvaluationMessage,
+  startEvaluationConsumer,
+  stopEvaluationConsumer,
+  forwardToRetryPath,
+  forwardToDlq,
+  isTransientError,
+  isValidUuid
+} from './evaluation.consumer.js';

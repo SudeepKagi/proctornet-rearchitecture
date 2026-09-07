@@ -17,6 +17,7 @@
     "db:create": "npx node-pg-migrate create --migrations-dir migrations --migration-file-language js"
   },
   "dependencies": {
+    "amqplib": "^2.0.1",
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",

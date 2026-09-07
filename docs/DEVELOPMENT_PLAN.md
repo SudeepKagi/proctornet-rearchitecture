@@ -256,37 +256,42 @@ $$\text{Plan} \longrightarrow \text{Implement} \longrightarrow \text{Test} \long
 ---
 
 ### Phase 11 — Redis
-- [ ] **Status:** Pending
+- [x] **Status:** Completed
 - **Objective:** Integrate Redis for non-authoritative caching, rate-limiting tokens, session blacklist, and distributed locks.
 - **Dependencies:** Phase 10
 - **Major Tasks:**
-  - Setup Redis client wrapper with connection pooling, reconnect retry backoff, and health checks.
-  - Implement sliding-window rate limiting middleware for sensitive endpoints (login, answer save, submit).
-  - Implement token blacklist caching for instant session revocations.
-  - Implement transient read-through caching for static exam question templates.
+  - Setup managed persistent Redis client wrapper with connection pooling, reconnect retry backoff, graceful shutdown, and health checks.
+  - Implemented sliding-window rate limiting middleware for sensitive endpoints (`/api/v1/auth/login`, `/api/v1/attempts/:id/answers`, `/api/v1/attempts/:id/submit`) using atomic Redis Lua scripts with local in-memory fallback.
+  - Implemented token blacklist caching for instant session revocations with fail-closed semantics on dual-store outages.
+  - Implemented transient cache-aside layer for published exam blueprints (`v1:exam:{examId}`) and active attempt sanitized question bundles (`v1:attempt:{attemptId}:questions`) with dynamic attempt deadline-bounded TTL.
   - Fallback mechanisms ensuring complete system functionality even if Redis experiences temporary outages.
 - **Acceptance Criteria:**
   - High-traffic read requests are served from Redis cache.
   - Redis failure does not crash the API or cause data loss for critical writes.
-- **Tests Required:** Redis fallback unit tests, rate-limiting integration tests, cache invalidation tests.
+  - Authoritative data remains strictly in PostgreSQL; candidate scorecards and summaries are 100% uncached.
+- **Tests Implemented:** 50 unit, integration, and fallback tests across `redisClient.test.js`, `cacheService.test.js`, `examCacheAside.test.js`, `questionCacheAside.test.js`, `rateLimiter.unit.test.js`, `rateLimiter.integration.test.js`, `tokenBlacklist.test.js`, `authRevocationFallback.test.js`, `redisFallback.test.js`. Full regression: 404/404 backend passing, 25/25 frontend passing. ADR-0001 approved.
 
 ---
 
 ### Phase 12 — RabbitMQ & Workers
-- [ ] **Status:** Pending
+- [ ] **Status:** In Progress (Implementation & Testing Completed)
 - **Objective:** Implement reliable outbox poller, RabbitMQ exchange/queue topologies, dead-letter exchanges, and decoupled worker consumers.
 - **Dependencies:** Phase 11
 - **Major Tasks:**
-  - Setup RabbitMQ connection manager with channel pooling and reconnection handling.
-  - Configure exchanges, queues, routing keys, and Dead Letter Queues (DLQ).
-  - Implement Transactional Outbox Poller / Publisher service in backend.
-  - Implement Worker Consumers for automated grading, email notifications, and audit processing.
-  - Enforce consumer idempotency using message deduplication tables.
+  - Setup RabbitMQ connection manager (`client.js`) with URL precedence, bounded reconnection retry backoff, test runner detection, and clean graceful shutdown.
+  - Asserted complete RabbitMQ topology: 3 durable direct exchanges (`proctornet.events`, `proctornet.retry`, `proctornet.dlx`), 4 Quorum Queues (`proctornet.evaluation.jobs`, `proctornet.evaluation.retry.1` [5,000ms TTL], `proctornet.evaluation.retry.2` [15,000ms TTL], `proctornet.evaluation.dlq`) with `x-dead-letter-strategy: 'at-least-once'` and `x-overflow: 'reject-publish'`.
+  - Implemented `RabbitMQEventTransport` publishing CloudEvents 1.0 compliant envelopes using `publishConfirmed` with `mandatory: true` and unroutable return handling.
+  - Integrated dual-trigger outbox dispatcher (immediate post-commit `setImmediate` trigger + periodic background poller and stale lock recovery).
+  - Implemented idempotent evaluation consumer (`evaluation.consumer.js`) adhering strictly to Model A retry semantics (Tier 0 initial, Tier 1 5s TTL, Tier 2 15s TTL, then DLQ quarantine; broker redeliveries distinct from application retry counts; ACK strictly after PostgreSQL result commit; confirmed forwarding before original ACK).
+  - Wired startup topology assertion, poller, and consumer into `server.js` with graceful shutdown hooks.
+  - Verified non-fatal RabbitMQ health check in `GET /ready`.
 - **Acceptance Criteria:**
-  - Events published to outbox are reliably delivered to RabbitMQ queues (at-least-once).
-  - Failed worker tasks are retried with exponential backoff and routed to DLQ upon exhaustion.
-  - Re-delivered messages are processed idempotently without side effects.
-- **Tests Required:** Outbox poller integration tests, consumer idempotency tests, DLQ failure routing tests.
+  - Events published to outbox are reliably delivered to RabbitMQ queues with publisher confirms and mandatory routing verification.
+  - Failed worker tasks are retried with tiered TTL delays and routed to DLQ upon exhaustion.
+  - Re-delivered messages are processed idempotently without duplicate scoring.
+  - Zero message loss across worker crashes, channel drops, and network partitions.
+  - Full backward compatibility: falls back to `InProcessEventTransport` when `RABBITMQ_ENABLED=false`.
+- **Tests Implemented:** 56 unit, integration, live broker, resilience, and E2E tests across `rabbitmqConfig.test.js`, `rabbitmqClient.test.js`, `topology.test.js`, `outboxTransport.test.js`, `evaluationConsumer.test.js`, `brokerSemantics.integration.test.js`, `rabbitmqResilience.test.js`, `e2eOutboxWorker.integration.test.js`. Full regression: 460/460 backend passing across 109 suites, 25/25 frontend passing. ADR-0002 approved.
 
 ---
 

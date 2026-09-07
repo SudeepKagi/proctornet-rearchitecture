@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { checkDatabaseHealth } from '../infrastructure/postgres/pool.js';
 import { checkRedisHealth } from '../infrastructure/redis/client.js';
+import { checkRabbitMQHealth } from '../infrastructure/rabbitmq/client.js';
 
 export const healthRouter = Router();
 
@@ -19,13 +20,14 @@ healthRouter.get('/health', (_req, res) => {
 
 /**
  * Readiness Probe: Checks whether critical infrastructure dependencies (PostgreSQL) are reachable.
- * Redis health is non-fatal: if Redis is down, returns 200 READY with checks.redis = DOWN.
+ * Redis and RabbitMQ health are non-fatal: if Redis or RabbitMQ is down, returns 200 READY with DOWN status reported.
  * GET /ready
  */
 healthRouter.get('/ready', async (_req, res) => {
-  const [dbHealth, redisHealth] = await Promise.all([
+  const [dbHealth, redisHealth, rabbitmqHealth] = await Promise.all([
     checkDatabaseHealth(3000),
-    checkRedisHealth(2000)
+    checkRedisHealth(2000),
+    checkRabbitMQHealth(2000)
   ]);
 
   // PostgreSQL health is strictly mandatory for readiness
@@ -44,6 +46,14 @@ healthRouter.get('/ready', async (_req, res) => {
     checks.redis = { status: 'UP', latencyMs: redisHealth.latencyMs };
   } else {
     checks.redis = { status: 'DOWN', error: redisHealth.error };
+  }
+
+  if (rabbitmqHealth.status === 'DISABLED') {
+    checks.rabbitmq = { status: 'DISABLED', error: rabbitmqHealth.error };
+  } else if (rabbitmqHealth.healthy) {
+    checks.rabbitmq = { status: 'UP', latencyMs: rabbitmqHealth.latencyMs };
+  } else {
+    checks.rabbitmq = { status: 'DOWN', error: rabbitmqHealth.error };
   }
 
   res.status(statusCode).json({

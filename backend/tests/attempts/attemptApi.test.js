@@ -38,7 +38,7 @@ describe('Attempts REST API Endpoints (Integration)', () => {
     // 1. Create Users
     const faculty = await authService.register({
       name: 'Faculty API Tester',
-      email: `faculty_api_${Date.now()}@example.com`,
+      email: `faculty_api_att_${Date.now()}_${Math.random().toString(36).slice(2)}@example.com`,
       password: 'Password123!'
     });
     await query(`INSERT INTO user_roles (user_id, role) VALUES ($1, 'FACULTY') ON CONFLICT DO NOTHING;`, [faculty.userId]);
@@ -48,7 +48,7 @@ describe('Attempts REST API Endpoints (Integration)', () => {
 
     const admin = await authService.register({
       name: 'Admin API Tester',
-      email: `admin_api_${Date.now()}@example.com`,
+      email: `admin_api_att_${Date.now()}_${Math.random().toString(36).slice(2)}@example.com`,
       password: 'Password123!'
     });
     await query(`INSERT INTO user_roles (user_id, role) VALUES ($1, 'ADMIN') ON CONFLICT DO NOTHING;`, [admin.userId]);
@@ -58,7 +58,7 @@ describe('Attempts REST API Endpoints (Integration)', () => {
 
     const proctor = await authService.register({
       name: 'Proctor API Tester',
-      email: `proctor_api_${Date.now()}@example.com`,
+      email: `proctor_api_att_${Date.now()}_${Math.random().toString(36).slice(2)}@example.com`,
       password: 'Password123!'
     });
     await query(`INSERT INTO user_roles (user_id, role) VALUES ($1, 'INVIGILATOR') ON CONFLICT DO NOTHING;`, [proctor.userId]);
