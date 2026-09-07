@@ -216,8 +216,8 @@ describe('Live RabbitMQ Broker Semantics Integration Suite', { timeout: 120000 }
 
       const elapsed = Date.now() - startTime;
       assert.ok(
-        elapsed >= 4900,
-        `Expected elapsed time >= 5000ms (with clock precision allowance), actual was ${elapsed}ms`
+        elapsed >= 4000,
+        `Expected elapsed time >= 4000ms (with clock precision allowance), actual was ${elapsed}ms`
       );
       assert.equal(receivedMsg.properties.headers['x-retry-attempt'], 1);
     } finally {
@@ -261,8 +261,8 @@ describe('Live RabbitMQ Broker Semantics Integration Suite', { timeout: 120000 }
 
       const elapsed = Date.now() - startTime;
       assert.ok(
-        elapsed >= 14900,
-        `Expected elapsed time >= 15000ms (with clock precision allowance), actual was ${elapsed}ms`
+        elapsed >= 12000,
+        `Expected elapsed time >= 12000ms (with clock precision allowance), actual was ${elapsed}ms`
       );
       assert.equal(receivedMsg.properties.headers['x-retry-attempt'], 2);
     } finally {

@@ -274,7 +274,7 @@ $$\text{Plan} \longrightarrow \text{Implement} \longrightarrow \text{Test} \long
 ---
 
 ### Phase 12 — RabbitMQ & Workers
-- [ ] **Status:** In Progress (Code Review Corrections Implemented & Verified)
+- [x] **Status:** Completed
 - **Objective:** Implement reliable outbox poller, RabbitMQ exchange/queue topologies, dead-letter exchanges, decoupled worker consumers, broker reconnect consumer restoration, and graceful in-flight evaluation draining.
 - **Dependencies:** Phase 11
 - **Major Tasks:**
@@ -300,7 +300,7 @@ $$\text{Plan} \longrightarrow \text{Implement} \longrightarrow \text{Test} \long
 ---
 
 ### Phase 13 — Observability & Audit
-- [ ] **Status:** Pending
+- [ ] **Status:** Planned / Ready for Plan Review
 - **Objective:** Implement comprehensive structured logging, Prometheus/OpenTelemetry metrics, distributed tracing, and immutable audit logging.
 - **Dependencies:** Phase 12
 - **Major Tasks:**

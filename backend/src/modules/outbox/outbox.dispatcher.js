@@ -8,6 +8,7 @@
 import { getPool } from '../../infrastructure/postgres/pool.js';
 import { logger } from '../../utils/logger.js';
 import * as outboxRepo from './outbox.repository.js';
+import { outboxBacklogTotal, outboxDispatchDuration } from '../../infrastructure/metrics/registry.js';
 
 export class OutboxDispatcher {
   /**
@@ -42,6 +43,7 @@ export class OutboxDispatcher {
       return { claimed: 0, published: 0, failed: 0 };
     }
 
+    const dispatchStart = process.hrtime.bigint();
     this.isDispatching = true;
     const pool = getPool();
     const client = await pool.connect();
@@ -55,6 +57,7 @@ export class OutboxDispatcher {
 
       if (claimedEvents.length === 0) {
         await client.query('ROLLBACK');
+        this.updateBacklogMetrics().catch(() => {});
         return { claimed: 0, published: 0, failed: 0 };
       }
 
@@ -118,11 +121,38 @@ export class OutboxDispatcher {
       }
     }
 
+    const durationSec = Number(process.hrtime.bigint() - dispatchStart) / 1e9;
+    try {
+      const transportName = this.eventTransport?.constructor?.name === 'RabbitMQEventTransport' ? 'rabbitmq' : 'in_process';
+      outboxDispatchDuration.observe({ transport: transportName }, durationSec);
+    } catch {}
+
+    this.updateBacklogMetrics().catch(() => {});
+
     return {
       claimed: claimedEvents.length,
       published: publishedCount,
       failed: failedCount
     };
+  }
+
+  /**
+   * Updates Prometheus outbox backlog gauges asynchronously.
+   * @returns {Promise<void>}
+   */
+  async updateBacklogMetrics() {
+    try {
+      const counts = await outboxRepo.getOutboxBacklogCounts();
+      const statusMap = { PENDING: 0, PROCESSING: 0, FAILED: 0 };
+      for (const row of counts) {
+        statusMap[row.status] = Number(row.count) || 0;
+      }
+      outboxBacklogTotal.set({ status: 'PENDING' }, statusMap.PENDING);
+      outboxBacklogTotal.set({ status: 'PROCESSING' }, statusMap.PROCESSING);
+      outboxBacklogTotal.set({ status: 'RETRYABLE' }, statusMap.FAILED);
+    } catch {
+      // Metric update must not fail dispatcher
+    }
   }
 
   /**

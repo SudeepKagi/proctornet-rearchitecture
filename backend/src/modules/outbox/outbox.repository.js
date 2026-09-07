@@ -176,3 +176,18 @@ export async function insertOutboxEvent(event, client = null) {
   const result = await executor(sql, params);
   return result.rows[0];
 }
+
+/**
+ * Retrieves aggregate outbox backlog counts grouped by status.
+ * @returns {Promise<Array<{ status: string, count: number }>>}
+ */
+export async function getOutboxBacklogCounts() {
+  const sql = `
+    SELECT status, COUNT(*)::int AS count
+    FROM outbox_events
+    WHERE status IN ('PENDING', 'PROCESSING', 'FAILED')
+    GROUP BY status;
+  `;
+  const result = await query(sql);
+  return result.rows;
+}

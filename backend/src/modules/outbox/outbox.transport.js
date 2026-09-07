@@ -140,15 +140,24 @@ export class RabbitMQEventTransport extends EventTransport {
     const content = Buffer.from(JSON.stringify(envelope));
     const messageId = event.event_id;
 
+    const payloadData = envelope.data || {};
+    const traceparent = payloadData.traceparent || (typeof event.traceparent === 'string' ? event.traceparent : undefined);
+    const correlationId = payloadData.correlationId || payloadData.requestId || event.event_id;
+
+    const headers = {
+      'x-retry-attempt': 0,
+      'x-correlation-id': correlationId
+    };
+    if (traceparent) {
+      headers.traceparent = traceparent;
+    }
+
     return publishConfirmed(channel, this.exchange, this.routingKey, content, {
       messageId,
       contentType: 'application/json',
       contentEncoding: 'utf-8',
       timestamp: Math.floor(new Date(event.created_at || Date.now()).getTime() / 1000),
-      headers: {
-        'x-retry-attempt': 0,
-        'x-correlation-id': event.event_id
-      }
+      headers
     });
   }
 }

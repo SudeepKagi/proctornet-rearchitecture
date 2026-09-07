@@ -5,6 +5,7 @@
  */
 
 import { query } from '../../infrastructure/postgres/pool.js';
+import { createAuditLog as createCentralAuditLog } from '../audit/audit.repository.js';
 
 /**
  * Finds an exam attempt by ID with row locking (FOR UPDATE) inside a transaction.
@@ -178,30 +179,7 @@ export async function insertOutboxEvent(event, client) {
  * @returns {Promise<object>}
  */
 export async function createAuditLog(auditData, client) {
-  const sql = `
-    INSERT INTO audit_logs (
-      actor_user_id,
-      action,
-      resource_type,
-      resource_id,
-      attempt_id,
-      timestamp,
-      request_id,
-      metadata
-    ) VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, $6, $7)
-    RETURNING *;
-  `;
-  const params = [
-    auditData.actorUserId,
-    auditData.action,
-    auditData.resourceType,
-    auditData.resourceId,
-    auditData.attemptId || null,
-    auditData.requestId || null,
-    JSON.stringify(auditData.metadata || {})
-  ];
-  const result = await client.query(sql, params);
-  return result.rows[0];
+  return createCentralAuditLog(auditData, client);
 }
 
 /**

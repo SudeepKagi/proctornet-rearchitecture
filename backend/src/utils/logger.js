@@ -12,7 +12,14 @@ const sensitiveKeys = [
   'apiKey',
   'secret',
   'req.headers.authorization',
-  'req.headers.cookie'
+  'req.headers.cookie',
+  'selected_option_id',
+  'selectedOptionId',
+  'answer_text',
+  'answerText',
+  'numeric_value',
+  'numericValue',
+  'answers'
 ];
 
 /**

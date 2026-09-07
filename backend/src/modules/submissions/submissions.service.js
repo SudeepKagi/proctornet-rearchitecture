@@ -135,7 +135,9 @@ export async function finalizeAttempt(
           attempt_id: attempt.attempt_id,
           session_id: attempt.session_id,
           student_id: attempt.student_id,
-          submitted_at: updatedAttempt.submitted_at || new Date().toISOString()
+          submitted_at: updatedAttempt.submitted_at || new Date().toISOString(),
+          correlationId: requestId || metadata?.requestId,
+          traceparent: metadata?.traceparent
         }
       },
       client
@@ -206,9 +208,10 @@ export async function finalizeAttempt(
  * @param {object} body - { answers?: Array<{ attempt_question_id, answer_value, expected_revision }> }
  * @param {object} user - Authenticated user context { userId, roles }
  * @param {string} [requestId=null]
+ * @param {string} [traceparent=null]
  * @returns {Promise<object>}
  */
-export async function submitAttempt(attemptId, idempotencyKey, body, user, requestId = null) {
+export async function submitAttempt(attemptId, idempotencyKey, body, user, requestId = null, traceparent = null) {
   // 1. Validate Idempotency-Key
   if (!idempotencyKey || typeof idempotencyKey !== 'string' || idempotencyKey.trim().length === 0) {
     throw new BadRequestError('Idempotency-Key header is required for exam submission', 'MISSING_IDEMPOTENCY_KEY');
@@ -399,7 +402,8 @@ export async function submitAttempt(attemptId, idempotencyKey, body, user, reque
       AttemptStatus.SUBMITTED,
       'Candidate voluntarily submitted exam attempt',
       user.userId,
-      requestId
+      requestId,
+      { traceparent }
     );
 
     // 11. Build Response Payload

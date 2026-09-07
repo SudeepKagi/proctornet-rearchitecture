@@ -2,6 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import request from 'supertest';
 import { app } from '../src/app.js';
+import { config } from '../src/config/env.js';
 
 describe('Express Application Setup & Middleware', () => {
   it('should include Helmet security headers in HTTP responses', async () => {
@@ -14,13 +15,14 @@ describe('Express Application Setup & Middleware', () => {
   });
 
   it('should handle CORS preflight requests correctly', async () => {
+    const expectedOrigin = config.CORS_ORIGIN;
     const res = await request(app)
       .options('/health')
-      .set('Origin', 'http://localhost:3000')
+      .set('Origin', expectedOrigin)
       .set('Access-Control-Request-Method', 'GET');
 
     assert.equal(res.status, 204);
-    assert.equal(res.headers['access-control-allow-origin'], 'http://localhost:3000');
+    assert.equal(res.headers['access-control-allow-origin'], expectedOrigin);
   });
 
   it('should return 404 for undefined routes using centralized error format', async () => {

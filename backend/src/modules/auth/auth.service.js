@@ -16,6 +16,7 @@ import {
 } from './token.service.js';
 import { blacklistSession } from './tokenBlacklist.js';
 import * as authRepo from './auth.repository.js';
+import { recordAuditEvent } from '../audit/audit.service.js';
 
 // Generic failure message to prevent account enumeration
 const INVALID_CREDENTIALS_MSG = 'Invalid email or password';
@@ -76,12 +77,36 @@ export async function login({ email, password, userAgent, ipAddress }) {
   if (!user) {
     // Perform dummy verify to mitigate timing attacks against non-existent accounts
     await verifyPassword(password, '$2b$10$abcdefghijklmnopqrstuvwxyzABCDEF12345678901234567890123');
+    await recordAuditEvent({
+      actorUserId: null,
+      action: 'AUTH_LOGIN_FAILURE',
+      resourceType: 'USER',
+      resourceId: 'UNKNOWN',
+      metadata: {
+        attemptedEmail: normalizedEmail,
+        ip: ipAddress,
+        userAgent,
+        reason: 'USER_NOT_FOUND'
+      }
+    }).catch(() => {});
     throw new UnauthorizedError(INVALID_CREDENTIALS_MSG);
   }
 
   // 1. Check if account is DISABLED (generic error to prevent account enumeration)
   if (user.status === 'DISABLED') {
     logger.warn({ userId: user.user_id }, 'Login attempt on disabled account');
+    await recordAuditEvent({
+      actorUserId: user.user_id,
+      action: 'AUTH_LOGIN_FAILURE',
+      resourceType: 'USER',
+      resourceId: user.user_id,
+      metadata: {
+        email: normalizedEmail,
+        ip: ipAddress,
+        userAgent,
+        reason: 'ACCOUNT_DISABLED'
+      }
+    }).catch(() => {});
     throw new UnauthorizedError(INVALID_CREDENTIALS_MSG);
   }
 
@@ -89,6 +114,19 @@ export async function login({ email, password, userAgent, ipAddress }) {
   const now = new Date();
   if (user.status === 'LOCKED' || (user.locked_until && new Date(user.locked_until) > now)) {
     logger.warn({ userId: user.user_id, lockedUntil: user.locked_until }, 'Login attempt on locked account');
+    await recordAuditEvent({
+      actorUserId: user.user_id,
+      action: 'AUTH_LOGIN_FAILURE',
+      resourceType: 'USER',
+      resourceId: user.user_id,
+      metadata: {
+        email: normalizedEmail,
+        ip: ipAddress,
+        userAgent,
+        reason: 'ACCOUNT_LOCKED',
+        lockedUntil: user.locked_until
+      }
+    }).catch(() => {});
     throw new UnauthorizedError('Account is temporarily locked due to repeated failed login attempts. Please try again later.');
   }
 
@@ -108,7 +146,35 @@ export async function login({ email, password, userAgent, ipAddress }) {
       'Failed password authentication attempt'
     );
 
+    await recordAuditEvent({
+      actorUserId: user.user_id,
+      action: 'AUTH_LOGIN_FAILURE',
+      resourceType: 'USER',
+      resourceId: user.user_id,
+      metadata: {
+        email: normalizedEmail,
+        ip: ipAddress,
+        userAgent,
+        reason: 'INVALID_CREDENTIALS',
+        failedAttempts
+      }
+    }).catch(() => {});
+
     if (isLocked) {
+      await recordAuditEvent({
+        actorUserId: user.user_id,
+        action: 'AUTH_LOCKOUT_TRIGGERED',
+        resourceType: 'USER',
+        resourceId: user.user_id,
+        metadata: {
+          email: normalizedEmail,
+          ip: ipAddress,
+          userAgent,
+          failedAttempts,
+          lockoutDurationMinutes: config.AUTH_LOCKOUT_DURATION_MINUTES
+        }
+      }).catch(() => {});
+
       throw new UnauthorizedError('Account is temporarily locked due to repeated failed login attempts. Please try again later.');
     }
 
@@ -147,6 +213,20 @@ export async function login({ email, password, userAgent, ipAddress }) {
     userId: user.user_id,
     roles,
     sessionId: session.session_id
+  });
+
+  await recordAuditEvent({
+    actorUserId: user.user_id,
+    action: 'AUTH_LOGIN_SUCCESS',
+    resourceType: 'USER',
+    resourceId: user.user_id,
+    metadata: {
+      ip: ipAddress,
+      userAgent,
+      sessionId: session.session_id
+    }
+  }).catch((err) => {
+    logger.error({ err, userId: user.user_id }, 'Failed to record AUTH_LOGIN_SUCCESS audit event');
   });
 
   logger.info({ userId: user.user_id, sessionId: session.session_id }, 'User logged in successfully');
@@ -274,6 +354,13 @@ export async function logout({ sessionId, refreshToken }) {
   if (sessionId) {
     await authRepo.revokeSession(sessionId);
     await blacklistSession(sessionId);
+    await recordAuditEvent({
+      actorUserId: null,
+      action: 'AUTH_LOGOUT',
+      resourceType: 'SESSION',
+      resourceId: sessionId,
+      metadata: { sessionId }
+    }).catch(() => {});
     logger.info({ sessionId }, 'User logged out and session revoked');
     return;
   }
@@ -285,6 +372,13 @@ export async function logout({ sessionId, refreshToken }) {
       if (session) {
         await authRepo.revokeSession(session.session_id);
         await blacklistSession(session.session_id);
+        await recordAuditEvent({
+          actorUserId: session.user_id,
+          action: 'AUTH_LOGOUT',
+          resourceType: 'SESSION',
+          resourceId: session.session_id,
+          metadata: { sessionId: session.session_id }
+        }).catch(() => {});
         logger.info({ sessionId: session.session_id }, 'Session revoked via refresh token on logout');
       }
     } catch {
@@ -300,6 +394,13 @@ export async function logout({ sessionId, refreshToken }) {
  */
 export async function revokeAllSessions(userId) {
   await authRepo.revokeAllUserSessions(userId);
+  await recordAuditEvent({
+    actorUserId: userId,
+    action: 'AUTH_SESSION_REVOKED',
+    resourceType: 'USER',
+    resourceId: userId,
+    metadata: { reason: 'ALL_SESSIONS_REVOKED' }
+  }).catch(() => {});
   logger.info({ userId }, 'All user sessions revoked');
 }
 

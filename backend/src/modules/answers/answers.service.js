@@ -16,6 +16,7 @@ import { AttemptStatus } from '../../domain/attempt/attemptStates.js';
 import { transitionAttemptState } from '../../domain/attempt/attemptStateMachine.js';
 import * as answersRepo from './answers.repository.js';
 import { finalizeAttempt } from '../submissions/submissions.service.js';
+import { answerSaveDuration, answerRevisionsConflictTotal } from '../../infrastructure/metrics/registry.js';
 
 /**
  * Checks if two answer payloads are semantically identical.
@@ -168,6 +169,7 @@ async function assertActiveAndValidDeadline(attempt, client, actorUserId, reques
  * @returns {Promise<object>} Saved answer record
  */
 export async function saveAnswer(attemptId, attemptQuestionId, data, user, requestId = null) {
+  const saveStart = process.hrtime.bigint();
   const { answer_value, expected_revision } = data;
   const pool = getPool();
   const client = await pool.connect();
@@ -209,6 +211,9 @@ export async function saveAnswer(attemptId, attemptQuestionId, data, user, reque
     if (!existingAnswer) {
       // Unanswered question -> expected_revision MUST be 0
       if (expected_revision !== 0) {
+        try {
+          answerRevisionsConflictTotal.inc({ conflict_type: 'revision_mismatch' });
+        } catch {}
         throw new ConflictError(
           `Stale revision conflict: Question is currently unanswered (expected_revision MUST be 0, received ${expected_revision})`,
           'STALE_REVISION_CONFLICT'
@@ -224,6 +229,9 @@ export async function saveAnswer(attemptId, attemptQuestionId, data, user, reque
         // Normal save: increment revision K -> K + 1
         resultRecord = await answersRepo.updateAnswer(attemptQuestionId, answer_value, expected_revision, client);
         if (!resultRecord) {
+          try {
+            answerRevisionsConflictTotal.inc({ conflict_type: 'revision_mismatch' });
+          } catch {}
           throw new ConflictError(
             `Stale revision conflict: Answer revision changed concurrently`,
             'STALE_REVISION_CONFLICT'
@@ -234,6 +242,9 @@ export async function saveAnswer(attemptId, attemptQuestionId, data, user, reque
         resultRecord = existingAnswer;
       } else {
         // Stale or future revision mismatch
+        try {
+          answerRevisionsConflictTotal.inc({ conflict_type: 'revision_mismatch' });
+        } catch {}
         throw new ConflictError(
           `Stale revision conflict: Current server revision is ${currentRevision}, but expected_revision was ${expected_revision}`,
           'STALE_REVISION_CONFLICT'
@@ -242,6 +253,11 @@ export async function saveAnswer(attemptId, attemptQuestionId, data, user, reque
     }
 
     await client.query('COMMIT');
+
+    const durationSec = Number(process.hrtime.bigint() - saveStart) / 1e9;
+    try {
+      answerSaveDuration.observe({ status: 'success' }, durationSec);
+    } catch {}
 
     const serverNow = new Date(attempt.server_now).toISOString();
 
@@ -255,6 +271,11 @@ export async function saveAnswer(attemptId, attemptQuestionId, data, user, reque
     };
   } catch (err) {
     await client.query('ROLLBACK');
+    const durationSec = Number(process.hrtime.bigint() - saveStart) / 1e9;
+    try {
+      const status = err instanceof ConflictError ? 'conflict' : 'error';
+      answerSaveDuration.observe({ status }, durationSec);
+    } catch {}
     throw err;
   } finally {
     client.release();
@@ -349,6 +370,7 @@ export async function clearAnswer(attemptId, attemptQuestionId, data, user, requ
  * @returns {Promise<object>} Batch save result summary
  */
 export async function batchSaveAnswers(attemptId, data, user, requestId = null) {
+  const batchStart = process.hrtime.bigint();
   const { answers } = data;
 
   // Defensive validation against duplicate attempt_question_id values
@@ -430,6 +452,9 @@ export async function batchSaveAnswers(attemptId, data, user, requestId = null) 
 
       if (!existingAnswer) {
         if (item.expected_revision !== 0) {
+          try {
+            answerRevisionsConflictTotal.inc({ conflict_type: 'revision_mismatch' });
+          } catch {}
           throw new ConflictError(
             `Stale revision conflict on question '${item.attempt_question_id}': Currently unanswered (expected_revision MUST be 0, received ${item.expected_revision})`,
             'STALE_REVISION_CONFLICT'
@@ -447,6 +472,9 @@ export async function batchSaveAnswers(attemptId, data, user, requestId = null) 
             client
           );
           if (!savedRecord) {
+            try {
+              answerRevisionsConflictTotal.inc({ conflict_type: 'revision_mismatch' });
+            } catch {}
             throw new ConflictError(
               `Stale revision conflict on question '${item.attempt_question_id}': Concurrently modified`,
               'STALE_REVISION_CONFLICT'
@@ -458,6 +486,9 @@ export async function batchSaveAnswers(attemptId, data, user, requestId = null) 
         ) {
           savedRecord = existingAnswer;
         } else {
+          try {
+            answerRevisionsConflictTotal.inc({ conflict_type: 'revision_mismatch' });
+          } catch {}
           throw new ConflictError(
             `Stale revision conflict on question '${item.attempt_question_id}': Server revision is ${currentRevision}, but expected_revision was ${item.expected_revision}`,
             'STALE_REVISION_CONFLICT'
@@ -469,6 +500,11 @@ export async function batchSaveAnswers(attemptId, data, user, requestId = null) 
     }
 
     await client.query('COMMIT');
+
+    const durationSec = Number(process.hrtime.bigint() - batchStart) / 1e9;
+    try {
+      answerSaveDuration.observe({ status: 'success' }, durationSec);
+    } catch {}
 
     const serverNow = new Date(attempt.server_now).toISOString();
 
@@ -485,6 +521,11 @@ export async function batchSaveAnswers(attemptId, data, user, requestId = null) 
     };
   } catch (err) {
     await client.query('ROLLBACK');
+    const durationSec = Number(process.hrtime.bigint() - batchStart) / 1e9;
+    try {
+      const status = err instanceof ConflictError ? 'conflict' : 'error';
+      answerSaveDuration.observe({ status }, durationSec);
+    } catch {}
     throw err;
   } finally {
     client.release();

@@ -30,7 +30,8 @@ export async function submitAttempt(req, res, next) {
       idempotencyKey.trim(),
       body,
       req.user,
-      req.id
+      req.id,
+      req.traceparent
     );
 
     return res.status(200).json({

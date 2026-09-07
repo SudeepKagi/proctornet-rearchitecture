@@ -16,6 +16,7 @@ import { TOPOLOGY, assertTopology } from '../../infrastructure/rabbitmq/topology
 import { evaluateAttempt } from './evaluation.service.js';
 import { evaluationWorker } from './evaluation.worker.js';
 import * as evaluationRepo from './evaluation.repository.js';
+import { workerEvaluationsTotal, workerEvaluationDuration } from '../../infrastructure/metrics/registry.js';
 
 let activeConsumerTag = null;
 let activeConsumerChannel = null;
@@ -239,6 +240,7 @@ export async function handleEvaluationMessage(msg, channel, worker = evaluationW
     } catch (err) {
       logger.error({ err: err.message }, 'Poison message: malformed JSON. Forwarding to DLQ.');
       try {
+        workerEvaluationsTotal.inc({ outcome: 'dlq' });
         await forwardToDlq(channel, msg, 'MALFORMED_JSON', err.message);
         channel.ack(msg); // ACK original ONLY after confirmed forward
       } catch (forwardErr) {
@@ -248,15 +250,21 @@ export async function handleEvaluationMessage(msg, channel, worker = evaluationW
       return;
     }
 
+    const evalStart = process.hrtime.bigint();
+    const traceparent = msg.properties?.headers?.traceparent;
+    const correlationId = msg.properties?.headers?.['x-correlation-id'];
+    const jobLog = logger.child({ traceparent, correlationId });
+
     // 2. Poison check: Schema validation
     const attemptId = envelope?.data?.attemptId || envelope?.data?.attempt_id;
     if (!isValidUuid(attemptId)) {
-      logger.error({ envelope }, 'Poison message: missing or invalid attemptId UUID. Forwarding to DLQ.');
+      jobLog.error({ envelope }, 'Poison message: missing or invalid attemptId UUID. Forwarding to DLQ.');
       try {
+        workerEvaluationsTotal.inc({ outcome: 'dlq' });
         await forwardToDlq(channel, msg, 'INVALID_ATTEMPT_ID', 'Missing or invalid attemptId UUID');
         channel.ack(msg); // ACK original ONLY after confirmed forward
       } catch (forwardErr) {
-        logger.error({ forwardErr: forwardErr.message }, 'Failed to forward poison message to DLQ; leaving unacknowledged.');
+        jobLog.error({ forwardErr: forwardErr.message }, 'Failed to forward poison message to DLQ; leaving unacknowledged.');
         throw forwardErr;
       }
       return;
@@ -266,12 +274,13 @@ export async function handleEvaluationMessage(msg, channel, worker = evaluationW
     try {
       const existingResult = await repo.findResultByAttemptId(attemptId);
       if (existingResult) {
-        logger.info({ attemptId }, 'Attempt already evaluated. Acknowledging duplicate delivery.');
+        jobLog.info({ attemptId }, 'Attempt already evaluated. Acknowledging duplicate delivery.');
+        try { workerEvaluationsTotal.inc({ outcome: 'duplicate' }); } catch {}
         channel.ack(msg);
         return;
       }
     } catch (repoErr) {
-      logger.error({ repoErr: repoErr.message, attemptId }, 'Error checking result idempotency; leaving message unacknowledged');
+      jobLog.error({ repoErr: repoErr.message, attemptId }, 'Error checking result idempotency; leaving message unacknowledged');
       throw repoErr;
     }
 
@@ -285,31 +294,38 @@ export async function handleEvaluationMessage(msg, channel, worker = evaluationW
       const result = await evaluator(attemptId);
       // CRITICAL INVARIANT: Send ACK strictly AFTER PostgreSQL result transaction commits
       channel.ack(msg);
-      logger.info({ attemptId, resultId: result?.result_id || result?.resultId }, 'Evaluation completed and acknowledged.');
+      const durationSec = Number(process.hrtime.bigint() - evalStart) / 1e9;
+      try {
+        workerEvaluationsTotal.inc({ outcome: 'success' });
+        workerEvaluationDuration.observe({ outcome: 'success' }, durationSec);
+      } catch {}
+      jobLog.info({ attemptId, resultId: result?.result_id || result?.resultId }, 'Evaluation completed and acknowledged.');
     } catch (err) {
+      const durationSec = Number(process.hrtime.bigint() - evalStart) / 1e9;
+      try {
+        workerEvaluationDuration.observe({ outcome: 'failure' }, durationSec);
+      } catch {}
+
       if (isTransientError(err)) {
         // Stage-2 Bounded Delayed Retry Path
         try {
+          workerEvaluationsTotal.inc({ outcome: 'transient_retry' });
           await forwardToRetryPath(channel, msg, envelope, err);
           // CRITICAL INVARIANT: Original delivery acknowledged ONLY AFTER confirmed forwarding
           channel.ack(msg);
         } catch (forwardErr) {
-          logger.error({ forwardErr: forwardErr.message, attemptId }, 'Failed to publish to retry queue; leaving original delivery unacknowledged.');
-          // ACK SAFETY & TIMEOUT AMBIGUITY:
-          // publishConfirmed succeeds   -> ACK original
-          // publishConfirmed fails      -> DO NOT ACK original
-          // publishConfirmed times out  -> DO NOT ACK original (Outcome UNKNOWN: timed-out publish may have succeeded; duplicate retry safe via DB idempotency)
-          // channel/connection fails    -> DO NOT ACK original
+          jobLog.error({ forwardErr: forwardErr.message, attemptId }, 'Failed to publish to retry queue; leaving original delivery unacknowledged.');
           throw forwardErr;
         }
       } else {
         // Permanent / Non-transient failure (e.g. data corruption, illegal attempt state)
-        logger.error({ err: err.message, attemptId }, 'Permanent evaluation failure. Forwarding to DLQ.');
+        jobLog.error({ err: err.message, attemptId }, 'Permanent evaluation failure. Forwarding to DLQ.');
         try {
+          workerEvaluationsTotal.inc({ outcome: 'dlq' });
           await forwardToDlq(channel, msg, 'PERMANENT_ERROR', err.message);
           channel.ack(msg); // ACK original ONLY after confirmed forward
         } catch (forwardErr) {
-          logger.error({ forwardErr: forwardErr.message, attemptId }, 'Failed to forward permanent error to DLQ; leaving unacknowledged.');
+          jobLog.error({ forwardErr: forwardErr.message, attemptId }, 'Failed to forward permanent error to DLQ; leaving unacknowledged.');
           throw forwardErr;
         }
       }

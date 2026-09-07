@@ -9,6 +9,9 @@ export function requestLogger(req, res, next) {
     const durationMs = Number(endTime - startTime) / 1e6;
 
     const logData = {
+      requestId: req.requestId,
+      traceId: req.traceId,
+      spanId: req.spanId,
       method: req.method,
       url: req.originalUrl || req.url,
       statusCode: res.statusCode,

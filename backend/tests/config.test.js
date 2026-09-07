@@ -35,6 +35,8 @@ describe('Configuration Validation', () => {
     assert.equal(config.RABBITMQ_DISPATCH_INTERVAL_MS, 5000);
     assert.equal(config.RABBITMQ_CONNECT_TIMEOUT_MS, 5000);
     assert.equal(config.RABBITMQ_MANDATORY_TIMEOUT_MS, 5000);
+    assert.equal(config.METRICS_ENABLED, true);
+    assert.equal(config.METRICS_AUTH_TOKEN, undefined);
   });
 
   it('should accept custom Redis configuration', () => {

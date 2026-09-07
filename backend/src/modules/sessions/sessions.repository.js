@@ -4,6 +4,7 @@
  */
 
 import { query, getPool } from '../../infrastructure/postgres/pool.js';
+import { createAuditLog as createCentralAuditLog } from '../audit/audit.repository.js';
 
 /**
  * Inserts a new exam session record.
@@ -447,12 +448,8 @@ export async function createAuditLog(
   { actorUserId, action, resourceType, resourceId, requestId = null, metadata = {} },
   client = null
 ) {
-  const text = `
-    INSERT INTO audit_logs (actor_user_id, action, resource_type, resource_id, request_id, metadata)
-    VALUES ($1, $2, $3, $4, $5, $6)
-    RETURNING audit_id, actor_user_id, action, resource_type, resource_id, timestamp;
-  `;
-  const params = [actorUserId, action, resourceType, resourceId, requestId, JSON.stringify(metadata)];
-  const res = client ? await client.query(text, params) : await query(text, params);
-  return res.rows[0];
+  return createCentralAuditLog(
+    { actorUserId, action, resourceType, resourceId, requestId, metadata },
+    client
+  );
 }
