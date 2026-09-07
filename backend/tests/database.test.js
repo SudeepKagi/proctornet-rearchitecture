@@ -43,7 +43,7 @@ describe('Database Migrations & Schema Integrity', () => {
     it('should contain all expected migration files in sequence', () => {
       const files = fs.readdirSync(migrationsDir).filter((f) => f.endsWith('.js')).sort();
 
-      assert.equal(files.length, 14, 'Expected exactly 14 migration files');
+      assert.equal(files.length, 15, 'Expected exactly 15 migration files');
       assert.match(files[0], /001_extensions\.js$/);
       assert.match(files[1], /002_users_and_roles\.js$/);
       assert.match(files[2], /003_subjects_and_topics\.js$/);
@@ -58,6 +58,7 @@ describe('Database Migrations & Schema Integrity', () => {
       assert.match(files[11], /012_exam_ownership_and_subject\.js$/);
       assert.match(files[12], /013_outbox_and_idempotency\.js$/);
       assert.match(files[13], /014_results_publication_and_visibility\.js$/);
+      assert.match(files[14], /015_audit_immutability\.js$/);
     });
 
     it('should export up and down functions for every migration file', async () => {

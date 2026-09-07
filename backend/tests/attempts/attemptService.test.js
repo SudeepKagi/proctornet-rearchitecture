@@ -487,9 +487,9 @@ describe('Attempts Service & Question Mapping Invariants', () => {
       assert.equal(dbRow.rows[0].status, AttemptStatus.EXPIRED);
 
       // Cleanup
-      await query(`DELETE FROM exam_attempts WHERE attempt_id = $1;`, [expiredAttemptId]);
-      await query(`DELETE FROM session_students WHERE session_id = $1;`, [expSession.session_id]);
-      await query(`DELETE FROM exam_sessions WHERE session_id = $1;`, [expSession.session_id]);
+      await query(`DELETE FROM exam_attempts WHERE attempt_id = $1;`, [expiredAttemptId]).catch(() => {});
+      await query(`DELETE FROM session_students WHERE session_id = $1;`, [expSession.session_id]).catch(() => {});
+      await query(`DELETE FROM exam_sessions WHERE session_id = $1;`, [expSession.session_id]).catch(() => {});
     });
   });
 
@@ -539,11 +539,11 @@ describe('Attempts Service & Question Mapping Invariants', () => {
       assert.equal(dbMappings.rows[0].count, 5);
 
       // Cleanup
-      await query(`DELETE FROM attempt_questions WHERE attempt_id = $1;`, [primaryAttemptId]);
-      await query(`DELETE FROM exam_attempts WHERE attempt_id = $1;`, [primaryAttemptId]);
-      await query(`DELETE FROM session_students WHERE session_id = $1 AND student_id = $2;`, [activeSession.session_id, concStudent.userId]);
-      await query(`DELETE FROM user_roles WHERE user_id = $1;`, [concStudent.userId]);
-      await query(`DELETE FROM users WHERE user_id = $1;`, [concStudent.userId]);
+      await query(`DELETE FROM attempt_questions WHERE attempt_id = $1;`, [primaryAttemptId]).catch(() => {});
+      await query(`DELETE FROM exam_attempts WHERE attempt_id = $1;`, [primaryAttemptId]).catch(() => {});
+      await query(`DELETE FROM session_students WHERE session_id = $1 AND student_id = $2;`, [activeSession.session_id, concStudent.userId]).catch(() => {});
+      await query(`DELETE FROM user_roles WHERE user_id = $1;`, [concStudent.userId]).catch(() => {});
+      await query(`DELETE FROM users WHERE user_id = $1;`, [concStudent.userId]).catch(() => {});
     });
   });
 });

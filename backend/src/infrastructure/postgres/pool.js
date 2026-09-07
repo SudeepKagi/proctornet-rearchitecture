@@ -1,6 +1,7 @@
 import pg from 'pg';
 import { config } from '../../config/env.js';
 import { logger } from '../../utils/logger.js';
+import { dbQueryDuration } from '../metrics/registry.js';
 
 const { Pool } = pg;
 
@@ -53,7 +54,13 @@ export async function query(text, params) {
   const pool = getPool();
   try {
     const res = await pool.query(text, params);
-    const durationMs = Number(process.hrtime.bigint() - start) / 1e6;
+    const durationSec = Number(process.hrtime.bigint() - start) / 1e9;
+    try {
+      dbQueryDuration.observe({ operation: 'query' }, durationSec);
+    } catch {
+      // Metric recording must not fail queries
+    }
+    const durationMs = durationSec * 1000;
     logger.debug(
       { query: text, rows: res.rowCount, durationMs: Number(durationMs.toFixed(2)) },
       'Executed database query'

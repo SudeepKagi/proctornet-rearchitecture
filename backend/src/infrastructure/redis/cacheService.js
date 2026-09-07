@@ -1,5 +1,6 @@
 import { getRedisClient } from './client.js';
 import { logger } from '../../utils/logger.js';
+import { redisOperationsTotal } from '../metrics/registry.js';
 
 /**
  * Cache-aside service providing safe, non-authoritative read acceleration.
@@ -18,10 +19,15 @@ export const cacheService = {
       if (!client) return null;
 
       const raw = await client.get(key);
-      if (raw === null || raw === undefined) return null;
+      if (raw === null || raw === undefined) {
+        try { redisOperationsTotal.inc({ operation: 'get', status: 'miss' }); } catch {}
+        return null;
+      }
 
       try {
-        return JSON.parse(raw);
+        const parsed = JSON.parse(raw);
+        try { redisOperationsTotal.inc({ operation: 'get', status: 'hit' }); } catch {}
+        return parsed;
       } catch (parseErr) {
         logger.warn(
           { key, err: parseErr.message },
@@ -31,6 +37,7 @@ export const cacheService = {
         client.del(key).catch((delErr) => {
           logger.warn({ key, err: delErr.message }, 'Failed to delete corrupt cache key');
         });
+        try { redisOperationsTotal.inc({ operation: 'get', status: 'miss' }); } catch {}
         return null;
       }
     } catch (err) {
@@ -38,6 +45,7 @@ export const cacheService = {
         { key, err: err.message },
         'Redis cache get failed; falling back to authoritative database'
       );
+      try { redisOperationsTotal.inc({ operation: 'get', status: 'error' }); } catch {}
       return null;
     }
   },
@@ -61,12 +69,14 @@ export const cacheService = {
 
       const serialized = JSON.stringify(value);
       await client.set(key, serialized, 'EX', Math.ceil(ttlSeconds));
+      try { redisOperationsTotal.inc({ operation: 'set', status: 'hit' }); } catch {}
       return true;
     } catch (err) {
       logger.warn(
         { key, err: err.message },
         'Redis cache set failed; continuing without caching'
       );
+      try { redisOperationsTotal.inc({ operation: 'set', status: 'error' }); } catch {}
       return false;
     }
   },
@@ -82,12 +92,14 @@ export const cacheService = {
       if (!client) return false;
 
       await client.del(key);
+      try { redisOperationsTotal.inc({ operation: 'del', status: 'hit' }); } catch {}
       return true;
     } catch (err) {
       logger.warn(
         { key, err: err.message },
         'Redis cache del failed; continuing'
       );
+      try { redisOperationsTotal.inc({ operation: 'del', status: 'error' }); } catch {}
       return false;
     }
   },

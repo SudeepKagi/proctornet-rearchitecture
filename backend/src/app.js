@@ -5,6 +5,7 @@ import cookieParser from 'cookie-parser';
 import { config } from './config/env.js';
 import { requestIdMiddleware } from './middleware/requestId.js';
 import { requestLogger } from './middleware/requestLogger.js';
+import { metricsMiddleware } from './middleware/metricsMiddleware.js';
 import { notFoundHandler } from './middleware/notFoundHandler.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { rootRouter } from './routes/index.js';
@@ -34,9 +35,10 @@ export function createApp() {
   app.use(express.json({ limit: '1mb' }));
   app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
-  // Request correlation tracking and structured request logging
+  // Request correlation tracking, structured request logging, and Prometheus metrics
   app.use(requestIdMiddleware);
   app.use(requestLogger);
+  app.use(metricsMiddleware);
 
   // Mount application routes
   app.use(rootRouter);

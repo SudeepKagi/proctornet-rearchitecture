@@ -2,6 +2,8 @@ import { Router } from 'express';
 import { checkDatabaseHealth } from '../infrastructure/postgres/pool.js';
 import { checkRedisHealth } from '../infrastructure/redis/client.js';
 import { checkRabbitMQHealth } from '../infrastructure/rabbitmq/client.js';
+import { config } from '../config/env.js';
+import { getMetrics, getContentType } from '../infrastructure/metrics/registry.js';
 
 export const healthRouter = Router();
 
@@ -61,4 +63,33 @@ healthRouter.get('/ready', async (_req, res) => {
     timestamp: new Date().toISOString(),
     checks
   });
+});
+
+/**
+ * Prometheus Metrics Scrape Endpoint
+ * GET /metrics
+ */
+healthRouter.get('/metrics', async (req, res) => {
+  if (!config.METRICS_ENABLED) {
+    return res.status(404).send('Metrics collection disabled');
+  }
+
+  // Optional scraper token authentication
+  const expectedToken = config.METRICS_AUTH_TOKEN || process.env.METRICS_AUTH_TOKEN;
+  if (expectedToken) {
+    const authHeader = req.headers['authorization'];
+    const expected = `Bearer ${expectedToken}`;
+    const tokenQuery = req.query?.token;
+    if (authHeader !== expected && tokenQuery !== expectedToken) {
+      return res.status(401).send('Unauthorized metrics scrape');
+    }
+  }
+
+  try {
+    const metricsData = await getMetrics();
+    res.setHeader('Content-Type', getContentType());
+    res.status(200).send(metricsData);
+  } catch (err) {
+    res.status(500).send('Error generating metrics');
+  }
 });

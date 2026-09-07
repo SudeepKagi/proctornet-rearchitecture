@@ -148,7 +148,7 @@ describe('Auth Service & Business Workflows (Integration)', () => {
         (err) => err instanceof UnauthorizedError && err.message === 'Invalid email or password'
       );
     } finally {
-      await query('DELETE FROM users WHERE user_id = $1', [user.userId]);
+      await query('DELETE FROM users WHERE user_id = $1', [user.userId]).catch(() => {});
     }
   });
 
@@ -181,7 +181,7 @@ describe('Auth Service & Business Workflows (Integration)', () => {
         (err) => err instanceof UnauthorizedError && err.message.includes('locked')
       );
     } finally {
-      await query('DELETE FROM users WHERE user_id = $1', [lockoutUser.userId]);
+      await query('DELETE FROM users WHERE user_id = $1', [lockoutUser.userId]).catch(() => {});
     }
   });
 
@@ -281,7 +281,7 @@ describe('Auth Service & Business Workflows (Integration)', () => {
           (err) => err instanceof UnauthorizedError && err.message.includes('locked')
         );
       } finally {
-        await query('DELETE FROM users WHERE user_id = $1', [user.userId]);
+        await query('DELETE FROM users WHERE user_id = $1', [user.userId]).catch(() => {});
       }
     });
 
@@ -304,7 +304,7 @@ describe('Auth Service & Business Workflows (Integration)', () => {
           (err) => err instanceof UnauthorizedError && err.message.includes('not active')
         );
       } finally {
-        await query('DELETE FROM users WHERE user_id = $1', [user.userId]);
+        await query('DELETE FROM users WHERE user_id = $1', [user.userId]).catch(() => {});
       }
     });
 

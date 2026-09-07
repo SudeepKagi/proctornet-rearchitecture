@@ -7,6 +7,8 @@ import { randomUUID } from 'node:crypto';
 import { AppError } from '../utils/errors.js';
 import { getRedisClient } from '../infrastructure/redis/client.js';
 import { logger } from '../utils/logger.js';
+import { rateLimitBlocksTotal } from '../infrastructure/metrics/registry.js';
+import { normalizeRoute } from './metricsMiddleware.js';
 
 export class TooManyRequestsError extends AppError {
   constructor(message = 'Too many requests. Please try again later.') {
@@ -154,6 +156,12 @@ export function createRateLimiter({
       res.setHeader('X-RateLimit-Remaining', String(Math.max(0, remaining)));
 
       if (!allowed) {
+        try {
+          const endpoint = normalizeRoute(req);
+          rateLimitBlocksTotal.inc({ endpoint });
+        } catch {
+          // Metric observation must not fail request handling
+        }
         res.setHeader('Retry-After', String(retryAfter));
         return next(new TooManyRequestsError(message));
       }

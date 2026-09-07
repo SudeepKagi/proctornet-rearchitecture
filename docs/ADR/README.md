@@ -63,4 +63,5 @@ How will this decision be enforced and validated in testing/CI?
 ## Index of Approved ADRs
 
 - [ADR-0001: Redis Non-Authoritative Caching, Sliding-Window Rate Limiting, and Resilience](0001-redis-non-authoritative-caching-and-resilience.md) — *Accepted (Phase 11)*
-- [ADR-0002: RabbitMQ Asynchronous Transport, Quorum Queue Delayed Retries, and Worker Idempotency](0002-rabbitmq-asynchronous-transport-and-worker-idempotency.md) — *Proposed (Phase 12)*
+- [ADR-0002: RabbitMQ Asynchronous Transport, Quorum Queue Delayed Retries, and Worker Idempotency](0002-rabbitmq-asynchronous-transport-and-worker-idempotency.md) — *Accepted (Phase 12)*
+- [ADR-0003: In-Process Prometheus Metrics, Distributed Trace Context Propagation, and Database-Enforced Audit Immutability](0003-observability-metrics-and-audit.md) — *Proposed (Phase 13)*

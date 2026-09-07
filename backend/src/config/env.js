@@ -150,7 +150,17 @@ const envSchema = z.object({
     .string()
     .regex(/^\d+$/)
     .transform(Number)
-    .default('5000')
+    .default('5000'),
+
+  // Metrics & Observability configuration
+  METRICS_ENABLED: z
+    .union([z.boolean(), z.enum(['true', 'false', '1', '0'])])
+    .default('true')
+    .transform((val) => (typeof val === 'boolean' ? val : val === 'true' || val === '1')),
+  METRICS_AUTH_TOKEN: z
+    .string()
+    .optional()
+    .transform((val) => (val && val.trim() !== '' ? val : undefined))
 });
 
 /**

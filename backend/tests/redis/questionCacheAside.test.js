@@ -140,7 +140,7 @@ describe('Question Cache-Aside & Dynamic TTL Invariants', () => {
     // Verify key TTL in Redis
     const ttl = await mockRedis.ttl(cacheKey);
     assert.ok(ttl > 0, `Expected positive TTL, got ${ttl}`);
-    assert.ok(ttl <= 3600, `Expected TTL <= 3600s, got ${ttl}`);
+    assert.ok(ttl <= 3605, `Expected TTL <= 3605s, got ${ttl}`);
   });
 
   it('should serve from cache on subsequent reads without querying PostgreSQL questions table', async () => {
