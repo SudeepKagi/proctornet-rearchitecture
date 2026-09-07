@@ -1,7 +1,7 @@
 # ADR-0003: In-Process Prometheus Metrics, Distributed Trace Context Propagation, and Database-Enforced Audit Immutability
 
 ## Status
-Proposed (Phase 13)
+Accepted (Phase 13)
 
 ## Date
 2026-09-08

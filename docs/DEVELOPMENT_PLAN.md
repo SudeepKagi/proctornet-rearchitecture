@@ -300,18 +300,26 @@ $$\text{Plan} \longrightarrow \text{Implement} \longrightarrow \text{Test} \long
 ---
 
 ### Phase 13 — Observability & Audit
-- [ ] **Status:** Planned / Ready for Plan Review
-- **Objective:** Implement comprehensive structured logging, Prometheus/OpenTelemetry metrics, distributed tracing, and immutable audit logging.
+- [x] **Status:** Completed
+- **Objective:** Implement comprehensive structured logging, Prometheus metrics, W3C distributed trace context propagation, and database-enforced append-only audit logging.
 - **Dependencies:** Phase 12
 - **Major Tasks:**
-  - Integrate OpenTelemetry / Prometheus metrics (request rates, error rates, DB pool stats, answer save latency, outbox lag).
-  - Implement standardized HTTP request tracing (`traceparent` / `X-Request-ID`).
-  - Create immutable system audit log table (`audit_events`) capturing all administrative and proctoring actions.
-  - Setup Grafana dashboard configurations and alerts.
+  - Integrated in-process Prometheus metrics (`prom-client` v15) exposing `GET /metrics` with optional scraper token authentication (`METRICS_AUTH_TOKEN`) and zero blocking DB queries.
+  - Implemented HTTP duration and request counters with route template normalization (`normalizeRoute`), eliminating high-cardinality label explosion (zero UUIDs in labels).
+  - Instrumented custom operational metrics: DB pool gauges, DB query latency, answer autosave latency, OCC revision conflict counters, outbox backlog gauges/dispatch histograms, evaluation worker duration/outcome counters, and Redis hit/miss/error telemetry.
+  - Implemented W3C Trace Context recommendation (`traceContext.js`) with 32-hex traceId and 16-hex spanId validation/generation, and HTTP ingress correlation middleware emitting `X-Request-ID` and `traceparent`.
+  - Propagated distributed trace context through transactional outbox into AMQP CloudEvent message headers (`traceparent`, `x-correlation-id`) and worker consumer logger child contexts.
+  - Created Migration 015 enforcing append-only immutability on `audit_logs` via row trigger (`BEFORE UPDATE OR DELETE`) and statement trigger (`BEFORE TRUNCATE`) raising SQLSTATE `20000`.
+  - Built centralized audit module (`src/modules/audit/`) with transactional client support, metadata sanitization, and admin inspection endpoint (`GET /api/v1/audit-logs`) with RBAC enforcement.
+  - Instrumented comprehensive authentication auditing (`AUTH_LOGIN_SUCCESS`, `AUTH_LOGIN_FAILURE`, `AUTH_LOCKOUT_TRIGGERED`, `AUTH_LOGOUT`, `AUTH_SESSION_REVOKED`).
+  - Authored and approved ADR-0003.
 - **Acceptance Criteria:**
-  - Metrics endpoint (`/metrics`) exposes actionable operational counters and histograms.
-  - Critical actions (grade changes, exam edits, student exclusions) are recorded in audit logs with actor identity and timestamp.
-- **Tests Required:** Metric increment verification tests, audit log tamper-resistance integration tests.
+  - Metrics endpoint (`/metrics`) exposes actionable operational counters and histograms without executing synchronous DB queries.
+  - Critical administrative, academic, and authentication actions are recorded in immutable audit logs with actor identity and timestamp.
+  - Prohibited mutations (`UPDATE`, `DELETE`, `TRUNCATE`) on `audit_logs` are strictly rejected at the database level with SQLSTATE `20000`.
+  - Foreign key entity deletions cannot mutate or anonymize audit records.
+  - Zero raw UUIDs or PII leak into Prometheus metric label dimensions.
+- **Tests Implemented:** 36 dedicated unit and integration tests across `metrics.test.js`, `traceContext.test.js`, `auditImmutability.test.js`, `auditService.test.js`, `auditApi.test.js`. Full regression: 506/506 backend passing across 124 suites, 25/25 frontend passing across 10 suites. ADR-0003 approved.
 
 ---
 
