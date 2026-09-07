@@ -33,14 +33,16 @@ describe('Database Migrations & Schema Integrity', () => {
     'answers',
     'violation_events',
     'results',
-    'audit_logs'
+    'audit_logs',
+    'outbox_events',
+    'submission_idempotency'
   ];
 
   describe('Static Migration File Contract & Sequence', () => {
     it('should contain all expected migration files in sequence', () => {
       const files = fs.readdirSync(migrationsDir).filter((f) => f.endsWith('.js')).sort();
 
-      assert.equal(files.length, 12, 'Expected exactly 12 migration files');
+      assert.equal(files.length, 13, 'Expected exactly 13 migration files');
       assert.match(files[0], /001_extensions\.js$/);
       assert.match(files[1], /002_users_and_roles\.js$/);
       assert.match(files[2], /003_subjects_and_topics\.js$/);
@@ -53,6 +55,7 @@ describe('Database Migrations & Schema Integrity', () => {
       assert.match(files[9], /010_indexes\.js$/);
       assert.match(files[10], /011_auth_sessions\.js$/);
       assert.match(files[11], /012_exam_ownership_and_subject\.js$/);
+      assert.match(files[12], /013_outbox_and_idempotency\.js$/);
     });
 
     it('should export up and down functions for every migration file', async () => {
@@ -66,7 +69,7 @@ describe('Database Migrations & Schema Integrity', () => {
       }
     });
 
-    it('should define all 22 required business tables across migrations', () => {
+    it('should define all 24 required business tables across migrations', () => {
       const files = fs.readdirSync(migrationsDir).filter((f) => f.endsWith('.js'));
       let combinedSql = '';
 
