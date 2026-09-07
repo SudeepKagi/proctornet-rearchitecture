@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { checkDatabaseHealth, closePool, query } from '../src/infrastructure/postgres/pool.js';
+import { closeRedis } from '../src/infrastructure/redis/client.js';
 import { runMigrations } from '../src/infrastructure/postgres/migrate.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -127,6 +128,7 @@ describe('Database Migrations & Schema Integrity', () => {
           assert.ok(createdTables.includes(tableName), `Table '${tableName}' should exist in PostgreSQL`);
         }
       } finally {
+        await closeRedis();
         await closePool();
       }
     });

@@ -7,6 +7,7 @@ import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { query, closePool } from '../../src/infrastructure/postgres/pool.js';
+import { closeRedis } from '../../src/infrastructure/redis/client.js';
 import * as attemptService from '../../src/modules/attempts/attempts.service.js';
 import * as sessionService from '../../src/modules/sessions/sessions.service.js';
 import * as examService from '../../src/modules/exams/exams.service.js';
@@ -241,6 +242,7 @@ describe('Attempts Service & Question Mapping Invariants', () => {
     } catch {
       // Ignored
     } finally {
+      await closeRedis();
       await closePool();
     }
   });

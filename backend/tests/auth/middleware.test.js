@@ -3,7 +3,7 @@
  * @description Unit and security tests for authentication, RBAC, BOLA defense, and privilege escalation prevention.
  */
 
-import { describe, it, after } from 'node:test';
+import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { authenticate } from '../../src/middleware/authenticate.js';
@@ -12,6 +12,7 @@ import { requireOwnership, requireResourceScope } from '../../src/middleware/res
 import { generateAccessToken } from '../../src/modules/auth/token.service.js';
 import * as authRepo from '../../src/modules/auth/auth.repository.js';
 import { query, closePool } from '../../src/infrastructure/postgres/pool.js';
+import { closeRedis } from '../../src/infrastructure/redis/client.js';
 import { UnauthorizedError, ForbiddenError } from '../../src/utils/errors.js';
 
 describe('Auth Middleware & Authorization Primitives', () => {
@@ -21,16 +22,52 @@ describe('Auth Middleware & Authorization Primitives', () => {
     sessionId: '22222222-2222-2222-2222-222222222222'
   };
 
+  before(async () => {
+    // Ensure test user and active session exist in database for sampleUser
+    await query(
+      `INSERT INTO users (user_id, email, name, password_hash, status)
+       VALUES ($1, $2, $3, $4, 'ACTIVE')
+       ON CONFLICT (user_id) DO NOTHING`,
+      [
+        sampleUser.userId,
+        'middleware_sample@example.com',
+        'Sample Middleware User',
+        '$2b$10$abcdefghijklmnopqrstuvwxyzABCDEF12345678901234567890123'
+      ]
+    );
+
+    await query(
+      `INSERT INTO user_roles (user_id, role)
+       VALUES ($1, 'STUDENT')
+       ON CONFLICT (user_id, role) DO NOTHING`,
+      [sampleUser.userId]
+    );
+
+    await query(
+      `INSERT INTO user_sessions (session_id, user_id, refresh_token_hash, is_revoked, expires_at)
+       VALUES ($1, $2, $3, FALSE, NOW() + INTERVAL '1 day')
+       ON CONFLICT (session_id) DO UPDATE SET is_revoked = FALSE`,
+      [sampleUser.sessionId, sampleUser.userId, 'sample_refresh_hash_2222']
+    );
+  });
+
   after(async () => {
-    await closePool();
+    try {
+      await query('DELETE FROM users WHERE user_id = $1', [sampleUser.userId]);
+    } catch {
+      // Ignore cleanup error
+    } finally {
+      await closeRedis();
+      await closePool();
+    }
   });
 
   describe('authenticate Middleware', () => {
-    it('should reject requests missing Authorization header with 401', () => {
+    it('should reject requests missing Authorization header with 401', async () => {
       const req = { headers: {} };
       let passedError = null;
 
-      authenticate(req, {}, (err) => {
+      await authenticate(req, {}, (err) => {
         passedError = err;
       });
 
@@ -39,11 +76,11 @@ describe('Auth Middleware & Authorization Primitives', () => {
       assert.equal(passedError.message, 'Missing Authorization header');
     });
 
-    it('should reject malformed Authorization header (no Bearer keyword)', () => {
+    it('should reject malformed Authorization header (no Bearer keyword)', async () => {
       const req = { headers: { authorization: 'Basic dXNlcjpwYXNz' } };
       let passedError = null;
 
-      authenticate(req, {}, (err) => {
+      await authenticate(req, {}, (err) => {
         passedError = err;
       });
 
@@ -52,11 +89,11 @@ describe('Auth Middleware & Authorization Primitives', () => {
       assert.ok(passedError.message.includes('Expected Bearer <token>'));
     });
 
-    it('should reject invalid or forged token signature with 401', () => {
+    it('should reject invalid or forged token signature with 401', async () => {
       const req = { headers: { authorization: 'Bearer invalid.jwt.token' } };
       let passedError = null;
 
-      authenticate(req, {}, (err) => {
+      await authenticate(req, {}, (err) => {
         passedError = err;
       });
 
@@ -64,7 +101,7 @@ describe('Auth Middleware & Authorization Primitives', () => {
       assert.equal(passedError.statusCode, 401);
     });
 
-    it('should accept valid access token and populate req.user context strictly from token claims', () => {
+    it('should accept valid access token and populate req.user context strictly from token claims', async () => {
       const validToken = generateAccessToken(sampleUser);
       const req = {
         headers: {
@@ -78,7 +115,7 @@ describe('Auth Middleware & Authorization Primitives', () => {
       };
       let nextCalled = false;
 
-      authenticate(req, {}, (err) => {
+      await authenticate(req, {}, (err) => {
         assert.equal(err, undefined);
         nextCalled = true;
       });
@@ -159,7 +196,11 @@ describe('Auth Middleware & Authorization Primitives', () => {
       };
 
       // 1. Authenticate
-      authenticate(req, {}, (err) => assert.equal(err, undefined));
+      let authError;
+      await authenticate(req, {}, (err) => {
+        authError = err;
+      });
+      assert.equal(authError, undefined);
 
       // 2. Authorize for ADMIN
       const adminGuard = requireRole('ADMIN');
@@ -182,12 +223,20 @@ describe('Auth Middleware & Authorization Primitives', () => {
         role: 'STUDENT'
       });
 
+      const testSessionId = '33333333-3333-3333-3333-333333333333';
+      await query(
+        `INSERT INTO user_sessions (session_id, user_id, refresh_token_hash, is_revoked, expires_at)
+         VALUES ($1, $2, $3, FALSE, NOW() + INTERVAL '1 day')
+         ON CONFLICT (session_id) DO UPDATE SET is_revoked = FALSE`,
+        [testSessionId, user.user_id, `test_refresh_hash_${Date.now()}`]
+      );
+
       try {
         // Forge/Snapshot a JWT that claims ADMIN role for this user ID
         const forgedAdminToken = generateAccessToken({
           userId: user.user_id,
           roles: ['ADMIN'], // Stale or forged claim in JWT snapshot
-          sessionId: '33333333-3333-3333-3333-333333333333'
+          sessionId: testSessionId
         });
 
         const req = {
@@ -195,7 +244,11 @@ describe('Auth Middleware & Authorization Primitives', () => {
         };
 
         // 1. Authenticate token
-        authenticate(req, {}, (err) => assert.equal(err, undefined));
+        let authErr1;
+        await authenticate(req, {}, (err) => {
+          authErr1 = err;
+        });
+        assert.equal(authErr1, undefined);
 
         // 2. Authorize with requireRole('ADMIN')
         const adminGuard = requireRole('ADMIN');
@@ -215,12 +268,16 @@ describe('Auth Middleware & Authorization Primitives', () => {
         const studentToken = generateAccessToken({
           userId: user.user_id,
           roles: ['STUDENT'],
-          sessionId: '33333333-3333-3333-3333-333333333333'
+          sessionId: testSessionId
         });
         const req2 = {
           headers: { authorization: `Bearer ${studentToken}` }
         };
-        authenticate(req2, {}, (err) => assert.equal(err, undefined));
+        let authErr2;
+        await authenticate(req2, {}, (err) => {
+          authErr2 = err;
+        });
+        assert.equal(authErr2, undefined);
 
         const facultyGuard = requireRole('FACULTY');
         let passedError2 = null;

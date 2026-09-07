@@ -62,4 +62,4 @@ How will this decision be enforced and validated in testing/CI?
 
 ## Index of Approved ADRs
 
-*No ADRs recorded yet. All active development follows the baseline architecture in `docs/ARCHITECTURE.md`.*
+- [ADR-0001: Redis Non-Authoritative Caching, Sliding-Window Rate Limiting, and Resilience](0001-redis-non-authoritative-caching-and-resilience.md) — *Accepted (Phase 11)*

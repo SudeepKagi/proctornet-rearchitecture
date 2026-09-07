@@ -7,6 +7,7 @@ import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { query, closePool } from '../../src/infrastructure/postgres/pool.js';
+import { closeRedis } from '../../src/infrastructure/redis/client.js';
 import * as examService from '../../src/modules/exams/exams.service.js';
 import * as authService from '../../src/modules/auth/auth.service.js';
 import { ExamStatus } from '../../src/domain/exam/examStates.js';
@@ -124,6 +125,7 @@ describe('Exam Service & Business Invariants', () => {
     } catch {
       // Ignore cleanup error
     } finally {
+      await closeRedis();
       await closePool();
     }
   });

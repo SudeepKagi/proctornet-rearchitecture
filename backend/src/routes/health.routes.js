@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { checkDatabaseHealth } from '../infrastructure/postgres/pool.js';
+import { checkRedisHealth } from '../infrastructure/redis/client.js';
 
 export const healthRouter = Router();
 
@@ -18,21 +19,36 @@ healthRouter.get('/health', (_req, res) => {
 
 /**
  * Readiness Probe: Checks whether critical infrastructure dependencies (PostgreSQL) are reachable.
+ * Redis health is non-fatal: if Redis is down, returns 200 READY with checks.redis = DOWN.
  * GET /ready
  */
 healthRouter.get('/ready', async (_req, res) => {
-  const dbHealth = await checkDatabaseHealth(3000);
+  const [dbHealth, redisHealth] = await Promise.all([
+    checkDatabaseHealth(3000),
+    checkRedisHealth(2000)
+  ]);
 
+  // PostgreSQL health is strictly mandatory for readiness
   const isReady = dbHealth.healthy;
   const statusCode = isReady ? 200 : 503;
+
+  const checks = {
+    database: dbHealth.healthy
+      ? { status: 'UP', latencyMs: dbHealth.latencyMs }
+      : { status: 'DOWN', error: dbHealth.error }
+  };
+
+  if (redisHealth.status === 'DISABLED') {
+    checks.redis = { status: 'DISABLED', error: redisHealth.error };
+  } else if (redisHealth.healthy) {
+    checks.redis = { status: 'UP', latencyMs: redisHealth.latencyMs };
+  } else {
+    checks.redis = { status: 'DOWN', error: redisHealth.error };
+  }
 
   res.status(statusCode).json({
     status: isReady ? 'READY' : 'NOT_READY',
     timestamp: new Date().toISOString(),
-    checks: {
-      database: dbHealth.healthy
-        ? { status: 'UP', latencyMs: dbHealth.latencyMs }
-        : { status: 'DOWN', error: dbHealth.error }
-    }
+    checks
   });
 });

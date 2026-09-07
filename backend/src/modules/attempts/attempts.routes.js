@@ -14,8 +14,21 @@ import {
 import { answersRouter } from '../answers/answers.routes.js';
 import { submitAttempt } from '../submissions/submissions.controller.js';
 import { candidateResultsRouter } from '../results/results.routes.js';
+import { createRateLimiter } from '../../middleware/rateLimiter.js';
 
 export const attemptsRouter = Router();
+
+// Submission rate limiter: 5 requests per 60s per candidate attempt
+const submitRateLimiter = createRateLimiter({
+  windowMs: 60 * 1000,
+  max: 5,
+  message: 'Submission rate limit exceeded. Please wait a moment before attempting to submit again.',
+  keyGenerator: (req) => {
+    const userId = req.user?.userId || 'unknown';
+    const attemptId = req.params?.attemptId || 'unknown';
+    return `v1:ratelimit:submit:${userId}:${attemptId}`;
+  }
+});
 
 // Candidate attempt-start alias
 attemptsRouter.post('/start', authenticate, requireRole('STUDENT'), startAttempt);
@@ -24,7 +37,7 @@ attemptsRouter.post('/start', authenticate, requireRole('STUDENT'), startAttempt
 attemptsRouter.use('/:attemptId/answers', answersRouter);
 
 // Phase 8: Candidate Exam Submission & Finalization
-attemptsRouter.post('/:attemptId/submit', authenticate, requireRole('STUDENT'), submitAttempt);
+attemptsRouter.post('/:attemptId/submit', authenticate, requireRole('STUDENT'), submitRateLimiter, submitAttempt);
 
 // Phase 9: Candidate Result Inspection
 attemptsRouter.use('/:attemptId/result', candidateResultsRouter);

@@ -9,6 +9,7 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 
 import { query, closePool } from '../../src/infrastructure/postgres/pool.js';
+import { closeRedis } from '../../src/infrastructure/redis/client.js';
 import { OutboxDispatcher } from '../../src/modules/outbox/outbox.dispatcher.js';
 import * as outboxRepo from '../../src/modules/outbox/outbox.repository.js';
 
@@ -20,6 +21,7 @@ describe('Outbox Dispatcher (Integration)', () => {
 
   after(async () => {
     await query(`DELETE FROM outbox_events WHERE aggregate_type = 'TEST_AGGREGATE';`);
+    await closeRedis();
     await closePool();
   });
 

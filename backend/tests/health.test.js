@@ -3,9 +3,11 @@ import assert from 'node:assert/strict';
 import request from 'supertest';
 import { app } from '../src/app.js';
 import { closePool } from '../src/infrastructure/postgres/pool.js';
+import { closeRedis } from '../src/infrastructure/redis/client.js';
 
 describe('Health and Readiness Endpoints', () => {
   after(async () => {
+    await closeRedis();
     await closePool();
   });
   describe('GET /health (Liveness Probe)', () => {

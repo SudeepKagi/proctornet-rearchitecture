@@ -76,7 +76,34 @@ const envSchema = z.object({
     .string()
     .regex(/^\d+$/, { message: 'AUTH_LOCKOUT_DURATION_MINUTES must be a valid integer' })
     .transform(Number)
-    .default('15')
+    .default('15'),
+
+  // Redis configuration
+  REDIS_ENABLED: z
+    .union([z.boolean(), z.enum(['true', 'false', '1', '0'])])
+    .default('true')
+    .transform((val) => (typeof val === 'boolean' ? val : val === 'true' || val === '1')),
+  REDIS_HOST: z.string().default('localhost'),
+  REDIS_PORT: z
+    .string()
+    .regex(/^\d+$/, { message: 'REDIS_PORT must be a valid port number' })
+    .transform(Number)
+    .default('6379'),
+  REDIS_PASSWORD: z
+    .string()
+    .optional()
+    .transform((val) => (val && val.trim() !== '' ? val : undefined)),
+  REDIS_DB: z
+    .string()
+    .regex(/^\d+$/, { message: 'REDIS_DB must be a valid integer' })
+    .transform(Number)
+    .refine((val) => val >= 0 && val <= 15, { message: 'REDIS_DB must be between 0 and 15' })
+    .default('0'),
+  REDIS_CONNECT_TIMEOUT_MS: z
+    .string()
+    .regex(/^\d+$/, { message: 'REDIS_CONNECT_TIMEOUT_MS must be a valid integer' })
+    .transform(Number)
+    .default('5000')
 });
 
 /**

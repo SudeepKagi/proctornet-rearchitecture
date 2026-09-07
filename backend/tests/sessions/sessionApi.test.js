@@ -9,6 +9,7 @@ import request from 'supertest';
 
 import { app } from '../../src/app.js';
 import { query, closePool } from '../../src/infrastructure/postgres/pool.js';
+import { closeRedis } from '../../src/infrastructure/redis/client.js';
 import * as authService from '../../src/modules/auth/auth.service.js';
 import * as examService from '../../src/modules/exams/exams.service.js';
 
@@ -139,6 +140,7 @@ describe('Sessions REST API Endpoints (Integration)', () => {
     } catch {
       // Ignore cleanup error
     } finally {
+      await closeRedis();
       await closePool();
     }
   });
