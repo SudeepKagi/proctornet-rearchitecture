@@ -24,6 +24,17 @@ describe('Configuration Validation', () => {
     assert.equal(config.REDIS_PASSWORD, undefined);
     assert.equal(config.REDIS_DB, 0);
     assert.equal(config.REDIS_CONNECT_TIMEOUT_MS, 5000);
+    assert.equal(config.RABBITMQ_ENABLED, true);
+    assert.equal(config.RABBITMQ_HOST, 'localhost');
+    assert.equal(config.RABBITMQ_PORT, 5672);
+    assert.equal(config.RABBITMQ_USER, 'guest');
+    assert.equal(config.RABBITMQ_PASSWORD, 'guest');
+    assert.equal(config.RABBITMQ_VHOST, '/');
+    assert.equal(config.RABBITMQ_HEARTBEAT_SEC, 60);
+    assert.equal(config.RABBITMQ_PREFETCH, 10);
+    assert.equal(config.RABBITMQ_DISPATCH_INTERVAL_MS, 5000);
+    assert.equal(config.RABBITMQ_CONNECT_TIMEOUT_MS, 5000);
+    assert.equal(config.RABBITMQ_MANDATORY_TIMEOUT_MS, 5000);
   });
 
   it('should accept custom Redis configuration', () => {

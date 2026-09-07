@@ -103,6 +103,53 @@ const envSchema = z.object({
     .string()
     .regex(/^\d+$/, { message: 'REDIS_CONNECT_TIMEOUT_MS must be a valid integer' })
     .transform(Number)
+    .default('5000'),
+
+  // RabbitMQ configuration
+  RABBITMQ_ENABLED: z
+    .union([z.boolean(), z.enum(['true', 'false', '1', '0'])])
+    .default('true')
+    .transform((val) => (typeof val === 'boolean' ? val : val === 'true' || val === '1')),
+  RABBITMQ_URL: z
+    .string()
+    .url({ message: 'RABBITMQ_URL must be a valid URL' })
+    .optional()
+    .refine((val) => !val || val.startsWith('amqp://') || val.startsWith('amqps://'), {
+      message: 'RABBITMQ_URL protocol must be amqp:// or amqps://'
+    }),
+  RABBITMQ_HOST: z.string().default('localhost'),
+  RABBITMQ_PORT: z
+    .string()
+    .regex(/^\d+$/, { message: 'RABBITMQ_PORT must be a valid port number' })
+    .transform(Number)
+    .default('5672'),
+  RABBITMQ_USER: z.string().default('guest'),
+  RABBITMQ_PASSWORD: z.string().default('guest'),
+  RABBITMQ_VHOST: z.string().default('/'),
+  RABBITMQ_HEARTBEAT_SEC: z
+    .string()
+    .regex(/^\d+$/)
+    .transform(Number)
+    .default('60'),
+  RABBITMQ_PREFETCH: z
+    .string()
+    .regex(/^\d+$/)
+    .transform(Number)
+    .default('10'),
+  RABBITMQ_DISPATCH_INTERVAL_MS: z
+    .string()
+    .regex(/^\d+$/)
+    .transform(Number)
+    .default('5000'),
+  RABBITMQ_CONNECT_TIMEOUT_MS: z
+    .string()
+    .regex(/^\d+$/)
+    .transform(Number)
+    .default('5000'),
+  RABBITMQ_MANDATORY_TIMEOUT_MS: z
+    .string()
+    .regex(/^\d+$/)
+    .transform(Number)
     .default('5000')
 });
 

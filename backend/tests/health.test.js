@@ -4,9 +4,11 @@ import request from 'supertest';
 import { app } from '../src/app.js';
 import { closePool } from '../src/infrastructure/postgres/pool.js';
 import { closeRedis } from '../src/infrastructure/redis/client.js';
+import { closeRabbitMQ } from '../src/infrastructure/rabbitmq/client.js';
 
 describe('Health and Readiness Endpoints', () => {
   after(async () => {
+    await closeRabbitMQ();
     await closeRedis();
     await closePool();
   });
@@ -32,6 +34,8 @@ describe('Health and Readiness Endpoints', () => {
       assert.ok(['READY', 'NOT_READY'].includes(res.body.status));
       assert.ok(res.body.checks);
       assert.ok(res.body.checks.database);
+      assert.ok(res.body.checks.redis);
+      assert.ok(res.body.checks.rabbitmq);
     });
   });
 
