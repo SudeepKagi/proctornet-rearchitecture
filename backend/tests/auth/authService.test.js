@@ -9,6 +9,7 @@ import assert from 'node:assert/strict';
 import * as authService from '../../src/modules/auth/auth.service.js';
 import * as authRepo from '../../src/modules/auth/auth.repository.js';
 import { query, closePool } from '../../src/infrastructure/postgres/pool.js';
+import { closeRedis } from '../../src/infrastructure/redis/client.js';
 import { UnauthorizedError, ConflictError } from '../../src/utils/errors.js';
 
 describe('Auth Service & Business Workflows (Integration)', () => {
@@ -25,6 +26,7 @@ describe('Auth Service & Business Workflows (Integration)', () => {
     } catch {
       // Ignore cleanup error
     } finally {
+      await closeRedis();
       await closePool();
     }
   });

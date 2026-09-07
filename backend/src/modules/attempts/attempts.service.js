@@ -16,6 +16,7 @@ import { transitionAttemptState } from '../../domain/attempt/attemptStateMachine
 import { validateAttemptInvariants } from '../../domain/attempt/attemptInvariants.js';
 import { generateSeed, selectQuestionsDeterministically } from './attempts.shuffler.js';
 import * as attemptsRepo from './attempts.repository.js';
+import { cacheService } from '../../infrastructure/redis/cacheService.js';
 
 /**
  * Calculates authoritative remaining seconds for an attempt against PostgreSQL server time.
@@ -448,8 +449,27 @@ export async function getAttemptQuestions(attemptId, user, requestId = null) {
   // Lazy on-access expiration
   const currentAttempt = await checkAndApplyLazyExpiration(attempt, user.userId, requestId);
 
-  const questions = await attemptsRepo.getAttemptQuestionsSanitized(attemptId);
   const serverNow = new Date(currentAttempt.server_now || new Date());
+  const cacheKey = `v1:attempt:${attemptId}:questions`;
+
+  // Dynamic TTL policy based on remaining seconds until authoritative expiration:
+  // remainingSeconds = Math.ceil((new Date(currentAttempt.expires_at).getTime() - Date.now()) / 1000)
+  const remainingSeconds = Math.ceil(
+    (new Date(currentAttempt.expires_at).getTime() - Date.now()) / 1000
+  );
+
+  // 1. Attempt cache lookup
+  let questions = await cacheService.get(cacheKey);
+
+  // 2. Cache miss -> query PostgreSQL
+  if (!questions) {
+    questions = await attemptsRepo.getAttemptQuestionsSanitized(attemptId);
+
+    // Only populate Redis if attempt has remaining time and is ACTIVE
+    if (remainingSeconds > 0 && currentAttempt.status === AttemptStatus.ACTIVE) {
+      await cacheService.set(cacheKey, questions, remainingSeconds);
+    }
+  }
 
   return {
     attempt_id: currentAttempt.attempt_id,

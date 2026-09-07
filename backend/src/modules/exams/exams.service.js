@@ -18,6 +18,7 @@ import {
 } from '../../domain/exam/examInvariants.js';
 import { transitionExamState } from '../../domain/exam/examStateMachine.js';
 import * as examsRepo from './exams.repository.js';
+import { cacheService } from '../../infrastructure/redis/cacheService.js';
 
 /**
  * Creates a new draft exam.
@@ -70,6 +71,12 @@ export async function createExam(payload, userId, requestId = null) {
  * @returns {Promise<object>}
  */
 export async function getExamById(examId) {
+  const cacheKey = `v1:exam:${examId}`;
+  const cached = await cacheService.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
   const exam = await examsRepo.findExamById(examId);
   if (!exam) {
     throw new NotFoundError(`Exam with ID '${examId}' not found`);
@@ -77,10 +84,16 @@ export async function getExamById(examId) {
 
   const topicRules = await examsRepo.getTopicRules(examId);
 
-  return {
+  const result = {
     ...exam,
     topic_rules: topicRules
   };
+
+  if (exam.status === ExamStatus.PUBLISHED) {
+    await cacheService.set(cacheKey, result, 3600);
+  }
+
+  return result;
 }
 
 /**
@@ -117,6 +130,7 @@ export async function updateDraftExam(examId, updates, user, requestId = null) {
   });
 
   const updatedExam = await examsRepo.updateExam(examId, updates);
+  await cacheService.del(`v1:exam:${examId}`);
 
   await examsRepo.createAuditLog({
     actorUserId: user.userId,
@@ -169,6 +183,7 @@ export async function configureTopicRule(examId, ruleData, user, requestId = nul
     questionCount: ruleData.question_count,
     pointsPerQuestion: ruleData.points_per_question
   });
+  await cacheService.del(`v1:exam:${examId}`);
 
   await examsRepo.createAuditLog({
     actorUserId: user.userId,
@@ -208,6 +223,7 @@ export async function removeTopicRule(examId, ruleId, user, requestId = null) {
   if (!deleted) {
     throw new NotFoundError(`Topic rule with ID '${ruleId}' not found on this exam`);
   }
+  await cacheService.del(`v1:exam:${examId}`);
 
   await examsRepo.createAuditLog({
     actorUserId: user.userId,
@@ -296,6 +312,7 @@ export async function publishExam(examId, user, requestId = null) {
     );
 
     await client.query('COMMIT');
+    await cacheService.del(`v1:exam:${examId}`);
     logger.info({ examId, publishedBy: user.userId }, 'Exam successfully published');
     return updatedExam;
   } catch (err) {

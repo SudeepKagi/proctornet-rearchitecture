@@ -289,3 +289,19 @@ export async function revokeAllUserSessions(userId) {
   `;
   await query(text, [userId]);
 }
+
+/**
+ * Checks the revocation status of a session by session_id.
+ * Used for authoritative PostgreSQL fallback when Redis is unavailable.
+ * @param {string} sessionId
+ * @returns {Promise<{ is_revoked: boolean } | null>}
+ */
+export async function findSessionRevocationStatus(sessionId) {
+  const text = `
+    SELECT is_revoked
+    FROM user_sessions
+    WHERE session_id = $1;
+  `;
+  const res = await query(text, [sessionId]);
+  return res.rows[0] || null;
+}

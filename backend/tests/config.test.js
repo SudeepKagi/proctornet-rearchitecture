@@ -18,6 +18,57 @@ describe('Configuration Validation', () => {
     assert.equal(config.DB_NAME, 'proctornet');
     assert.equal(config.DB_POOL_MIN, 2);
     assert.equal(config.DB_POOL_MAX, 10);
+    assert.equal(config.REDIS_ENABLED, true);
+    assert.equal(config.REDIS_HOST, 'localhost');
+    assert.equal(config.REDIS_PORT, 6379);
+    assert.equal(config.REDIS_PASSWORD, undefined);
+    assert.equal(config.REDIS_DB, 0);
+    assert.equal(config.REDIS_CONNECT_TIMEOUT_MS, 5000);
+  });
+
+  it('should accept custom Redis configuration', () => {
+    const config = validateConfig({
+      NODE_ENV: 'test',
+      REDIS_ENABLED: 'false',
+      REDIS_HOST: 'redis.internal',
+      REDIS_PORT: '6380',
+      REDIS_PASSWORD: 'secret-redis-pwd',
+      REDIS_DB: '2',
+      REDIS_CONNECT_TIMEOUT_MS: '10000'
+    });
+
+    assert.equal(config.REDIS_ENABLED, false);
+    assert.equal(config.REDIS_HOST, 'redis.internal');
+    assert.equal(config.REDIS_PORT, 6380);
+    assert.equal(config.REDIS_PASSWORD, 'secret-redis-pwd');
+    assert.equal(config.REDIS_DB, 2);
+    assert.equal(config.REDIS_CONNECT_TIMEOUT_MS, 10000);
+  });
+
+  it('should reject invalid REDIS_PORT values', () => {
+    assert.throws(
+      () => {
+        validateConfig({
+          REDIS_PORT: 'not-a-number'
+        });
+      },
+      {
+        message: /Environment configuration validation failed/
+      }
+    );
+  });
+
+  it('should reject invalid REDIS_DB values', () => {
+    assert.throws(
+      () => {
+        validateConfig({
+          REDIS_DB: '99'
+        });
+      },
+      {
+        message: /Environment configuration validation failed/
+      }
+    );
   });
 
   it('should reject invalid PORT values', () => {

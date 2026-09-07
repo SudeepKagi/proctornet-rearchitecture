@@ -17,6 +17,7 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 
 import { query, closePool } from '../../src/infrastructure/postgres/pool.js';
+import { closeRedis } from '../../src/infrastructure/redis/client.js';
 import * as authService from '../../src/modules/auth/auth.service.js';
 import * as examService from '../../src/modules/exams/exams.service.js';
 import * as sessionService from '../../src/modules/sessions/sessions.service.js';
@@ -137,6 +138,7 @@ describe('Submissions Service (Integration)', () => {
   after(async () => {
     // Wait for any background setImmediate outbox triggers to finish before pool closure
     await new Promise((resolve) => setTimeout(resolve, 200));
+    await closeRedis();
     await closePool();
   });
 

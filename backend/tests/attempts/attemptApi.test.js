@@ -9,6 +9,7 @@ import request from 'supertest';
 
 import { app } from '../../src/app.js';
 import { query, closePool } from '../../src/infrastructure/postgres/pool.js';
+import { closeRedis } from '../../src/infrastructure/redis/client.js';
 import * as authService from '../../src/modules/auth/auth.service.js';
 import * as examService from '../../src/modules/exams/exams.service.js';
 import * as sessionService from '../../src/modules/sessions/sessions.service.js';
@@ -191,6 +192,7 @@ describe('Attempts REST API Endpoints (Integration)', () => {
     } catch {
       // Ignored
     } finally {
+      await closeRedis();
       await closePool();
     }
   });

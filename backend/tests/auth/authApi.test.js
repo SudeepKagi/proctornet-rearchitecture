@@ -9,6 +9,7 @@ import request from 'supertest';
 
 import { app } from '../../src/app.js';
 import { query, closePool } from '../../src/infrastructure/postgres/pool.js';
+import { getRedisClient, closeRedis } from '../../src/infrastructure/redis/client.js';
 import { resetRateLimits } from '../../src/middleware/authRateLimiter.js';
 
 describe('Auth REST API Endpoints (Integration)', () => {
@@ -31,6 +32,7 @@ describe('Auth REST API Endpoints (Integration)', () => {
     } catch {
       // Ignore cleanup error
     } finally {
+      await closeRedis();
       await closePool();
     }
   });
@@ -195,6 +197,11 @@ describe('Auth REST API Endpoints (Integration)', () => {
 
   it('POST /api/v1/auth/login — should enforce bounded abuse rate limit after rapid attempts', async () => {
     resetRateLimits();
+    const redis = getRedisClient();
+    if (redis && redis.status === 'ready') {
+      await redis.del('v1:ratelimit:login:::ffff:127.0.0.1');
+      await redis.del('v1:ratelimit:login:127.0.0.1');
+    }
 
     // Make 10 requests within the limit
     for (let i = 0; i < 10; i++) {
@@ -214,5 +221,9 @@ describe('Auth REST API Endpoints (Integration)', () => {
     assert.ok(rateLimitedRes.headers['retry-after']);
 
     resetRateLimits();
+    if (redis && redis.status === 'ready') {
+      await redis.del('v1:ratelimit:login:::ffff:127.0.0.1');
+      await redis.del('v1:ratelimit:login:127.0.0.1');
+    }
   });
 });

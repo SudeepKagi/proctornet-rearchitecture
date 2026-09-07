@@ -3,6 +3,7 @@ import { app } from './app.js';
 import { config } from './config/env.js';
 import { logger } from './utils/logger.js';
 import { closePool } from './infrastructure/postgres/pool.js';
+import { closeRedis } from './infrastructure/redis/client.js';
 
 const server = http.createServer(app);
 
@@ -41,7 +42,10 @@ async function gracefulShutdown(signal) {
       });
     });
 
-    // 2. Drain and close database connection pool
+    // 2. Close Redis client connection
+    await closeRedis();
+
+    // 3. Drain and close database connection pool
     await closePool();
 
     logger.info('Graceful shutdown completed cleanly. Exiting process.');

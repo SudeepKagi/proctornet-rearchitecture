@@ -14,6 +14,7 @@ import {
   verifyRefreshToken,
   hashToken
 } from './token.service.js';
+import { blacklistSession } from './tokenBlacklist.js';
 import * as authRepo from './auth.repository.js';
 
 // Generic failure message to prevent account enumeration
@@ -272,6 +273,7 @@ export async function refresh({ refreshToken }) {
 export async function logout({ sessionId, refreshToken }) {
   if (sessionId) {
     await authRepo.revokeSession(sessionId);
+    await blacklistSession(sessionId);
     logger.info({ sessionId }, 'User logged out and session revoked');
     return;
   }
@@ -282,6 +284,7 @@ export async function logout({ sessionId, refreshToken }) {
       const session = await authRepo.findSessionByRefreshHash(hash);
       if (session) {
         await authRepo.revokeSession(session.session_id);
+        await blacklistSession(session.session_id);
         logger.info({ sessionId: session.session_id }, 'Session revoked via refresh token on logout');
       }
     } catch {
