@@ -9,9 +9,10 @@ import { logger } from '../utils/logger.js';
  */
 export function errorHandler(err, req, res, _next) {
   const requestId = req.id || req.requestId || 'unknown';
+  const isZodError = err.name === 'ZodError' || Array.isArray(err.errors);
   const isDomainError = err instanceof DomainError || err.name === 'DomainInvariantError' || err.name === 'InvalidStateTransitionError';
-  const isOperational = (err instanceof AppError && err.isOperational) || isDomainError;
-  const statusCode = err.statusCode || (err.status && typeof err.status === 'number' ? err.status : isDomainError ? 400 : 500);
+  const isOperational = (err instanceof AppError && err.isOperational) || isDomainError || isZodError;
+  const statusCode = err.statusCode || (err.status && typeof err.status === 'number' ? err.status : (isDomainError || isZodError) ? 400 : 500);
   const errorCode = err.code || (statusCode === 404 ? 'NOT_FOUND' : statusCode >= 500 ? 'INTERNAL_SERVER_ERROR' : 'BAD_REQUEST');
 
   // Log server errors (5xx) with error level, client errors (4xx) with warn level

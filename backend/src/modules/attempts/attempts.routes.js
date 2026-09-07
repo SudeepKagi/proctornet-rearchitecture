@@ -11,11 +11,15 @@ import {
   getAttemptById,
   getAttemptQuestions
 } from './attempts.controller.js';
+import { answersRouter } from '../answers/answers.routes.js';
 
 export const attemptsRouter = Router();
 
 // Candidate attempt-start alias
 attemptsRouter.post('/start', authenticate, requireRole('STUDENT'), startAttempt);
+
+// Phase 7: Answers, Autosave, OCC Revisions & Clear
+attemptsRouter.use('/:attemptId/answers', answersRouter);
 
 // Attempt inspection & question mapping endpoints
 attemptsRouter.get('/:attemptId', authenticate, getAttemptById);

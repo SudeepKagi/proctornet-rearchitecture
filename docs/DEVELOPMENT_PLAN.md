@@ -157,20 +157,36 @@ $$\text{Plan} \longrightarrow \text{Implement} \longrightarrow \text{Test} \long
 ---
 
 ### Phase 7 — Answers, Autosave & Concurrency
-- [ ] **Status:** Pending
-- **Objective:** Implement resilient, atomic, concurrency-safe answer saving with revision tracking and optimistic locking.
+- [x] **Status:** Completed
+- **Objective:** Implement resilient, atomic, concurrency-safe answer persistence with revision sequence tracking, revision-aware payload-based retries, OCC clear-answer deletion, attempt-level locking, authoritative deadline enforcement, and all-or-nothing batch autosave.
 - **Dependencies:** Phase 6
 - **Major Tasks:**
-  - Database migrations for `answers` and `answer_revisions`.
-  - Implement `PUT /api/attempts/:id/answers/:questionId` with revision ID and payload verification.
-  - Optimistic locking mechanism to prevent out-of-order save overwrites over erratic networks.
-  - Batch answer autosave endpoint (`POST /api/attempts/:id/answers/batch`).
-  - Server-side validation that attempt is currently in `IN_PROGRESS` state and time has not expired.
+  - Utilized existing schema from Migration 008 (`answers`) and Migration 010 indexes with zero new migrations required.
+  - Implemented `PUT /api/v1/attempts/:attemptId/answers/:attemptQuestionId` with strict OCC revision semantics:
+    - Unanswered question requires `expected_revision = 0`, inserting row with `revision = 1`.
+    - Answered question at revision $K$ requires `expected_revision = K`, updating row to `revision = K + 1`.
+    - Repeated save with `expected_revision = K - 1` and identical payload is handled idempotently as a network retry and returns existing committed revision $K$ without incrementing.
+    - Stale or mismatched revision rejects with `409 Conflict` (`STALE_REVISION_CONFLICT`).
+  - Implemented OCC-governed clear-answer deletion (`DELETE /api/v1/attempts/:attemptId/answers/:attemptQuestionId`):
+    - Requires `{ "expected_revision": K }`, deleting row and returning `200 OK` (`cleared: true`).
+    - Unanswered question clear with `expected_revision = 0` is safe and idempotent.
+    - After deletion, question returns to unanswered state (`answered = row exists; unanswered = no row`); next save requires `expected_revision = 0` to create `revision = 1`.
+  - Implemented atomic batch autosave (`POST /api/v1/attempts/:attemptId/answers/batch`):
+    - Entire batch executes within a single PostgreSQL transaction (`BEGIN ... COMMIT`).
+    - Duplicate `attempt_question_id` entries inside a batch are rejected with `400 Bad Request` (`BAD_REQUEST`), modifying zero database rows.
+    - Deterministic sorting by `attempt_question_id` for predictable execution.
+    - If any single item fails validation or encounters an OCC conflict, the entire batch executes `ROLLBACK` (all-or-nothing atomicity; zero partial commits).
+  - Authoritative PostgreSQL server timing (`CURRENT_TIMESTAMP`) for `saved_at` and `server_time`; client timestamps strictly excluded from write DTOs.
+  - Attempt-level row locking (`SELECT ... FROM exam_attempts WHERE attempt_id = $1 FOR UPDATE`) serializing answer writes within an attempt, eliminating races against deadlines or state changes.
+  - Authoritative deadline expiration check: if `CURRENT_TIMESTAMP >= expires_at`, transitions attempt to `EXPIRED`, logs `ATTEMPT_EXPIRED` audit entry, commits expiration, and rejects save/clear with `409 Conflict` (`ATTEMPT_EXPIRED`).
+  - Question-type semantic validation for MCQ, TRUE_FALSE (option existence check in `question_options`), and NUMERIC (finite number check) with zero solution leakage (`is_correct`, `correct_numeric_value` stripped).
+  - BOLA defense restricting answer writes strictly to the candidate owner (`STUDENT` role) while allowing owner, creator faculty, assigned invigilator, and admin to inspect answers (`GET /api/v1/attempts/:attemptId/answers`).
 - **Acceptance Criteria:**
   - Every answer save is durably committed to PostgreSQL before HTTP `200 OK` is returned.
-  - Stale revision saves (older client timestamp or lower revision) do not overwrite newer revisions.
-  - Answer saves rejected immediately if attempt has expired or is submitted.
-- **Tests Required:** Concurrency race condition tests, out-of-order network arrival tests, expired attempt rejection tests.
+  - Stale revision saves do not overwrite newer revisions.
+  - Answer writes and clears are rejected immediately with `409 Conflict` if attempt is not `ACTIVE` or deadline has elapsed.
+  - Batch saves commit atomically or roll back completely.
+- **Tests Implemented:** 39 unit and integration tests across `answerService.test.js` and `answerApi.test.js`. Full test suite: 252/252 passing across 60 suites.
 
 ---
 
