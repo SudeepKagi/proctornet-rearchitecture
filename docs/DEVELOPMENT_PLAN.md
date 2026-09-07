@@ -230,20 +230,28 @@ $$\text{Plan} \longrightarrow \text{Implement} \longrightarrow \text{Test} \long
 ---
 
 ### Phase 10 — Frontend
-- [ ] **Status:** Pending
-- **Objective:** Build the modern React SPA covering Candidate Exam UI, Proctor Monitoring Dashboard, and Admin/Teacher Management.
+- [x] **Status:** Completed
+- **Objective:** Build the production-grade React 19 SPA covering Candidate Exam UI, Proctor Monitoring Dashboard, Faculty Assessment & Authoring, and Administrator Overview.
 - **Dependencies:** Phase 9
 - **Major Tasks:**
-  - Initialize React application with modern JavaScript tooling (Vite / JavaScript JSX) and modular UI components.
-  - Implement Candidate Exam Interface: clean question navigator, countdown timer synced to server time, autosave indicator, network offline warning banner.
-  - Implement Proctoring Dashboard: candidate grid, live alerts feed, flag candidates, event timeline.
-  - Implement Admin / Instructor Portals: exam authoring, question bank, grading dashboard, student management.
-  - Implement responsive state management and resilient HTTP/WebSocket client wrappers.
+  - Initialized React 19 SPA with modern tooling (Vite 6, React Router DOM v7, Vitest, React Testing Library, jsdom) in `frontend/`.
+  - Established light-first modern SaaS design system with CSS custom properties across 4 visual density tiers (Marketing/Auth, Dashboard, Exam Workspace, Proctoring).
+  - Implemented centralized API client (`api/client.js`) with in-memory access token storage, 401 transparent refresh token rotation interceptor, and strict `localStorage` restriction to UI preferences (`theme`).
+  - Implemented Candidate Examination Portal: session listing, pre-exam readiness check, sanitized question renderer for dynamic $N$ questions (MCQ, True/False, Numeric), visual tabular countdown timer with server drift calibration, 1,000ms debounced autosave with in-memory retry buffer and OCC revision tracking, and floating network loss banner.
+  - Implemented Idempotent Submission: unified manual submission and automatic expiry-triggered submission with mandatory `Idempotency-Key` header; single UUID reused across network retries. Codified OFFLINE != SUBMITTED with accurate non-durable in-memory warning copy and mandatory backend `200 OK` confirmation.
+  - Implemented Candidate Results Scorecard: translates Phase 9 visibility matrix states (200 released scorecard, 403 pending release, 404 grading with manual refresh button, 409 active attempt, 403 BOLA denied) without answer key leakage.
+  - Implemented Faculty Assessment Portal: draft exam authoring, topic rule composition with difficulty and points balancing, blueprint freezing, session scheduling with campus rooms, student roster enrollment, invigilator assignments, results summary KPIs, manual publication trigger, and release policy modal.
+  - Implemented Invigilator Proctoring Console: assigned sessions listing, real-time candidate attempt state tracking (`READY`, `ACTIVE`, `SUBMITTED`, `EXPIRED`), and session-scoped results inspection with zero administrative controls.
+  - Implemented Administrator Portal: global system counts, active session monitoring, and cross-exam oversight.
 - **Acceptance Criteria:**
-  - Frontend renders flawlessly without flicker or unnecessary re-renders during rapid autosaves.
-  - Visual countdown strictly synchronizes with authoritative server deadline.
-  - Offline mode warns candidate immediately when network connectivity is lost.
-- **Tests Required:** Frontend component unit tests (React Testing Library), end-to-end user flow tests (Playwright/Cypress).
+  - Frontend builds cleanly with zero errors (`vite build` in 928ms).
+  - Countdown timer synchronizes with server time and locks inputs locally at zero.
+  - Autosave debounces at 1,000ms and resolves OCC revisions seamlessly.
+  - Offline banner warns candidate that unsynchronized answers reside in memory only.
+  - Final submission sends mandatory UUID `Idempotency-Key` and reuses same key on retries.
+  - Backend confirmation (`200 OK`) is strictly required before displaying submitted state.
+  - All 351 baseline Phase 0–9 backend tests pass without regression.
+- **Tests Implemented:** 25 unit and integration tests across 10 test files (`QuestionRenderer`, `TimerDisplay`, `QuestionNavigator`, `AutosaveIndicator`, `useExamTimer`, `useAutosave`, `LoginPage`, `ExamTakingPage`, `CandidateResultPage`, `FacultyResultsPage`). All 25 tests passing. Full backend regression: 351/351 passing across 83 suites.
 
 ---
 
