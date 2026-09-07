@@ -191,35 +191,41 @@ $$\text{Plan} \longrightarrow \text{Implement} \longrightarrow \text{Test} \long
 ---
 
 ### Phase 8 — Submission, Outbox & Evaluation
-- [ ] **Status:** Pending
-- **Objective:** Implement atomic, idempotent exam submission, transactional outbox event creation, and evaluation trigger.
+- [x] **Status:** Completed
+- **Objective:** Implement atomic, idempotent exam submission, transactional outbox event creation, and asynchronous objective evaluation trigger.
 - **Dependencies:** Phase 7
 - **Major Tasks:**
-  - Implement `POST /api/attempts/:id/submit` endpoint with atomic transaction and lock.
-  - Automated auto-submit trigger for expired attempts during heartbeat/save checks.
-  - Transactional Outbox insertion (`outbox_events`) recording `AttemptSubmittedEvent` in same DB transaction.
-  - Immediate score calculation for objective questions (MCQ, True/False) or queuing for worker evaluation.
+  - Migration 013 creating `outbox_events` and `submission_idempotency`.
+  - Implemented `POST /api/v1/attempts/:attemptId/submit` endpoint with mandatory `Idempotency-Key` and optional final dirty answer persistence under OCC rules.
+  - Implemented atomic, durable submission transaction transition (`ACTIVE -> SUBMITTED`), authoritative deadline enforcement (`ATTEMPT_EXPIRED`), and outbox event publishing (`ATTEMPT_SUBMITTED`).
+  - Implemented Transactional Outbox dispatcher, in-process polling worker, exponential backoff retries, and asynchronous EvaluationWorker.
+  - Implemented objective evaluation logic for MCQ, TRUE_FALSE, and NUMERIC questions, persisting scores and answer counts into `results`.
 - **Acceptance Criteria:**
-  - Submission transitions attempt state to `SUBMITTED` atomically; duplicate submissions return success idempotently.
-  - Post-submission answer writes are completely impossible.
-  - Outbox event is reliably written to PostgreSQL with business data.
-- **Tests Required:** Double-submit race condition tests, timeout auto-submit tests, outbox atomicity transaction tests.
+  - Submission transitions attempt state to `SUBMITTED` atomically; duplicate submissions return cached response idempotently.
+  - Post-submission answer writes are strictly impossible.
+  - Outbox event is reliably written to PostgreSQL with business data and processed asynchronously.
+- **Tests Implemented:** 45 tests across `submissionService.test.js`, `submissionApi.test.js`, `outboxDispatcher.test.js`, `evaluator.test.js`, `evaluationWorker.test.js`. Full test suite: 297/297 passing.
 
 ---
 
 ### Phase 9 — Results
-- [ ] **Status:** Pending
-- **Objective:** Implement exam evaluation aggregation, scoring, manual grading workflows, and candidate result release.
+- [x] **Status:** Completed
+- **Objective:** Implement exam result publication, candidate visibility policies, staff results inspection, aggregated summary statistics, and policy immutability.
 - **Dependencies:** Phase 8
 - **Major Tasks:**
-  - Database migrations for `evaluations`, `manual_grades`, and `final_results`.
-  - Manual grading interface and API for subjective/essay questions (Instructor role).
-  - Result publication rules (immediate, scheduled, or manual release).
-  - Candidate result retrieval endpoint (`GET /api/attempts/:id/result`) honoring visibility rules.
+  - Migration 014 adding `results_release_policy`, `results_release_at`, and `results_published_at` to `exams`.
+  - Implemented candidate result endpoint `GET /api/v1/attempts/:attemptId/result` with strict BOLA defense, attempt status checks, and authoritative PostgreSQL primary visibility predicates.
+  - Implemented Immediate Visibility Invariant: `IMMEDIATE` policy requires exam status `ENDED`, `EVALUATED`, or `RESULT_PUBLISHED` before candidate visibility is granted, preventing score leakage during `LIVE` exams.
+  - Implemented Scheduled Visibility: `SCHEDULED` policy grants candidate visibility once exam has concluded and authoritative PostgreSQL `transaction_timestamp() >= results_release_at`.
+  - Implemented staff results inspection (`GET /api/v1/exams/:examId/results`) and aggregated summary statistics (`GET /api/v1/exams/:examId/results/summary`) with dual-layer scoping for Invigilators (`sessionId` + `session_invigilators` SQL join), Faculty Owners, and Admins.
+  - Implemented manual administrative publication (`POST /api/v1/exams/:examId/results/publish`) with state machine validation and idempotent completion.
+  - Implemented release policy mutation (`PATCH /api/v1/exams/:examId/results/policy`) with strict immutability once results have become candidate-visible (`409 RESULT_ALREADY_RELEASED`).
 - **Acceptance Criteria:**
-  - Candidate cannot view results until exam policy permits release.
-  - Aggregated scores accurately reflect objective auto-grades and manual adjustments.
-- **Tests Required:** Scoring calculation unit tests, result visibility authorization tests, manual grading API tests.
+  - Candidates cannot view results while exam is `LIVE` or until policy/publication conditions are satisfied.
+  - Release policy is strictly immutable once candidates have gained visibility.
+  - Summary statistics accurately aggregate attempts, evaluations, pass/fail counts, and score averages without skew from unevaluated attempts.
+  - All staff endpoints strictly enforce role and session scoping.
+- **Tests Implemented:** 54 unit and integration tests across `resultsVisibility.test.js`, `resultsApi.test.js`, `resultsAuth.test.js`, `resultsSummary.test.js`, `resultsConcurrency.test.js`. Full test suite: 351/351 passing across 83 suites.
 
 ---
 
