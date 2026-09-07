@@ -1,10 +1,16 @@
-import { describe, it } from 'node:test';
+import { describe, it, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import {
   handleEvaluationMessage,
   isValidUuid,
-  isTransientError
+  isTransientError,
+  getInFlightCount,
+  isConsumerShuttingDown,
+  getActiveConsumerInfo,
+  stopEvaluationConsumer,
+  restoreEvaluationConsumer,
+  resetConsumerState
 } from '../../src/modules/evaluation/evaluation.consumer.js';
 import { TOPOLOGY } from '../../src/infrastructure/rabbitmq/topology.js';
 
@@ -245,6 +251,230 @@ describe('Evaluation Consumer Unit Tests', () => {
 
       // Must NOT ACK
       assert.equal(channel.ackCalls.length, 0);
+    });
+  });
+
+  describe('In-Flight Tracking & Graceful Shutdown Drain', () => {
+    beforeEach(() => {
+      resetConsumerState();
+    });
+
+    afterEach(async () => {
+      await stopEvaluationConsumer({ maxDrainMs: 50 });
+      resetConsumerState();
+    });
+
+    it('should track in-flight count during message handling and decrement on completion', async () => {
+      const channel = createMockChannel();
+      const attemptId = 'a1aae9f3-285e-4ff6-8a9b-123aa7dc74e1';
+      let inFlightDuringWork = -1;
+
+      const mockWorker = {
+        evaluateAttempt: async () => {
+          inFlightDuringWork = getInFlightCount();
+          return { result_id: 'res-inflight-1' };
+        }
+      };
+      const mockRepo = {
+        findResultByAttemptId: async () => null
+      };
+
+      const msg = {
+        content: Buffer.from(JSON.stringify({
+          specversion: '1.0',
+          id: 'msg-inflight-1',
+          data: { attemptId }
+        })),
+        properties: { messageId: 'msg-inflight-1' }
+      };
+
+      assert.equal(getInFlightCount(), 0);
+      await handleEvaluationMessage(msg, channel, mockWorker, mockRepo);
+
+      assert.equal(inFlightDuringWork, 1);
+      assert.equal(getInFlightCount(), 0);
+      assert.equal(channel.ackCalls.length, 1);
+    });
+
+    it('should wait for active in-flight handlers during stopEvaluationConsumer before closing channel', async () => {
+      const channel = createMockChannel();
+      channel.prefetch = async () => {};
+      channel.assertExchange = async () => {};
+      channel.assertQueue = async () => {};
+      channel.bindQueue = async () => {};
+      channel.cancel = async () => { channel.cancelled = true; };
+      channel.close = async () => { channel.closed = true; };
+      channel.consume = async () => ({ consumerTag: 'tag-drain-1' });
+
+      await restoreEvaluationConsumer(null, channel);
+
+      const attemptId = 'b2bbe9f3-285e-4ff6-8a9b-123aa7dc74e2';
+      let workCompleted = false;
+
+      const mockWorker = {
+        evaluateAttempt: async () => {
+          await new Promise((r) => setTimeout(r, 60));
+          workCompleted = true;
+          return { result_id: 'res-drain-1' };
+        }
+      };
+      const mockRepo = {
+        findResultByAttemptId: async () => null
+      };
+
+      const msg = {
+        content: Buffer.from(JSON.stringify({
+          specversion: '1.0',
+          id: 'msg-drain-1',
+          data: { attemptId }
+        })),
+        properties: { messageId: 'msg-drain-1' }
+      };
+
+      // Start processing asynchronously
+      const handlePromise = handleEvaluationMessage(msg, channel, mockWorker, mockRepo);
+
+      // Verify in-flight count is 1
+      assert.equal(getInFlightCount(), 1);
+
+      // Stop consumer and drain
+      const drainResult = await stopEvaluationConsumer({ maxDrainMs: 500 });
+
+      assert.equal(drainResult.drained, true);
+      assert.equal(drainResult.remainingCount, 0);
+      assert.equal(workCompleted, true);
+      assert.equal(channel.ackCalls.length, 1);
+      assert.equal(channel.closed, true);
+
+      await handlePromise;
+    });
+
+    it('should enforce drain timeout when a handler hangs, proceeding with shutdown without unearned ACK', async () => {
+      const channel = createMockChannel();
+      channel.prefetch = async () => {};
+      channel.assertExchange = async () => {};
+      channel.assertQueue = async () => {};
+      channel.bindQueue = async () => {};
+      channel.cancel = async () => { channel.cancelled = true; };
+      channel.close = async () => { channel.closed = true; };
+      channel.consume = async () => ({ consumerTag: 'tag-drain-hang' });
+
+      await restoreEvaluationConsumer(null, channel);
+
+      const attemptId = 'c3cce9f3-285e-4ff6-8a9b-123aa7dc74e3';
+
+      let finishHangingWork;
+      const mockWorker = {
+        evaluateAttempt: async () => {
+          await new Promise((r) => { finishHangingWork = r; });
+          return { result_id: 'res-hang-1' };
+        }
+      };
+      const mockRepo = {
+        findResultByAttemptId: async () => null
+      };
+
+      const msg = {
+        content: Buffer.from(JSON.stringify({
+          specversion: '1.0',
+          id: 'msg-hang-1',
+          data: { attemptId }
+        })),
+        properties: { messageId: 'msg-hang-1' }
+      };
+
+      // Launch hanging handler
+      const handlePromise = handleEvaluationMessage(msg, channel, mockWorker, mockRepo);
+      assert.equal(getInFlightCount(), 1);
+
+      // Stop consumer with small drain timeout (50ms)
+      const drainResult = await stopEvaluationConsumer({ maxDrainMs: 50 });
+
+      assert.equal(drainResult.drained, false);
+      assert.equal(drainResult.remainingCount, 1);
+      // Crucial: unfinished work MUST NOT have been acknowledged
+      assert.equal(channel.ackCalls.length, 0);
+      assert.equal(channel.closed, true);
+
+      // Cleanup hanging promise
+      finishHangingWork();
+      await handlePromise.catch(() => {});
+    });
+
+    it('should reject new incoming deliveries when isConsumerShuttingDown is true', async () => {
+      const channel = createMockChannel();
+      await stopEvaluationConsumer({ maxDrainMs: 10 });
+
+      assert.equal(isConsumerShuttingDown(), true);
+
+      let workerCalled = false;
+      const mockWorker = {
+        evaluateAttempt: async () => {
+          workerCalled = true;
+          return {};
+        }
+      };
+
+      const msg = {
+        content: Buffer.from(JSON.stringify({
+          specversion: '1.0',
+          id: 'msg-during-shutdown',
+          data: { attemptId: 'd4dde9f3-285e-4ff6-8a9b-123aa7dc74e4' }
+        })),
+        properties: { messageId: 'msg-during-shutdown' }
+      };
+
+      await handleEvaluationMessage(msg, channel, mockWorker);
+
+      assert.equal(workerCalled, false);
+      assert.equal(channel.ackCalls.length, 0);
+    });
+
+    it('should restore consumer idempotently without creating duplicate consumers', async () => {
+      const channel1 = createMockChannel();
+      channel1.prefetch = async () => {};
+      channel1.assertExchange = async () => {};
+      channel1.assertQueue = async () => {};
+      channel1.bindQueue = async () => {};
+      channel1.cancel = async () => { channel1.cancelled = true; };
+      channel1.close = async () => { channel1.closed = true; };
+      let consumeCount1 = 0;
+      channel1.consume = async (q, fn, opts) => {
+        consumeCount1 += 1;
+        return { consumerTag: 'tag-channel-1' };
+      };
+
+      const channel2 = createMockChannel();
+      channel2.prefetch = async () => {};
+      channel2.assertExchange = async () => {};
+      channel2.assertQueue = async () => {};
+      channel2.bindQueue = async () => {};
+      channel2.cancel = async () => { channel2.cancelled = true; };
+      channel2.close = async () => { channel2.closed = true; };
+      let consumeCount2 = 0;
+      channel2.consume = async (q, fn, opts) => {
+        consumeCount2 += 1;
+        return { consumerTag: 'tag-channel-2' };
+      };
+
+      // 1. Initial restore on channel 1
+      const res1 = await restoreEvaluationConsumer(null, channel1);
+      assert.equal(res1.consumerTag, 'tag-channel-1');
+      assert.equal(consumeCount1, 1);
+
+      // 2. Second restore on channel 2 (e.g. after reconnect)
+      const res2 = await restoreEvaluationConsumer(null, channel2);
+      assert.equal(res2.consumerTag, 'tag-channel-2');
+      assert.equal(consumeCount2, 1);
+
+      // Crucial: previous channel1 was cancelled and closed
+      assert.equal(channel1.cancelled, true);
+      assert.equal(channel1.closed, true);
+
+      // Clean up
+      await stopEvaluationConsumer({ maxDrainMs: 50 });
+      assert.equal(channel2.cancelled, true);
+      assert.equal(channel2.closed, true);
     });
   });
 });

@@ -7,6 +7,72 @@ let reconnectTimer = null;
 let reconnectAttempts = 0;
 let isClosing = false;
 const activeChannels = new Set();
+const reconnectHooks = new Set();
+
+/**
+ * Registers an asynchronous hook to be executed upon successful reconnection.
+ * Returns an unregister function.
+ * @param {Function} hook - async (connection) => Promise<void>
+ * @returns {Function} unregister function
+ */
+export function registerReconnectHook(hook) {
+  reconnectHooks.add(hook);
+  return () => reconnectHooks.delete(hook);
+}
+
+/**
+ * Clears all registered reconnect hooks (used for test isolation).
+ */
+export function clearReconnectHooks() {
+  reconnectHooks.clear();
+}
+
+/**
+ * Executes all registered reconnect hooks with the provided connection.
+ * @param {import('amqplib').Connection} [conn]
+ * @returns {Promise<void>}
+ */
+export async function runReconnectHooks(conn = connectionInstance) {
+  if (!conn) return;
+  for (const hook of reconnectHooks) {
+    try {
+      await hook(conn);
+    } catch (hookErr) {
+      logger.error({ err: hookErr.message }, 'Error executing RabbitMQ reconnect hook');
+    }
+  }
+}
+
+/**
+ * Manually forces a reconnection sequence, closing existing connection if any
+ * and notifying all registered reconnect hooks.
+ * @returns {Promise<import('amqplib').Connection | null>}
+ */
+export async function reconnectRabbitMQ() {
+  if (isClosing) return null;
+
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
+
+  if (connectionInstance) {
+    try {
+      connectionInstance.removeAllListeners('close');
+      connectionInstance.removeAllListeners('error');
+      await connectionInstance.close().catch(() => {});
+    } catch {
+      // Ignore close error during forced reconnect
+    }
+    connectionInstance = null;
+  }
+
+  const newConn = await createRabbitMQConnection();
+  connectionInstance = newConn;
+  logger.info('RabbitMQ connection re-established; executing reconnect hooks');
+  await runReconnectHooks(newConn);
+  return newConn;
+}
 
 /**
  * Detects whether code is executing within a test runner environment.
@@ -131,7 +197,7 @@ export async function createRabbitMQConnection(customConfig = {}) {
 /**
  * Schedules a reconnection attempt if allowed by the retry strategy.
  */
-function scheduleReconnect() {
+export function scheduleReconnect() {
   if (isClosing || reconnectTimer) return;
 
   reconnectAttempts += 1;
@@ -147,7 +213,10 @@ function scheduleReconnect() {
     reconnectTimer = null;
     try {
       if (!isClosing && !connectionInstance) {
-        connectionInstance = await createRabbitMQConnection();
+        const newConn = await createRabbitMQConnection();
+        connectionInstance = newConn;
+        logger.info('RabbitMQ reconnection succeeded; executing reconnect hooks');
+        await runReconnectHooks(newConn);
       }
     } catch (err) {
       logger.warn({ err: err.message }, 'RabbitMQ reconnection attempt failed');
@@ -174,8 +243,15 @@ export async function getRabbitMQConnection() {
   }
 
   isClosing = false;
-  connectionInstance = await createRabbitMQConnection();
-  return connectionInstance;
+  try {
+    connectionInstance = await createRabbitMQConnection();
+    return connectionInstance;
+  } catch (err) {
+    if (!isClosing) {
+      scheduleReconnect();
+    }
+    throw err;
+  }
 }
 
 /**
@@ -408,6 +484,7 @@ export async function closeRabbitMQ() {
     } finally {
       connectionInstance = null;
       reconnectAttempts = 0;
+      reconnectHooks.clear();
       logger.info('RabbitMQ connection closed cleanly');
     }
   }

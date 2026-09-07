@@ -67,12 +67,18 @@ Chosen option: **Option 3**, because it provides industrial-grade message durabi
 7. **Dual-Trigger Outbox Lifecycle:**
    - The outbox dispatcher is triggered immediately post-commit via `setImmediate` and periodically polled every 5,000ms as a backstop.
    - Stale processing locks (interrupted workers) are recovered after 5 minutes with retry budget consumption.
+8. **Consumer Reconnect Recovery & Idempotency:**
+   - RabbitMQ connection loss automatically triggers bounded reconnection retry.
+   - Upon connection re-establishment, a reconnect lifecycle registry (`registerReconnectHook`) automatically restores the evaluation consumer: re-asserts topology, re-establishes prefetch, enables manual ACK, and cancels any prior active channel/tag to prevent duplicate consumers.
+9. **Graceful Shutdown & In-Flight Evaluation Drain:**
+   - During shutdown, the consumer first sets `isShuttingDown = true` to reject new incoming deliveries, unregisters reconnect hooks, and cancels the consumer tag with RabbitMQ.
+   - The system awaits all active in-flight evaluation handlers for a maximum drain window of 5,000ms before closing channels and connections. Handlers that fail or exceed the 5,000ms timeout remain unacknowledged, allowing broker redelivery upon reboot without unearned ACKs.
 
 ### Positive Consequences
 - Immediate sub-50ms HTTP response times for exam submissions, fully decoupling submission from CPU-bound evaluation.
 - High-availability message replication and durability via RabbitMQ Quorum Queues.
 - Complete protection against poison message infinite loops through structured DLQ quarantine.
-- Guaranteed zero data loss across worker crashes, database failovers, and broker restarts.
+- Guaranteed zero data loss across worker crashes, database failovers, broker restarts, and clean application shutdowns.
 - Full platform backward compatibility: system falls back to `InProcessEventTransport` when `RABBITMQ_ENABLED=false`.
 
 ### Negative Consequences / Trade-offs
@@ -80,7 +86,7 @@ Chosen option: **Option 3**, because it provides industrial-grade message durabi
 - Eventual consistency: candidate scorecards are generated asynchronously (typically within 100-300ms, or up to 20s if transient database deadlocks occur).
 
 ## Compliance & Validation
-- **Unit Testing:** Verified configuration schemas, topology assertions, CloudEvents envelope formatting, mandatory routing returns, error classifiers, and consumer forwarding logic.
+- **Unit Testing:** Verified configuration schemas, topology assertions, CloudEvents envelope formatting, mandatory routing returns, error classifiers, consumer forwarding logic, reconnect hook registration, and in-flight handler tracking.
 - **Live Broker Integration Testing (RabbitMQ 3.12.1):** Verified all 10 authoritative broker semantics (A through J), including confirmed retry forwarding before ACK, redelivery upon worker crash, 5s and 15s Quorum TTL dead-letter routing, and DLQ quarantine.
-- **Fault-Tolerance & Resilience Testing:** Verified outbox persistence during broker disconnection, exponential backoff, stale lock recovery, and worker duplicate message deduplication.
-- **Pipeline End-to-End Testing:** Full submission -> outbox -> RabbitMQ -> worker consumer -> PostgreSQL result pipeline verified with 100% green execution across 460 backend tests and 25 frontend tests.
+- **Fault-Tolerance & Resilience Testing:** Verified outbox persistence during broker disconnection, consumer restoration post-reconnect with DB completion, duplicate consumer prevention across repeated reconnects, graceful in-flight drain up to 5000ms, and timeout protection without unearned ACKs.
+- **Pipeline End-to-End Testing:** Full submission -> outbox -> RabbitMQ -> worker consumer -> PostgreSQL result pipeline verified with 100% green execution across 470 backend tests and 25 frontend tests.

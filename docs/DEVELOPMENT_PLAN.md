@@ -274,24 +274,28 @@ $$\text{Plan} \longrightarrow \text{Implement} \longrightarrow \text{Test} \long
 ---
 
 ### Phase 12 — RabbitMQ & Workers
-- [ ] **Status:** In Progress (Implementation & Testing Completed)
-- **Objective:** Implement reliable outbox poller, RabbitMQ exchange/queue topologies, dead-letter exchanges, and decoupled worker consumers.
+- [ ] **Status:** In Progress (Code Review Corrections Implemented & Verified)
+- **Objective:** Implement reliable outbox poller, RabbitMQ exchange/queue topologies, dead-letter exchanges, decoupled worker consumers, broker reconnect consumer restoration, and graceful in-flight evaluation draining.
 - **Dependencies:** Phase 11
 - **Major Tasks:**
-  - Setup RabbitMQ connection manager (`client.js`) with URL precedence, bounded reconnection retry backoff, test runner detection, and clean graceful shutdown.
+  - Setup RabbitMQ connection manager (`client.js`) using approved `amqplib` 0.10.x (`^0.10.5`), URL precedence, bounded reconnection retry backoff, test runner detection, reconnect lifecycle hook registry (`registerReconnectHook`), and clean graceful shutdown.
   - Asserted complete RabbitMQ topology: 3 durable direct exchanges (`proctornet.events`, `proctornet.retry`, `proctornet.dlx`), 4 Quorum Queues (`proctornet.evaluation.jobs`, `proctornet.evaluation.retry.1` [5,000ms TTL], `proctornet.evaluation.retry.2` [15,000ms TTL], `proctornet.evaluation.dlq`) with `x-dead-letter-strategy: 'at-least-once'` and `x-overflow: 'reject-publish'`.
-  - Implemented `RabbitMQEventTransport` publishing CloudEvents 1.0 compliant envelopes using `publishConfirmed` with `mandatory: true` and unroutable return handling.
+  - Implemented `RabbitMQEventTransport` publishing CloudEvents 1.0 compliant envelopes using `publishConfirmed` with `mandatory: true`, unroutable return handling, and auto-recovering cached ConfirmChannels.
   - Integrated dual-trigger outbox dispatcher (immediate post-commit `setImmediate` trigger + periodic background poller and stale lock recovery).
   - Implemented idempotent evaluation consumer (`evaluation.consumer.js`) adhering strictly to Model A retry semantics (Tier 0 initial, Tier 1 5s TTL, Tier 2 15s TTL, then DLQ quarantine; broker redeliveries distinct from application retry counts; ACK strictly after PostgreSQL result commit; confirmed forwarding before original ACK).
+  - Implemented automatic consumer restoration upon RabbitMQ reconnect (`restoreEvaluationConsumer`) with idempotent consumer tag cancellation to prevent duplicate consumers.
+  - Implemented explicit in-flight evaluation tracking (`inFlightHandlers`) and graceful shutdown drain with 5,000ms bounded timeout, rejecting new deliveries during shutdown while letting in-flight evaluations finish.
   - Wired startup topology assertion, poller, and consumer into `server.js` with graceful shutdown hooks.
   - Verified non-fatal RabbitMQ health check in `GET /ready`.
 - **Acceptance Criteria:**
   - Events published to outbox are reliably delivered to RabbitMQ queues with publisher confirms and mandatory routing verification.
   - Failed worker tasks are retried with tiered TTL delays and routed to DLQ upon exhaustion.
   - Re-delivered messages are processed idempotently without duplicate scoring.
+  - Broker disconnection and reconnect automatically restores worker consumers without duplicate consumers.
+  - Graceful shutdown stops accepting deliveries, drains in-flight evaluations up to 5000ms, and closes channels only after completion or timeout.
   - Zero message loss across worker crashes, channel drops, and network partitions.
   - Full backward compatibility: falls back to `InProcessEventTransport` when `RABBITMQ_ENABLED=false`.
-- **Tests Implemented:** 56 unit, integration, live broker, resilience, and E2E tests across `rabbitmqConfig.test.js`, `rabbitmqClient.test.js`, `topology.test.js`, `outboxTransport.test.js`, `evaluationConsumer.test.js`, `brokerSemantics.integration.test.js`, `rabbitmqResilience.test.js`, `e2eOutboxWorker.integration.test.js`. Full regression: 460/460 backend passing across 109 suites, 25/25 frontend passing. ADR-0002 approved.
+- **Tests Implemented:** 66 unit, integration, live broker, resilience, and E2E tests across `rabbitmqConfig.test.js`, `rabbitmqClient.test.js`, `topology.test.js`, `outboxTransport.test.js`, `evaluationConsumer.test.js`, `brokerSemantics.integration.test.js`, `rabbitmqResilience.test.js`, `e2eOutboxWorker.integration.test.js`. Full regression: 470/470 backend passing across 111 suites, 25/25 frontend passing. ADR-0002 approved.
 
 ---
 

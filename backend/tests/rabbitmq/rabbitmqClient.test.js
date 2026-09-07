@@ -8,7 +8,10 @@ import {
   publishConfirmed,
   checkRabbitMQHealth,
   closeRabbitMQ,
-  setRabbitMQConnection
+  setRabbitMQConnection,
+  registerReconnectHook,
+  clearReconnectHooks,
+  runReconnectHooks
 } from '../../src/infrastructure/rabbitmq/client.js';
 
 describe('RabbitMQ Client Lifecycle and Infrastructure', () => {
@@ -280,6 +283,56 @@ describe('RabbitMQ Client Lifecycle and Infrastructure', () => {
       assert.equal(health.healthy, false);
       assert.equal(health.status, 'DOWN');
       assert.match(health.error, /timeout/);
+    });
+  });
+
+  describe('Reconnect Hook Lifecycle Registry', () => {
+    afterEach(() => {
+      clearReconnectHooks();
+    });
+
+    it('should execute registered reconnect hooks with the new connection', async () => {
+      let hook1Called = false;
+      let hook2Connection = null;
+
+      registerReconnectHook(async () => {
+        hook1Called = true;
+      });
+
+      registerReconnectHook(async (conn) => {
+        hook2Connection = conn;
+      });
+
+      const fakeConn = { id: 'fake-conn-1' };
+      await runReconnectHooks(fakeConn);
+
+      assert.equal(hook1Called, true);
+      assert.deepEqual(hook2Connection, fakeConn);
+    });
+
+    it('should support unregistering a reconnect hook', async () => {
+      let callCount = 0;
+      const unregister = registerReconnectHook(async () => {
+        callCount += 1;
+      });
+
+      await runReconnectHooks({});
+      assert.equal(callCount, 1);
+
+      unregister();
+      await runReconnectHooks({});
+      assert.equal(callCount, 1);
+    });
+
+    it('should clear all hooks via clearReconnectHooks', async () => {
+      let called = false;
+      registerReconnectHook(async () => {
+        called = true;
+      });
+
+      clearReconnectHooks();
+      await runReconnectHooks({});
+      assert.equal(called, false);
     });
   });
 });

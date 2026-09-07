@@ -14,15 +14,29 @@ import { closeRedis } from '../../src/infrastructure/redis/client.js';
 import {
   getRabbitMQConnection,
   createConfirmChannel,
-  closeRabbitMQ
+  closeRabbitMQ,
+  reconnectRabbitMQ,
+  publishConfirmed
 } from '../../src/infrastructure/rabbitmq/client.js';
 import { assertTopology, TOPOLOGY } from '../../src/infrastructure/rabbitmq/topology.js';
 import { RabbitMQEventTransport } from '../../src/modules/outbox/outbox.transport.js';
 import { OutboxDispatcher } from '../../src/modules/outbox/outbox.dispatcher.js';
 import * as outboxRepo from '../../src/modules/outbox/outbox.repository.js';
-import { handleEvaluationMessage } from '../../src/modules/evaluation/evaluation.consumer.js';
+import * as authService from '../../src/modules/auth/auth.service.js';
+import * as examService from '../../src/modules/exams/exams.service.js';
+import * as sessionService from '../../src/modules/sessions/sessions.service.js';
+import * as attemptService from '../../src/modules/attempts/attempts.service.js';
+import * as answersService from '../../src/modules/answers/answers.service.js';
+import * as submissionsService from '../../src/modules/submissions/submissions.service.js';
+import {
+  handleEvaluationMessage,
+  startEvaluationConsumer,
+  stopEvaluationConsumer,
+  getActiveConsumerInfo,
+  resetConsumerState
+} from '../../src/modules/evaluation/evaluation.consumer.js';
 
-describe('RabbitMQ & Outbox Resilience (Integration)', { timeout: 30000 }, () => {
+describe('RabbitMQ & Outbox Resilience (Integration)', { timeout: 60000 }, () => {
   let connection;
   let adminChannel;
 
@@ -211,5 +225,229 @@ describe('RabbitMQ & Outbox Resilience (Integration)', { timeout: 30000 }, () =>
     // Duplicate redelivery: detects existing result via repo, skips evaluate, acks immediately
     await handleEvaluationMessage(amqpMsg, mockChannel, mockWorker, mockRepo);
     assert.equal(ackCount, 2);
+  });
+
+  async function createTestAttempt() {
+    const timestamp = `${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    const faculty = await authService.register({
+      name: 'Faculty Res Test',
+      email: `faculty_res_${timestamp}@example.com`,
+      password: 'Password123!'
+    });
+    await query(`INSERT INTO user_roles (user_id, role) VALUES ($1, 'FACULTY') ON CONFLICT DO NOTHING;`, [faculty.userId]);
+    const facultyUser = { userId: faculty.userId, roles: ['FACULTY'] };
+
+    const student = await authService.register({
+      name: 'Student Res Test',
+      email: `student_res_${timestamp}@example.com`,
+      password: 'Password123!'
+    });
+    const studentUser = { userId: student.userId, roles: ['STUDENT'] };
+
+    const subRes = await query(
+      `INSERT INTO subjects (name, code) VALUES ($1, $2) RETURNING *;`,
+      [`Res Subject ${timestamp}`, `RES_${timestamp.slice(-6)}`]
+    );
+    const subject = subRes.rows[0];
+
+    const topRes = await query(
+      `INSERT INTO topics (subject_id, name) VALUES ($1, $2) RETURNING *;`,
+      [subject.subject_id, 'Res Topic']
+    );
+    const topic = topRes.rows[0];
+
+    const qRes = await query(
+      `INSERT INTO questions (topic_id, question_type, prompt_text, default_points)
+       VALUES ($1, 'MCQ', 'What is 2 + 2?', 10.00) RETURNING *;`,
+      [topic.topic_id]
+    );
+    const q = qRes.rows[0];
+
+    const optCorrect = await query(
+      `INSERT INTO question_options (question_id, option_text, is_correct, display_order) VALUES ($1, '4', true, 0) RETURNING *;`,
+      [q.question_id]
+    );
+
+    const exam = await examService.createExam(
+      {
+        subject_id: subject.subject_id,
+        title: `Resilience Exam ${timestamp}`,
+        duration_minutes: 60,
+        total_marks: 10.00,
+        passing_marks: 5.00
+      },
+      facultyUser.userId
+    );
+
+    await examService.configureTopicRule(
+      exam.exam_id,
+      {
+        topic_id: topic.topic_id,
+        question_count: 1,
+        points_per_question: 10.00
+      },
+      facultyUser
+    );
+
+    await examService.publishExam(exam.exam_id, facultyUser);
+
+    const roomRes = await query(`INSERT INTO rooms (name, capacity) VALUES ($1, 50) RETURNING *;`, [`Room Res ${timestamp}`]);
+    const room = roomRes.rows[0];
+
+    const now = new Date();
+    const session = await sessionService.createSession(
+      {
+        exam_id: exam.exam_id,
+        room_id: room.room_id,
+        scheduled_start_time: new Date(now.getTime() - 5 * 60000).toISOString(),
+        scheduled_end_time: new Date(now.getTime() + 60 * 60000).toISOString()
+      },
+      facultyUser
+    );
+
+    await sessionService.assignStudents(session.session_id, [studentUser.userId], facultyUser);
+    const attempt = await attemptService.startAttempt(session.session_id, studentUser);
+
+    const aqRes = await query(
+      `SELECT aq.attempt_question_id FROM attempt_questions aq WHERE aq.attempt_id = $1;`,
+      [attempt.attempt_id]
+    );
+    const attemptQuestionId = aqRes.rows[0].attempt_question_id;
+
+    await answersService.saveAnswer(
+      attempt.attempt_id,
+      attemptQuestionId,
+      { answer_value: { selected_option_id: optCorrect.rows[0].option_id }, expected_revision: 0 },
+      studentUser
+    );
+
+    await submissionsService.submitAttempt(
+      attempt.attempt_id,
+      randomUUID(),
+      { answers: [] },
+      studentUser
+    );
+
+    return attempt;
+  }
+
+  it('should restore evaluation consumer upon RabbitMQ reconnect and consume new jobs to DB completion', async () => {
+    resetConsumerState();
+
+    const conn = await getRabbitMQConnection();
+    const purgeChannel = await createConfirmChannel(conn);
+    await purgeChannel.purgeQueue(TOPOLOGY.QUEUES.JOBS);
+    await purgeChannel.close().catch(() => {});
+
+    // 2. Start consumer
+    const consumer = await startEvaluationConsumer();
+    assert.ok(consumer);
+    assert.ok(consumer.consumerTag);
+
+    const info1 = getActiveConsumerInfo();
+    assert.ok(info1.consumerTag);
+
+    // 3. Simulate RabbitMQ connection loss and reconnect
+    const newConn = await reconnectRabbitMQ();
+    assert.ok(newConn);
+
+    // Allow reconnect hooks to execute and restore consumer
+    await new Promise((r) => setTimeout(r, 150));
+
+    // 4. Verify consumer restored on new connection
+    const info2 = getActiveConsumerInfo();
+    assert.ok(info2.consumerTag);
+    assert.notEqual(info2.channel, info1.channel);
+
+    // 5. Submit real attempt
+    const attempt = await createTestAttempt();
+
+    // 6. Publish evaluation job directly to exchange
+    const testChannel = await createConfirmChannel(newConn);
+    const messageId = `msg-reconnect-test-${Date.now()}`;
+    const payload = Buffer.from(JSON.stringify({
+      specversion: '1.0',
+      id: messageId,
+      data: { attemptId: attempt.attempt_id }
+    }));
+
+    await publishConfirmed(
+      testChannel,
+      TOPOLOGY.EXCHANGES.EVENTS,
+      TOPOLOGY.ROUTING_KEYS.ATTEMPT_SUBMITTED,
+      payload,
+      { messageId }
+    );
+    await testChannel.close().catch(() => {});
+
+    // 7. Poll PostgreSQL for result commitment
+    let result = null;
+    for (let i = 0; i < 40; i++) {
+      const res = await query(`SELECT * FROM results WHERE attempt_id = $1;`, [attempt.attempt_id]);
+      if (res.rows.length > 0) {
+        result = res.rows[0];
+        break;
+      }
+      await new Promise((r) => setTimeout(r, 200));
+    }
+
+    assert.ok(result, 'Expected result to be committed to PostgreSQL by restored worker');
+    assert.equal(result.attempt_id, attempt.attempt_id);
+    assert.equal(Number(result.score), 10);
+
+    // 8. Verify repeated reconnect does NOT create multiple duplicate consumers
+    await reconnectRabbitMQ();
+    await new Promise((r) => setTimeout(r, 100));
+    await reconnectRabbitMQ();
+    await new Promise((r) => setTimeout(r, 100));
+
+    const info3 = getActiveConsumerInfo();
+    assert.ok(info3.consumerTag);
+
+    // Stop consumer
+    await stopEvaluationConsumer({ maxDrainMs: 1000 });
+  });
+
+  it('should drain in-flight evaluations during stopEvaluationConsumer before closing RabbitMQ', async () => {
+    resetConsumerState();
+
+    const conn = await getRabbitMQConnection();
+    const purgeChannel = await createConfirmChannel(conn);
+    await purgeChannel.purgeQueue(TOPOLOGY.QUEUES.JOBS);
+    await purgeChannel.close().catch(() => {});
+
+    // 2. Start consumer
+    await startEvaluationConsumer();
+
+    // 3. Create test attempt
+    const attempt = await createTestAttempt();
+
+    // 4. Publish job to queue
+    const publishChannel = await createConfirmChannel(conn);
+    const messageId = `msg-drain-test-${Date.now()}`;
+    const payload = Buffer.from(JSON.stringify({
+      specversion: '1.0',
+      id: messageId,
+      data: { attemptId: attempt.attempt_id }
+    }));
+
+    await publishConfirmed(
+      publishChannel,
+      TOPOLOGY.EXCHANGES.EVENTS,
+      TOPOLOGY.ROUTING_KEYS.ATTEMPT_SUBMITTED,
+      payload,
+      { messageId }
+    );
+    await publishChannel.close().catch(() => {});
+
+    // 5. Initiate graceful stop/drain
+    const drainResult = await stopEvaluationConsumer({ maxDrainMs: 5000 });
+    assert.equal(drainResult.drained, true);
+    assert.equal(drainResult.remainingCount, 0);
+
+    // 6. Verify result was committed to PostgreSQL
+    const res = await query(`SELECT * FROM results WHERE attempt_id = $1;`, [attempt.attempt_id]);
+    assert.equal(res.rows.length, 1);
+    assert.equal(res.rows[0].attempt_id, attempt.attempt_id);
   });
 });

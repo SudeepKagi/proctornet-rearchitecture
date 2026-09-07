@@ -10,14 +10,14 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch --env-file=.env src/server.js",
-    "test": "node --test",
+    "test": "node --test --test-concurrency=1",
     "test:watch": "node --test --watch",
     "db:migrate": "node src/infrastructure/postgres/migrate.js up",
     "db:rollback": "node src/infrastructure/postgres/migrate.js down",
     "db:create": "npx node-pg-migrate create --migrations-dir migrations --migration-file-language js"
   },
   "dependencies": {
-    "amqplib": "^2.0.1",
+    "amqplib": "^0.10.5",
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",

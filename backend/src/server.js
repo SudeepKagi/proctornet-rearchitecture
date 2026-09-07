@@ -7,7 +7,8 @@ import { closeRedis } from './infrastructure/redis/client.js';
 import {
   getRabbitMQConnection,
   createConfirmChannel,
-  closeRabbitMQ
+  closeRabbitMQ,
+  registerReconnectHook
 } from './infrastructure/rabbitmq/client.js';
 import { assertTopology } from './infrastructure/rabbitmq/topology.js';
 import { startOutboxPoller, stopOutboxPoller } from './modules/outbox/outbox.service.js';
@@ -53,8 +54,8 @@ async function gracefulShutdown(signal) {
     // 2. Stop outbox poller
     stopOutboxPoller();
 
-    // 3. Stop evaluation consumer and drain in-flight jobs
-    await stopEvaluationConsumer();
+    // 3. Stop evaluation consumer and drain in-flight jobs (up to 5000ms)
+    await stopEvaluationConsumer({ maxDrainMs: 5000 });
 
     // 4. Close RabbitMQ connections and channels
     await closeRabbitMQ();
@@ -101,13 +102,13 @@ server.listen(config.PORT, async () => {
 
   // Initialize RabbitMQ infrastructure & consumers if enabled
   if (config.RABBITMQ_ENABLED) {
+    startOutboxPoller();
     try {
       const conn = await getRabbitMQConnection();
       if (conn) {
         const channel = await createConfirmChannel(conn);
         await assertTopology(channel);
         await channel.close().catch(() => {});
-        startOutboxPoller();
         await startEvaluationConsumer();
         logger.info('RabbitMQ infrastructure, outbox poller, and evaluation consumer initialized');
       }
@@ -116,6 +117,15 @@ server.listen(config.PORT, async () => {
         { err: err.message },
         'Failed to initialize RabbitMQ during server boot; non-fatal background retry will continue'
       );
+      // Register reconnect hook to start consumer once RabbitMQ connects
+      registerReconnectHook(async (newConn) => {
+        try {
+          await startEvaluationConsumer({ connection: newConn });
+          logger.info('RabbitMQ connected post-boot; evaluation consumer initialized');
+        } catch (consumerErr) {
+          logger.error({ err: consumerErr.message }, 'Failed to initialize consumer after post-boot reconnect');
+        }
+      });
     }
   }
 });

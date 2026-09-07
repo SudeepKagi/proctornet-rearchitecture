@@ -70,6 +70,44 @@ export class RabbitMQEventTransport extends EventTransport {
     this.channelProvider = channelProvider;
     this.exchange = options.exchange || 'proctornet.events';
     this.routingKey = options.routingKey || 'attempt.submitted';
+    this.cachedChannel = null;
+  }
+
+  /**
+   * Obtains an active ConfirmChannel, creating or recovering on reconnect as necessary.
+   * @returns {Promise<import('amqplib').ConfirmChannel>}
+   */
+  async getChannel() {
+    if (this.channelProvider && typeof this.channelProvider.getConfirmChannel === 'function') {
+      return this.channelProvider.getConfirmChannel();
+    }
+    if (this.channelProvider && typeof this.channelProvider.createConfirmChannel === 'function') {
+      return this.channelProvider.createConfirmChannel();
+    }
+    if (this.channelProvider && typeof this.channelProvider.publishConfirmed === 'function') {
+      return this.channelProvider;
+    }
+
+    if (this.cachedChannel && !this.cachedChannel.closed) {
+      return this.cachedChannel;
+    }
+
+    const channel = await createConfirmChannel();
+    this.cachedChannel = channel;
+
+    channel.once('close', () => {
+      if (this.cachedChannel === channel) {
+        this.cachedChannel = null;
+      }
+    });
+
+    channel.once('error', () => {
+      if (this.cachedChannel === channel) {
+        this.cachedChannel = null;
+      }
+    });
+
+    return channel;
   }
 
   /**
@@ -96,16 +134,7 @@ export class RabbitMQEventTransport extends EventTransport {
    * @returns {Promise<{ published: boolean, messageId: string }>}
    */
   async publish(event) {
-    let channel;
-    if (this.channelProvider && typeof this.channelProvider.getConfirmChannel === 'function') {
-      channel = await this.channelProvider.getConfirmChannel();
-    } else if (this.channelProvider && typeof this.channelProvider.createConfirmChannel === 'function') {
-      channel = await this.channelProvider.createConfirmChannel();
-    } else if (this.channelProvider && typeof this.channelProvider.publishConfirmed === 'function') {
-      channel = this.channelProvider;
-    } else {
-      channel = await createConfirmChannel();
-    }
+    const channel = await this.getChannel();
 
     const envelope = this.formatEnvelope(event);
     const content = Buffer.from(JSON.stringify(envelope));
