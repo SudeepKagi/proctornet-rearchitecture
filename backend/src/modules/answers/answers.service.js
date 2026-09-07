@@ -15,6 +15,7 @@ import { logger } from '../../utils/logger.js';
 import { AttemptStatus } from '../../domain/attempt/attemptStates.js';
 import { transitionAttemptState } from '../../domain/attempt/attemptStateMachine.js';
 import * as answersRepo from './answers.repository.js';
+import { finalizeAttempt } from '../submissions/submissions.service.js';
 
 /**
  * Checks if two answer payloads are semantically identical.
@@ -129,24 +130,17 @@ async function assertActiveAndValidDeadline(attempt, client, actorUserId, reques
   const expiresAt = new Date(attempt.expires_at);
 
   if (serverNow >= expiresAt) {
-    const nextStatus = transitionAttemptState(attempt.status, AttemptStatus.EXPIRED);
-    await answersRepo.updateAttemptStatus(attempt.attempt_id, nextStatus, client);
-
-    await answersRepo.createAuditLog(
+    await finalizeAttempt(
+      client,
+      attempt,
+      AttemptStatus.EXPIRED,
+      'Authoritative server deadline elapsed on answer write attempt',
+      actorUserId,
+      requestId,
       {
-        actorUserId,
-        action: 'ATTEMPT_EXPIRED',
-        resourceType: 'ATTEMPT',
-        resourceId: attempt.attempt_id,
-        attemptId: attempt.attempt_id,
-        requestId,
-        metadata: {
-          reason: 'Authoritative server deadline elapsed on answer write attempt',
-          expiresAt: attempt.expires_at,
-          serverTime: serverNow.toISOString()
-        }
-      },
-      client
+        expiresAt: attempt.expires_at,
+        serverTime: serverNow.toISOString()
+      }
     );
 
     await client.query('COMMIT');

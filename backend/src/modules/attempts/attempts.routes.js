@@ -12,6 +12,7 @@ import {
   getAttemptQuestions
 } from './attempts.controller.js';
 import { answersRouter } from '../answers/answers.routes.js';
+import { submitAttempt } from '../submissions/submissions.controller.js';
 
 export const attemptsRouter = Router();
 
@@ -20,6 +21,9 @@ attemptsRouter.post('/start', authenticate, requireRole('STUDENT'), startAttempt
 
 // Phase 7: Answers, Autosave, OCC Revisions & Clear
 attemptsRouter.use('/:attemptId/answers', answersRouter);
+
+// Phase 8: Candidate Exam Submission & Finalization
+attemptsRouter.post('/:attemptId/submit', authenticate, requireRole('STUDENT'), submitAttempt);
 
 // Attempt inspection & question mapping endpoints
 attemptsRouter.get('/:attemptId', authenticate, getAttemptById);
