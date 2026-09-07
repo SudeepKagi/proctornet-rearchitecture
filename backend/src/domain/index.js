@@ -21,3 +21,7 @@ export * from './question/questionTypes.js';
 
 // Evaluation domain
 export * from './evaluation/evaluationStatus.js';
+
+// Results domain
+export * from './results/resultsReleasePolicy.js';
+export * from './results/resultsVisibility.js';

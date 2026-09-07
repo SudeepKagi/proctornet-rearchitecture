@@ -15,12 +15,17 @@ import {
   handlePublishExam,
   handleListExams
 } from './exams.controller.js';
+import { examResultsRouter } from '../results/results.routes.js';
 
 export const examsRouter = Router();
 
 // Protected exam routes
 examsRouter.post('/', authenticate, requireRole('FACULTY', 'ADMIN'), handleCreateExam);
 examsRouter.get('/', authenticate, handleListExams);
+
+// Phase 9: Exam Results, Summaries, Publication & Policies (before /:id catchall)
+examsRouter.use('/:examId/results', examResultsRouter);
+
 examsRouter.get('/:id', authenticate, handleGetExam);
 examsRouter.put('/:id', authenticate, requireRole('FACULTY', 'ADMIN'), handleUpdateExam);
 examsRouter.post('/:id/rules', authenticate, requireRole('FACULTY', 'ADMIN'), handleAddTopicRule);

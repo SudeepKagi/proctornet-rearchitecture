@@ -13,6 +13,7 @@ import {
 } from './attempts.controller.js';
 import { answersRouter } from '../answers/answers.routes.js';
 import { submitAttempt } from '../submissions/submissions.controller.js';
+import { candidateResultsRouter } from '../results/results.routes.js';
 
 export const attemptsRouter = Router();
 
@@ -24,6 +25,9 @@ attemptsRouter.use('/:attemptId/answers', answersRouter);
 
 // Phase 8: Candidate Exam Submission & Finalization
 attemptsRouter.post('/:attemptId/submit', authenticate, requireRole('STUDENT'), submitAttempt);
+
+// Phase 9: Candidate Result Inspection
+attemptsRouter.use('/:attemptId/result', candidateResultsRouter);
 
 // Attempt inspection & question mapping endpoints
 attemptsRouter.get('/:attemptId', authenticate, getAttemptById);
