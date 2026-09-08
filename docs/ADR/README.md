@@ -65,3 +65,4 @@ How will this decision be enforced and validated in testing/CI?
 - [ADR-0001: Redis Non-Authoritative Caching, Sliding-Window Rate Limiting, and Resilience](0001-redis-non-authoritative-caching-and-resilience.md) — *Accepted (Phase 11)*
 - [ADR-0002: RabbitMQ Asynchronous Transport, Quorum Queue Delayed Retries, and Worker Idempotency](0002-rabbitmq-asynchronous-transport-and-worker-idempotency.md) — *Accepted (Phase 12)*
 - [ADR-0003: In-Process Prometheus Metrics, Distributed Trace Context Propagation, and Database-Enforced Audit Immutability](0003-observability-metrics-and-audit.md) — *Accepted (Phase 13)*
+- [ADR-0004: Proctoring Event Ingestion, Server-Authoritative Anomaly Scoring, and Flag Lifecycle](0004-proctoring-event-ingestion-and-anomaly-scoring.md) — *Accepted (Phase 14)*

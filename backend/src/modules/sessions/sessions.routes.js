@@ -19,8 +19,10 @@ import {
   handleListRooms
 } from './sessions.controller.js';
 import { startAttempt, getMyAttempt } from '../attempts/attempts.controller.js';
+import { handleGetSessionSummary } from '../proctoring/proctoring.routes.js';
 
 export const sessionsRouter = Router();
+
 
 // Room routes (placed before parameter routes)
 sessionsRouter.get('/rooms', authenticate, handleListRooms);
@@ -31,6 +33,11 @@ sessionsRouter.post('/', authenticate, requireRole('FACULTY', 'ADMIN'), handleCr
 sessionsRouter.get('/', authenticate, handleListSessions);
 sessionsRouter.get('/:id', authenticate, handleGetSession);
 sessionsRouter.put('/:id', authenticate, requireRole('FACULTY', 'ADMIN'), handleUpdateSession);
+
+// Phase 14: Session Proctoring Summary (Invigilator Console)
+sessionsRouter.get('/:id/proctoring/summary', authenticate, handleGetSessionSummary);
+sessionsRouter.get('/:sessionId/proctoring/summary', authenticate, handleGetSessionSummary);
+
 
 // Session student roster routes
 sessionsRouter.post('/:id/students', authenticate, requireRole('FACULTY', 'ADMIN'), handleAssignStudents);

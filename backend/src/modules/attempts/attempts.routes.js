@@ -15,8 +15,10 @@ import { answersRouter } from '../answers/answers.routes.js';
 import { submitAttempt } from '../submissions/submissions.controller.js';
 import { candidateResultsRouter } from '../results/results.routes.js';
 import { createRateLimiter } from '../../middleware/rateLimiter.js';
+import { attemptEventsRouter, attemptProctoringFlagsRouter } from '../proctoring/proctoring.routes.js';
 
 export const attemptsRouter = Router();
+
 
 // Submission rate limiter: 5 requests per 60s per candidate attempt
 const submitRateLimiter = createRateLimiter({
@@ -41,6 +43,12 @@ attemptsRouter.post('/:attemptId/submit', authenticate, requireRole('STUDENT'), 
 
 // Phase 9: Candidate Result Inspection
 attemptsRouter.use('/:attemptId/result', candidateResultsRouter);
+
+// Phase 14: Proctoring Telemetry Ingestion & Violation Timeline
+attemptsRouter.use('/:attemptId/events', attemptEventsRouter);
+
+// Phase 14: Proctoring Flags (Manual Creation & Status Reviews)
+attemptsRouter.use('/:attemptId/proctoring/flags', attemptProctoringFlagsRouter);
 
 // Attempt inspection & question mapping endpoints
 attemptsRouter.get('/:attemptId', authenticate, getAttemptById);

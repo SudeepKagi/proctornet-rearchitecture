@@ -11,6 +11,7 @@ import * as answersApi from '../../api/answersApi.js';
 import { useExamTimer } from '../../hooks/useExamTimer.js';
 import { useAutosave } from '../../hooks/useAutosave.js';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus.js';
+import { useProctoringEvents } from '../../hooks/useProctoringEvents.js';
 import { generateUUID } from '../../utils/uuid.js';
 
 import { QuestionRenderer } from '../../components/exam/QuestionRenderer.jsx';
@@ -131,6 +132,12 @@ export function ExamTakingPage() {
     serverTime: attempt?.server_time,
     expiresAt: attempt?.expires_at,
     onExpire: handleTimeExpired,
+  });
+
+  // Candidate background telemetry & proctoring event reporter (Phase 14)
+  useProctoringEvents({
+    attemptId,
+    isActive: !!attempt && !isExpired && !isSubmitting && !autoSubmittingBanner,
   });
 
   // Input locking if expired
