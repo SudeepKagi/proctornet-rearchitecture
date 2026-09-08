@@ -1,0 +1,25 @@
+# ProctorNet Staging Environment Variables Template
+# Copy to terraform.tfvars for deployment
+
+aws_region   = "ap-south-1"
+environment  = "staging"
+project_name = "proctornet"
+domain_name  = "staging.proctornet.com"
+admin_email  = "admin@proctornet.com"
+
+# Staging Compute Sizing: Burstable instance to reduce idle cloud spend while preserving 100% network topology
+instance_type = "t3.large"
+
+# Administrative Access: Restricted WireGuard VPN / Admin CIDR (Leave empty or set to your VPN IP/32)
+admin_cidr = ""
+
+# Scale-Ready Managed Services: Keep false in Phase 20
+enable_rds         = false
+enable_elasticache = false
+enable_alb         = false
+
+# Evidence Retention: Staging non-current versions expire after 7 days
+evidence_noncurrent_version_expiration_days = 7
+
+# Backup Retention: Staging database backups expire after 14 days in S3
+backup_retention_days = 14

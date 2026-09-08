@@ -1,0 +1,81 @@
+name: Terraform IaC Quality Gate
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'terraform/**'
+      - '.github/workflows/terraform.yml'
+      - 'infrastructure/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'terraform/**'
+      - '.github/workflows/terraform.yml'
+      - 'infrastructure/**'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  terraform-validate:
+    name: Terraform Validation & Security Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.5"
+
+      - name: Setup TFLint
+        uses: terraform-linters/setup-tflint@v4
+        with:
+          tflint_version: "v0.53.0"
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Checkov
+        run: pip install checkov
+
+      - name: Check Canonical Formatting
+        run: |
+          cd terraform
+          terraform fmt -check -recursive
+
+      - name: Run TFLint
+        run: |
+          cd terraform
+          tflint --init
+          tflint --recursive
+
+      - name: Validate Bootstrap Stack
+        run: |
+          cd terraform/bootstrap
+          terraform init -backend=false
+          terraform validate
+
+      - name: Validate Staging Environment
+        run: |
+          cd terraform/environments/staging
+          terraform init -backend=false
+          terraform validate
+
+      - name: Validate Production Environment
+        run: |
+          cd terraform/environments/production
+          terraform init -backend=false
+          terraform validate
+
+      - name: Run Checkov Security Scan
+        run: |
+          checkov -d terraform/ --framework terraform
+
+      - name: Assert Non-Negotiable Infrastructure Invariants
+        run: node scripts/verify-infrastructure-invariants.js

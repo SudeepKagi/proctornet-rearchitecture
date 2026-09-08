@@ -1,0 +1,26 @@
+# ProctorNet Production Environment Variables Template
+# Copy to terraform.tfvars for deployment
+
+aws_region   = "ap-south-1"
+environment  = "production"
+project_name = "proctornet"
+domain_name  = "exam.proctornet.com"
+admin_email  = "admin@proctornet.com"
+
+# Production Compute Sizing: Compute-optimized instance with dedicated network line rate for WebRTC SFU
+instance_type = "c6i.xlarge"
+
+# Administrative Access: Restricted WireGuard VPN / Admin CIDR (Leave empty or set to your VPN IP/32)
+# Port 22 is NEVER open to 0.0.0.0/0. AWS SSM Session Manager is primary management.
+admin_cidr = ""
+
+# Scale-Ready Managed Services: Keep false in Phase 20 (PostgreSQL and Redis remain containerized on EC2)
+enable_rds         = false
+enable_elasticache = false
+enable_alb         = false
+
+# Evidence Retention: null = application sweeper manages retention per ADR-0005; noncurrent versions retained
+evidence_noncurrent_version_expiration_days = null
+
+# Backup Retention: Daily database backups expire after 90 days in S3
+backup_retention_days = 90

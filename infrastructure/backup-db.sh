@@ -19,6 +19,14 @@ docker compose -f /opt/proctornet/docker-compose.prod.yml exec -T postgres \
 
 echo "==> [Backup] Backup completed successfully: $(du -h "${BACKUP_FILE}")"
 
-# Retention: Delete backups older than 30 days
+# Retention: Delete backups older than 30 days locally
 find "${BACKUP_DIR}" -name "proctornet_db_*.sql.gz" -mtime +30 -delete
-echo "==> [Backup] Retention policy applied (purged backups older than 30 days)."
+echo "==> [Backup] Retention policy applied (purged local backups older than 30 days)."
+
+# S3 Sync: Upload compressed dump with server-side encryption
+BACKUP_BUCKET="${BACKUP_BUCKET:-}"
+if [ -n "$BACKUP_BUCKET" ]; then
+  echo "==> [Backup] Uploading backup to S3 bucket ${BACKUP_BUCKET}..."
+  aws s3 cp "${BACKUP_FILE}" "s3://${BACKUP_BUCKET}/postgres/$(basename "${BACKUP_FILE}")" --sse AES256
+  echo "==> [Backup] S3 upload completed successfully."
+fi
