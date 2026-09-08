@@ -345,7 +345,7 @@ $$\text{Plan} \longrightarrow \text{Implement} \longrightarrow \text{Test} \long
 ---
 
 ### Phase 15 — Evidence Storage
-- [ ] **Status:** In Planning
+- [x] **Status:** Complete (Merged in PR #16)
 - **Objective:** Implement secure, direct-to-S3 evidence uploads (webcam snapshots, screen captures, audio) with signed URLs and metadata verification.
 - **Dependencies:** Phase 14
 - **Major Tasks:**
@@ -361,7 +361,7 @@ $$\text{Plan} \longrightarrow \text{Implement} \longrightarrow \text{Test} \long
 ---
 
 ### Phase 16 — WebSocket
-- [ ] **Status:** Pending
+- [x] **Status:** Complete (Merged in PR #17)
 - **Objective:** Build the real-time WebSocket control plane for proctoring alerts, candidate heartbeats, and room signaling.
 - **Dependencies:** Phase 15
 - **Major Tasks:**
@@ -379,19 +379,22 @@ $$\text{Plan} \longrightarrow \text{Implement} \longrightarrow \text{Test} \long
 ---
 
 ### Phase 17 — WebRTC & SFU
-- [ ] **Status:** Pending
+- [x] **Status:** Complete (Merged in PR #18, Commit 11b1c5b, Merge a72240f)
 - **Objective:** Implement WebRTC media streaming via a dedicated Selective Forwarding Unit (SFU) for live multi-candidate video/audio proctoring.
 - **Dependencies:** Phase 16
 - **Major Tasks:**
-  - Integrate SFU media server (e.g., mediasoup / LiveKit / Janus) as an isolated media gateway.
-  - Implement SFU signaling transport over WebSocket.
-  - Candidate media publisher pipeline (webcam, microphone, screen share).
-  - Proctor multi-stream subscriber pipeline with adaptive bitrate and grid pagination.
-  - Complete isolation between SFU media traffic and core application HTTP API.
+  - Integrate SFU media server (mediasoup v3) as an isolated media gateway with bounded worker scaling and deterministic session pinning.
+  - Implement SFU signaling transport over WebSocket with 64 KB ceiling and dedicated token bucket rate limiting (240 msg/min, burst 60).
+  - Candidate media publisher pipeline (webcam, microphone, screen share) with simulcast and hardware track cleanup (`stopMediaStream`).
+  - Proctor multi-stream subscriber pipeline with 12-candidate grid pagination, muted-by-default audio, solo listening, and VU meters.
+  - Complete isolation between SFU media traffic, PostgreSQL business logic, and RabbitMQ evaluation workers.
+  - Coturn ephemeral credentials generated via HMAC-SHA1 with 900-second (15 minutes) TTL and mandatory production TURN validation.
+  - ADR-0007 approved and indexed.
 - **Acceptance Criteria:**
   - Proctors can view multiple simultaneous candidate video/audio streams with low latency.
   - Heavy media transport has zero performance impact on core database or answer autosaves.
-- **Tests Required:** Media signaling exchange integration tests, stream producer/consumer connection tests.
+  - Isolated per-worker crash recovery with generation fencing prevents cross-session cascading failures.
+- **Tests Implemented:** 57 backend media tests across 9 test files (23 sub-suites); 19 frontend media tests across 4 files; Full regression: 704/704 backend tests passing, 56/56 frontend tests passing, clean production build.
 
 ---
 
