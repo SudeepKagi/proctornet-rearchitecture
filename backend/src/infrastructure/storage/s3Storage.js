@@ -241,3 +241,36 @@ export async function deleteEvidenceObjectVersions({ bucket, key }) {
     timer();
   }
 }
+
+/**
+ * Retrieves the first N bytes of an S3 object via a minimal HTTP Range request.
+ * Used for binary file signature (magic bytes) verification without downloading full objects.
+ *
+ * @param {object} params
+ * @param {string} params.bucket
+ * @param {string} params.key
+ * @param {number} [params.byteCount=16]
+ * @returns {Promise<Buffer>}
+ */
+export async function getEvidenceObjectHeader({ bucket, key, byteCount = 16 }) {
+  const timer = evidenceStorageLatencySeconds.startTimer({ operation: 'get_header' });
+  try {
+    const s3 = getS3Client();
+    const command = new GetObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      Range: `bytes=0-${byteCount - 1}`
+    });
+
+    const response = await s3.send(command);
+    const stream = response.Body;
+    const chunks = [];
+    for await (const chunk of stream) {
+      chunks.push(chunk);
+    }
+    return Buffer.concat(chunks);
+  } finally {
+    timer();
+  }
+}
+

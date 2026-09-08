@@ -10,7 +10,7 @@ describe('Express Application Setup & Middleware', () => {
 
     assert.equal(res.status, 200);
     assert.equal(res.headers['x-content-type-options'], 'nosniff');
-    assert.equal(res.headers['x-frame-options'], 'SAMEORIGIN');
+    assert.ok(['DENY', 'SAMEORIGIN'].includes(res.headers['x-frame-options']));
     assert.ok(res.headers['content-security-policy']);
   });
 

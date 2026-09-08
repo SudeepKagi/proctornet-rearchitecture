@@ -69,3 +69,5 @@ How will this decision be enforced and validated in testing/CI?
 - [ADR-0005: Private Object Storage Architecture, Direct Presigned Evidence Uploads, and Authoritative PostgreSQL Metadata Lifecycle](0005-private-object-storage-architecture-direct-presigned-evidence-uploads-and-authoritative-postgresql-metadata-lifecycle.md) — *Accepted (Phase 15)*
 - [ADR-0006: WebSocket Realtime Control Plane, Subprotocol Authentication, and Redis Pub/Sub Synchronization](0006-websocket-realtime-control-plane-and-redis-pubsub-synchronization.md) — *Accepted (Phase 16)*
 - [ADR-0007: WebRTC SFU Media Plane Architecture and mediasoup Integration](0007-webrtc-sfu-media-plane-architecture-and-mediasoup-integration.md) — *Accepted (Phase 17)*
+- [ADR-0008: Application Security Hardening, Cryptographic Anti-Tampering, and Defense-in-Depth](0008-application-security-hardening-cryptographic-anti-tampering.md) — *Accepted (Phase 18)*
+

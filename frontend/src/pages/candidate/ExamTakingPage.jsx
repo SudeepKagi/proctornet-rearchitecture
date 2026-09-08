@@ -8,6 +8,7 @@ import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom';
 import * as attemptsApi from '../../api/attemptsApi.js';
 import * as answersApi from '../../api/answersApi.js';
+import { setAntiTamperToken } from '../../api/client.js';
 import { useExamTimer } from '../../hooks/useExamTimer.js';
 import { useAutosave } from '../../hooks/useAutosave.js';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus.js';
@@ -68,6 +69,9 @@ export function ExamTakingPage() {
         }
 
         setAttempt(attemptData);
+        if (attemptData.anti_tamper_token) {
+          setAntiTamperToken(attemptData.anti_tamper_token);
+        }
         setQuestions(questionsData);
         setInitialAnswersList(savedAnswers);
       } catch (err) {

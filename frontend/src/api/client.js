@@ -4,7 +4,10 @@
  * Stores short-lived JWT access token strictly in memory.
  */
 
+import { createPayloadSignature } from '../utils/antiTamperClient.js';
+
 let inMemoryAccessToken = null;
+let inMemoryAntiTamperToken = null;
 let refreshPromise = null;
 let onUnauthorizedCallback = null;
 
@@ -14,6 +17,14 @@ export function setAccessToken(token) {
 
 export function getAccessToken() {
   return inMemoryAccessToken;
+}
+
+export function setAntiTamperToken(token) {
+  inMemoryAntiTamperToken = token;
+}
+
+export function getAntiTamperToken() {
+  return inMemoryAntiTamperToken;
 }
 
 export function setOnUnauthorized(callback) {
@@ -107,6 +118,34 @@ export async function apiClient(endpoint, options = {}) {
     config.body = body;
   }
 
+  const method = (customOptions.method || 'GET').toUpperCase();
+  const signingToken = options.antiTamperToken || inMemoryAntiTamperToken;
+
+  const requiresSigning = Boolean(
+    options.sign ||
+    (signingToken &&
+     ['POST', 'PUT', 'DELETE'].includes(method) &&
+     (endpoint.includes('/answers') || endpoint.includes('/events')))
+  );
+
+  async function attachSignatureHeader(targetHeaders) {
+    if (requiresSigning && signingToken) {
+      try {
+        const { headerValue } = await createPayloadSignature({
+          keyHex: signingToken,
+          method,
+          path: endpoint,
+          body: config.body
+        });
+        targetHeaders['X-Payload-Signature'] = headerValue;
+      } catch (err) {
+        console.warn('Failed to generate anti-tamper signature:', err);
+      }
+    }
+  }
+
+  await attachSignatureHeader(defaultHeaders);
+
   let response = await fetch(endpoint, config);
 
   // Intercept 401 Unauthorized for token refresh (except for auth endpoints)
@@ -115,6 +154,7 @@ export async function apiClient(endpoint, options = {}) {
       const newToken = await refreshAuthToken();
       if (newToken) {
         config.headers['Authorization'] = `Bearer ${newToken}`;
+        await attachSignatureHeader(config.headers);
         response = await fetch(endpoint, config);
       }
     } catch {

@@ -7,6 +7,7 @@ import { Router } from 'express';
 import { authenticate } from '../../middleware/authenticate.js';
 import { requireRole } from '../../middleware/authorize.js';
 import { createRateLimiter } from '../../middleware/rateLimiter.js';
+import { antiTamperMiddleware } from '../../middleware/antiTamper.js';
 import {
   saveAnswer,
   clearAnswer,
@@ -28,10 +29,10 @@ const answerSaveRateLimiter = createRateLimiter({
   }
 });
 
-// Candidate-only write endpoints (STUDENT role)
-answersRouter.put('/:attemptQuestionId', authenticate, requireRole('STUDENT'), answerSaveRateLimiter, saveAnswer);
-answersRouter.delete('/:attemptQuestionId', authenticate, requireRole('STUDENT'), clearAnswer);
-answersRouter.post('/batch', authenticate, requireRole('STUDENT'), answerSaveRateLimiter, batchSaveAnswers);
+// Candidate-only write endpoints (STUDENT role) protected by anti-tampering cryptographic validation
+answersRouter.put('/:attemptQuestionId', authenticate, requireRole('STUDENT'), antiTamperMiddleware, answerSaveRateLimiter, saveAnswer);
+answersRouter.delete('/:attemptQuestionId', authenticate, requireRole('STUDENT'), antiTamperMiddleware, clearAnswer);
+answersRouter.post('/batch', authenticate, requireRole('STUDENT'), antiTamperMiddleware, answerSaveRateLimiter, batchSaveAnswers);
 
 // Inspection endpoint (STUDENT owner, FACULTY creator, INVIGILATOR, ADMIN)
 answersRouter.get('/', authenticate, getAnswersForAttempt);

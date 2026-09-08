@@ -26,7 +26,7 @@ describe('Phase 15 Evidence Storage — Integration Tests', () => {
     mockS3 = setupMockS3({
       HeadObjectCommand: async (input) => ({
         ContentLength: 102400,
-        ContentType: 'image/jpeg',
+        ContentType: input?.Key?.endsWith('.png') ? 'image/png' : 'image/jpeg',
         VersionId: 'v-pinned-version-alpha-99',
         ETag: '"etag-test-123"'
       }),
