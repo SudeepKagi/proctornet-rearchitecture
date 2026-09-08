@@ -1,0 +1,207 @@
+version: '3.8'
+
+networks:
+  proctornet-net:
+    driver: bridge
+
+volumes:
+  pg_data:
+  redis_data:
+  rmq_data:
+  localstack_data:
+
+services:
+  postgres:
+    image: postgres:16.4-alpine
+    container_name: proctornet-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-proctornet}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    networks:
+      - proctornet-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-proctornet}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7.4-alpine
+    container_name: proctornet-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - proctornet-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3.13.7-management-alpine
+    container_name: proctornet-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"
+      - "15672:15672"
+    volumes:
+      - rmq_data:/var/lib/rabbitmq
+    networks:
+      - proctornet-net
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  localstack:
+    image: localstack/localstack:3.7
+    container_name: proctornet-localstack
+    restart: unless-stopped
+    environment:
+      - SERVICES=s3
+      - DEFAULT_REGION=ap-south-1
+      - AWS_DEFAULT_REGION=ap-south-1
+    ports:
+      - "4566:4566"
+    volumes:
+      - localstack_data:/var/lib/localstack
+      - ./infrastructure/localstack/init-s3.sh:/etc/localstack/init/ready.d/init-s3.sh
+    networks:
+      - proctornet-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  coturn:
+    image: coturn/coturn:4.6.2-alpine
+    container_name: proctornet-coturn
+    restart: unless-stopped
+    network_mode: "host"
+    command:
+      - -n
+      - --log-file=stdout
+      - --lt-cred-mech
+      - --fingerprint
+      - --no-tls
+      - --no-dtls
+      - --realm=proctornet.local
+      - --static-auth-secret=${TURN_STATIC_AUTH_SECRET:-proctornet-static-turn-secret-32-chars}
+      - --listening-port=3478
+      - --min-port=49152
+      - --max-port=49250
+    healthcheck:
+      test: ["CMD-SHELL", "turnutils_stunclient 127.0.0.1 > /dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  backend-migrate:
+    build:
+      context: ./backend
+      target: runner
+    container_name: proctornet-migrate
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-proctornet}
+    command: ["node", "src/infrastructure/postgres/migrate.js", "up"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - proctornet-net
+
+  backend:
+    build:
+      context: ./backend
+      target: runner
+    container_name: proctornet-backend
+    restart: unless-stopped
+    init: true
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 4000
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-proctornet}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
+      S3_ENDPOINT: http://localstack:4566
+      S3_FORCE_PATH_STYLE: "true"
+      S3_BUCKET_NAME: ${S3_BUCKET_NAME:-proctornet-evidence-dev-01}
+      AWS_REGION: ap-south-1
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      MEDIA_LISTEN_IP: "0.0.0.0"
+      MEDIA_ANNOUNCED_IP: ${MEDIA_ANNOUNCED_IP:-127.0.0.1}
+      MEDIA_MIN_PORT: 40000
+      MEDIA_MAX_PORT: 40050
+      TURN_SERVER_URL: "turn:${TURN_ANNOUNCED_HOST:-127.0.0.1}:3478"
+      TURN_STATIC_AUTH_SECRET: ${TURN_STATIC_AUTH_SECRET:-proctornet-static-turn-secret-32-chars}
+      ANTI_TAMPER_SECRET: ${ANTI_TAMPER_SECRET:-proctornet-dev-jwt-access-secret-32-chars-long}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-proctornet-dev-jwt-access-secret-32-chars-long}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-proctornet-dev-jwt-refresh-secret-32-chars-long}
+      CORS_ALLOWED_ORIGINS: "http://localhost:8080,http://localhost:3000,http://localhost:5173"
+    ports:
+      - "4000:4000"
+      - "40000-40050:40000-40050/udp"
+    depends_on:
+      backend-migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      localstack:
+        condition: service_healthy
+    networks:
+      - proctornet-net
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:4000/ready', (r) => { process.exit(r.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  frontend:
+    build:
+      context: ./frontend
+      target: runner
+    container_name: proctornet-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-8080}:8080"
+    volumes:
+      - ./frontend/nginx/default.local.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - proctornet-net
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8080/"]
+      interval: 10s
+      timeout: 3s
+      retries: 3

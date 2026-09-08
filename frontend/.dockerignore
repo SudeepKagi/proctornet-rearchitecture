@@ -1,0 +1,43 @@
+# Dependencies and local caches
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Git and IDE
+.git/
+.gitignore
+.gitattributes
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Test suites and coverage
+tests/
+coverage/
+*.test.jsx
+*.test.js
+*.spec.jsx
+*.spec.js
+
+# Build outputs and scratch artifacts
+dist/
+scratch/
+temp/
+tmp/
+*.log
+
+# Documentation
+*.md
+docs/
+
+# OS specific files
+.DS_Store
+Thumbs.db

@@ -1,0 +1,21 @@
+[Unit]
+Description=ProctorNet Examination Platform Docker Compose Service
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/proctornet
+EnvironmentFile=/opt/proctornet/.env
+
+ExecStart=/usr/bin/docker compose --file /opt/proctornet/docker-compose.prod.yml --env-file /opt/proctornet/.env up -d
+ExecStop=/usr/bin/docker compose --file /opt/proctornet/docker-compose.prod.yml --env-file /opt/proctornet/.env down
+
+TimeoutStartSec=300
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

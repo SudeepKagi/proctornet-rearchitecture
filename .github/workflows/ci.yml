@@ -1,0 +1,277 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'npm'
+          cache-dependency-path: 'backend/package-lock.json'
+      - name: Validate Node Engine Compatibility
+        run: |
+          node -e "const [major] = process.versions.node.split('.'); if (Number(major) < 24) { console.error('Node 24+ required'); process.exit(1); }"
+      - name: Validate Migration Chain Sequence
+        run: |
+          node -e '
+            const fs = require("fs");
+            const path = require("path");
+            const migrationsDir = path.join(process.cwd(), "backend", "migrations");
+            const files = fs.readdirSync(migrationsDir).filter(f => f.endsWith(".js") || f.endsWith(".sql")).sort();
+            if (files.length === 0) { console.error("No migrations found"); process.exit(1); }
+            const prefixes = new Set();
+            for (let i = 0; i < files.length; i++) {
+              const match = files[i].match(/^(\d+)_/);
+              if (!match) { console.error(`Migration ${files[i]} does not start with numeric prefix`); process.exit(1); }
+              const num = parseInt(match[1], 10);
+              if (prefixes.has(num)) { console.error(`Duplicate migration prefix: ${num} in ${files[i]}`); process.exit(1); }
+              prefixes.add(num);
+              if (num !== i + 1) { console.error(`Migration sequence broken: expected ${i + 1}, got ${num} (${files[i]})`); process.exit(1); }
+            }
+            console.log(`Validated complete migration chain of ${files.length} migrations.`);
+          '
+      - name: Validate Environment Schema Coverage
+        run: |
+          node -e '
+            const fs = require("fs");
+            const envExample = fs.readFileSync(".env.example", "utf8");
+            const envJs = fs.readFileSync("backend/src/config/env.js", "utf8");
+            const schemaVars = [
+              "NODE_ENV", "PORT", "DB_HOST", "DB_PORT", "DB_NAME", "DB_USER", "DB_PASSWORD",
+              "REDIS_HOST", "REDIS_PORT", "RABBITMQ_HOST", "RABBITMQ_PORT", "JWT_ACCESS_SECRET",
+              "JWT_REFRESH_SECRET", "ANTI_TAMPER_SECRET", "MEDIA_ANNOUNCED_IP", "TURN_SERVER_URL",
+              "TURN_STATIC_AUTH_SECRET"
+            ];
+            for (const v of schemaVars) {
+              if (!envExample.includes(v)) {
+                console.error(`Missing variable ${v} in .env.example`);
+                process.exit(1);
+              }
+            }
+            console.log("Environment schema coverage validated.");
+          '
+
+  test-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
+      - name: Install Frontend Dependencies
+        working-directory: frontend
+        run: npm ci
+      - name: Run Frontend Tests
+        working-directory: frontend
+        run: npm test
+
+  build-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
+      - name: Install Frontend Dependencies
+        working-directory: frontend
+        run: npm ci
+      - name: Build Frontend Application
+        working-directory: frontend
+        run: npm run build
+      - name: Verify Build Artifacts
+        run: |
+          test -f frontend/dist/index.html || exit 1
+
+  test-backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16.4-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: proctornet
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d proctornet"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7.4-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+      rabbitmq:
+        image: rabbitmq:3.13.7-management-alpine
+        env:
+          RABBITMQ_DEFAULT_USER: guest
+          RABBITMQ_DEFAULT_PASS: guest
+        ports:
+          - 5672:5672
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      localstack:
+        image: localstack/localstack:3.7
+        env:
+          SERVICES: s3
+          DEFAULT_REGION: ap-south-1
+          AWS_DEFAULT_REGION: ap-south-1
+        ports:
+          - 4566:4566
+    env:
+      NODE_ENV: test
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: proctornet
+      REDIS_HOST: localhost
+      REDIS_PORT: 6379
+      RABBITMQ_HOST: localhost
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: guest
+      RABBITMQ_PASSWORD: guest
+      S3_ENDPOINT: http://localhost:4566
+      S3_FORCE_PATH_STYLE: "true"
+      S3_BUCKET_NAME: proctornet-evidence-dev-01
+      AWS_REGION: ap-south-1
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      JWT_ACCESS_SECRET: proctornet-dev-jwt-access-secret-32-chars-long
+      JWT_REFRESH_SECRET: proctornet-dev-jwt-refresh-secret-32-chars-long
+      ANTI_TAMPER_SECRET: proctornet-dev-jwt-access-secret-32-chars-long
+      TURN_STATIC_AUTH_SECRET: proctornet-static-turn-secret-32-chars
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'npm'
+          cache-dependency-path: 'backend/package-lock.json'
+      - name: Install Native Build Tools & Backend Dependencies
+        working-directory: backend
+        run: |
+          sudo apt-get update && sudo apt-get install -y python3 make g++
+          npm ci
+      - name: Initialize LocalStack S3 Bucket
+        run: |
+          aws --endpoint-url=http://localhost:4566 s3 mb s3://proctornet-evidence-dev-01 --region ap-south-1 || true
+        env:
+          AWS_ACCESS_KEY_ID: test
+          AWS_SECRET_ACCESS_KEY: test
+          AWS_DEFAULT_REGION: ap-south-1
+      - name: Run Complete Migration Chain
+        working-directory: backend
+        run: npm run db:migrate
+      - name: Run Backend Regression Test Suite (750 Tests)
+        working-directory: backend
+        run: npm test -- --test-concurrency=1
+
+  docker-build-verify:
+    runs-on: ubuntu-latest
+    needs: [lint-and-validate, test-frontend, build-frontend, test-backend]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build Backend Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          target: runner
+          load: true
+          tags: proctornet-backend:ci-test
+      - name: Build Frontend Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          target: runner
+          load: true
+          tags: proctornet-frontend:ci-test
+      - name: Verify Runtime Image Excludes devDependencies
+        run: |
+          docker run --rm proctornet-backend:ci-test node -e "const devOnly=['vitest','supertest','c8']; for (const p of devOnly) { try { require(p); console.error('DEV DEP LEAK IN PROD IMAGE:', p); process.exit(1); } catch (e) {} } process.exit(0);"
+      - name: Launch Local Compose Integration Stack
+        run: |
+          cp .env.example .env
+          docker compose up -d --build
+      - name: Verify Service Health & Readiness
+        run: |
+          echo "Waiting for backend readiness probe..."
+          for i in {1..30}; do
+            if curl -sf http://localhost:4000/ready | grep -q '"status":"READY"'; then
+              echo "Backend is READY!"
+              break
+            fi
+            sleep 2
+          done
+          # Verify backend-migrate completed successfully
+          EXIT_CODE=$(docker inspect proctornet-migrate --format='{{.State.ExitCode}}')
+          if [ "$EXIT_CODE" != "0" ]; then
+            echo "backend-migrate failed with exit code $EXIT_CODE"
+            exit 1
+          fi
+          # Verify frontend serves React HTML
+          curl -sf http://localhost:8080/ | grep -q 'html'
+      - name: Teardown Compose Stack
+        if: always()
+        run: |
+          docker compose down -v
+
+  security-audit:
+    runs-on: ubuntu-latest
+    needs: [docker-build-verify]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Run Backend npm audit
+        working-directory: backend
+        run: npm audit --omit=dev
+      - name: Run Frontend npm audit
+        working-directory: frontend
+        run: npm audit --omit=dev
+      - name: Build Images for Scanning
+        run: |
+          docker build -t proctornet-backend:scan ./backend
+          docker build -t proctornet-frontend:scan ./frontend
+      - name: Run Trivy Vulnerability Scanner (Backend)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'proctornet-backend:scan'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL'
+      - name: Run Trivy Vulnerability Scanner (Frontend)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'proctornet-frontend:scan'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL'

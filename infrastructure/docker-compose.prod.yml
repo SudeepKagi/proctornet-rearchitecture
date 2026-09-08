@@ -1,0 +1,174 @@
+version: '3.8'
+
+networks:
+  proctornet-net:
+    driver: bridge
+
+volumes:
+  pg_data:
+  redis_data:
+  rmq_data:
+
+services:
+  postgres:
+    image: postgres:16.4-alpine
+    container_name: proctornet-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:?DB_USER is required}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      POSTGRES_DB: ${DB_NAME:?DB_NAME is required}
+    ports:
+      - "127.0.0.1:5432:5432" # Bind strictly to loopback
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    networks:
+      - proctornet-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7.4-alpine
+    container_name: proctornet-redis
+    restart: unless-stopped
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:?REDIS_PASSWORD is required}", "--appendonly", "yes"]
+    ports:
+      - "127.0.0.1:6379:6379" # Bind strictly to loopback
+    volumes:
+      - redis_data:/data
+    networks:
+      - proctornet-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3.13.7-management-alpine
+    container_name: proctornet-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:?RABBITMQ_USER is required}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?RABBITMQ_PASSWORD is required}
+    ports:
+      - "127.0.0.1:5672:5672" # Bind strictly to loopback
+      - "127.0.0.1:15672:15672"
+    volumes:
+      - rmq_data:/var/lib/rabbitmq
+    networks:
+      - proctornet-net
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  coturn:
+    image: coturn/coturn:4.6.2-alpine
+    container_name: proctornet-coturn
+    restart: unless-stopped
+    network_mode: "host"
+    command:
+      - -n
+      - --log-file=stdout
+      - --lt-cred-mech
+      - --fingerprint
+      - --realm=${DOMAIN_NAME:?DOMAIN_NAME is required}
+      - --static-auth-secret=${TURN_STATIC_AUTH_SECRET:?TURN_STATIC_AUTH_SECRET is required}
+      - --listening-port=3478
+      - --min-port=49152
+      - --max-port=49250
+      - --external-ip=${MEDIA_ANNOUNCED_IP:?MEDIA_ANNOUNCED_IP is required}
+    healthcheck:
+      test: ["CMD-SHELL", "turnutils_stunclient 127.0.0.1 > /dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  backend-migrate:
+    image: ${BACKEND_IMAGE:?BACKEND_IMAGE is required}
+    container_name: proctornet-migrate
+    network_mode: "host"
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@127.0.0.1:5432/${DB_NAME}
+    command: ["node", "src/infrastructure/postgres/migrate.js", "up"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  backend:
+    image: ${BACKEND_IMAGE:?BACKEND_IMAGE is required}
+    container_name: proctornet-backend
+    restart: unless-stopped
+    network_mode: "host"
+    init: true
+    stop_grace_period: 15s
+    depends_on:
+      backend-migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      REDIS_HOST: 127.0.0.1
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      RABBITMQ_HOST: 127.0.0.1
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      S3_BUCKET_NAME: ${S3_BUCKET_NAME:?S3_BUCKET_NAME is required}
+      AWS_REGION: ${AWS_REGION:-ap-south-1}
+      MEDIA_LISTEN_IP: "0.0.0.0"
+      MEDIA_ANNOUNCED_IP: ${MEDIA_ANNOUNCED_IP:?MEDIA_ANNOUNCED_IP is required}
+      MEDIA_MIN_PORT: 40000
+      MEDIA_MAX_PORT: 49999
+      TURN_SERVER_URL: "turn:${MEDIA_ANNOUNCED_IP}:3478"
+      TURN_STATIC_AUTH_SECRET: ${TURN_STATIC_AUTH_SECRET}
+      ANTI_TAMPER_SECRET: ${ANTI_TAMPER_SECRET:?ANTI_TAMPER_SECRET is required}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?JWT_ACCESS_SECRET is required}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?JWT_REFRESH_SECRET is required}
+      METRICS_AUTH_TOKEN: ${METRICS_AUTH_TOKEN:?METRICS_AUTH_TOKEN is required}
+      CORS_ALLOWED_ORIGINS: "https://${DOMAIN_NAME}"
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:4000/ready', (r) => { process.exit(r.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  frontend:
+    image: ${FRONTEND_IMAGE:?FRONTEND_IMAGE is required}
+    container_name: proctornet-frontend
+    restart: unless-stopped
+    networks:
+      - proctornet-net
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "80:8080"
+      - "443:8443"
+    depends_on:
+      backend:
+        condition: service_healthy
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /var/www/certbot:/var/www/certbot:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/.well-known/acme-challenge/ || wget -q -O /dev/null --no-check-certificate https://localhost:8443/ || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
