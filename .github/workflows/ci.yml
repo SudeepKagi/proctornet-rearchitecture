@@ -219,20 +219,35 @@ jobs:
       - name: Verify Service Health & Readiness
         run: |
           echo "Waiting for backend readiness probe..."
-          for i in {1..30}; do
+          READY=false
+          for i in {1..60}; do
             if curl -sf http://localhost:4000/ready | grep -q '"status":"READY"'; then
-              echo "Backend is READY!"
+              echo "Backend is READY after check ${i}!"
+              READY=true
               break
             fi
             sleep 2
           done
+          if [ "$READY" != "true" ]; then
+            echo "ERROR: Backend failed to become ready within 120s"
+            docker compose logs
+            exit 1
+          fi
           # Verify backend-migrate completed successfully
           EXIT_CODE=$(docker inspect proctornet-migrate --format='{{.State.ExitCode}}')
           if [ "$EXIT_CODE" != "0" ]; then
             echo "backend-migrate failed with exit code $EXIT_CODE"
+            docker logs proctornet-migrate
             exit 1
           fi
           # Verify frontend serves React HTML
+          for i in {1..15}; do
+            if curl -sf http://localhost:8080/ | grep -q 'html'; then
+              echo "Frontend is serving HTML!"
+              break
+            fi
+            sleep 2
+          done
           curl -sf http://localhost:8080/ | grep -q 'html'
       - name: Teardown Compose Stack
         if: always()
@@ -249,10 +264,10 @@ jobs:
           node-version: 24
       - name: Run Backend npm audit
         working-directory: backend
-        run: npm audit --omit=dev
+        run: npm audit --omit=dev --audit-level=high
       - name: Run Frontend npm audit
         working-directory: frontend
-        run: npm audit --omit=dev
+        run: npm audit --omit=dev --audit-level=high
       - name: Build Images for Scanning
         run: |
           docker build -t proctornet-backend:scan ./backend

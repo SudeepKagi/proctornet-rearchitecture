@@ -41,6 +41,9 @@
     "ioredis-mock": "^8.13.1",
     "supertest": "^7.0.0"
   },
+  "overrides": {
+    "qs": "^6.16.0"
+  },
   "keywords": [
     "proctornet",
     "examination",
