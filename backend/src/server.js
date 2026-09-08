@@ -13,6 +13,7 @@ import {
 import { assertTopology } from './infrastructure/rabbitmq/topology.js';
 import { startOutboxPoller, stopOutboxPoller } from './modules/outbox/outbox.service.js';
 import { startEvaluationConsumer, stopEvaluationConsumer } from './modules/evaluation/evaluation.consumer.js';
+import { defaultWebSocketServer, defaultBroadcaster } from './infrastructure/realtime/index.js';
 
 const server = http.createServer(app);
 
@@ -39,6 +40,16 @@ async function gracefulShutdown(signal) {
   forceShutdownTimer.unref();
 
   try {
+    // 0. Drain and close WebSocket connections
+    if (config.WS_ENABLED) {
+      try {
+        await defaultWebSocketServer.close(3000);
+        logger.info('WebSocket server connections drained and closed');
+      } catch (wsErr) {
+        logger.error({ err: wsErr }, 'Error closing WebSocket server');
+      }
+    }
+
     // 1. Stop accepting new HTTP connections
     await new Promise((resolve, reject) => {
       server.close((err) => {
@@ -89,6 +100,16 @@ process.on('unhandledRejection', (reason) => {
   gracefulShutdown('unhandledRejection');
 });
 
+// Attach WebSocket upgrade listener
+server.on('upgrade', (req, socket, head) => {
+  if (!config.WS_ENABLED) {
+    socket.write('HTTP/1.1 503 Service Unavailable\r\nConnection: close\r\n\r\nWebSocket Disabled');
+    socket.destroy();
+    return;
+  }
+  defaultWebSocketServer.handleUpgrade(req, socket, head);
+});
+
 // Start listening and initialize background workers
 server.listen(config.PORT, async () => {
   logger.info(
@@ -99,6 +120,17 @@ server.listen(config.PORT, async () => {
     },
     `ProctorNet Backend Server started successfully on port ${config.PORT}`
   );
+
+  // Initialize Realtime WebSocket broadcaster & timers if enabled
+  if (config.WS_ENABLED) {
+    try {
+      await defaultBroadcaster.init();
+      defaultWebSocketServer.startTimers();
+      logger.info('WebSocket server and realtime broadcaster initialized');
+    } catch (wsBootErr) {
+      logger.error({ err: wsBootErr }, 'Failed to initialize WebSocket realtime broadcaster');
+    }
+  }
 
   // Initialize RabbitMQ infrastructure & consumers if enabled
   if (config.RABBITMQ_ENABLED) {

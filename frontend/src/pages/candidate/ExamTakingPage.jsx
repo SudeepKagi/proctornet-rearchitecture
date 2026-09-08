@@ -4,7 +4,7 @@
  * drift-calibrated timer, dynamic N question navigation, and idempotent submission.
  */
 
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import * as attemptsApi from '../../api/attemptsApi.js';
 import * as answersApi from '../../api/answersApi.js';
@@ -12,6 +12,7 @@ import { useExamTimer } from '../../hooks/useExamTimer.js';
 import { useAutosave } from '../../hooks/useAutosave.js';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus.js';
 import { useProctoringEvents } from '../../hooks/useProctoringEvents.js';
+import { useRealtime } from '../../hooks/useRealtime.js';
 import { generateUUID } from '../../utils/uuid.js';
 
 import { QuestionRenderer } from '../../components/exam/QuestionRenderer.jsx';
@@ -140,6 +141,48 @@ export function ExamTakingPage() {
     isActive: !!attempt && !isExpired && !isSubmitting && !autoSubmittingBanner,
   });
 
+  // Realtime subscription for candidate warnings, session termination, and 5-second presence pulse
+  const [activeWarning, setActiveWarning] = useState(null);
+
+  const handleCandidateWarning = useCallback((payload) => {
+    setActiveWarning(
+      payload?.message || payload?.warning || 'Invigilator has issued an official warning regarding your exam session.'
+    );
+  }, []);
+
+  const handleSessionConcluded = useCallback(() => {
+    setAutoSubmittingBanner(true);
+    executeSubmission();
+  }, [executeSubmission]);
+
+  const realtimeHandlers = useMemo(
+    () => ({
+      'candidate:warning': handleCandidateWarning,
+      'session:concluded': handleSessionConcluded
+    }),
+    [handleCandidateWarning, handleSessionConcluded]
+  );
+
+  const { sendHeartbeat } = useRealtime(
+    attemptId ? `attempt:${attemptId}` : null,
+    realtimeHandlers
+  );
+
+  // 5-second application presence pulse (stops upon submission/expiry/unmount)
+  useEffect(() => {
+    const isPulseActive = !!attempt && !isExpired && !isSubmitting && !autoSubmittingBanner;
+    if (!isPulseActive || !attemptId) return;
+
+    // Send initial pulse immediately
+    sendHeartbeat(attemptId);
+
+    const pulseInterval = setInterval(() => {
+      sendHeartbeat(attemptId);
+    }, 5000);
+
+    return () => clearInterval(pulseInterval);
+  }, [attempt, isExpired, isSubmitting, autoSubmittingBanner, sendHeartbeat, attemptId]);
+
   // Input locking if expired
   const inputsDisabled = isExpired || isSubmitting || autoSubmittingBanner;
 
@@ -254,6 +297,30 @@ export function ExamTakingPage() {
           }}
         >
           Exam time has concluded. Finalizing and submitting attempt...
+        </div>
+      )}
+
+      {/* Realtime Invigilator Warning Banner */}
+      {activeWarning && (
+        <div
+          role="alert"
+          style={{
+            backgroundColor: 'var(--color-warning-light)',
+            borderBottom: '2px solid var(--color-warning-border)',
+            color: 'var(--color-warning)',
+            padding: '0.75rem 1.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            fontWeight: 600,
+            fontSize: '0.9375rem',
+            boxShadow: 'var(--shadow-sm)',
+          }}
+        >
+          <span>⚠️ Official Proctor Warning: {activeWarning}</span>
+          <Button variant="secondary" size="sm" onClick={() => setActiveWarning(null)}>
+            Acknowledge
+          </Button>
         </div>
       )}
 

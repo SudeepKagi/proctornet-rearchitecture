@@ -13,6 +13,7 @@ import { Card } from '../../components/common/Card.jsx';
 import { Button } from '../../components/common/Button.jsx';
 import { Badge, getStatusBadgeVariant } from '../../components/common/Badge.jsx';
 import { Spinner } from '../../components/common/Spinner.jsx';
+import { useRealtime } from '../../hooks/useRealtime.js';
 
 function getRiskBadgeVariant(score) {
   if (score >= 80) return 'danger';
@@ -60,6 +61,109 @@ export function SessionMonitorPage() {
     loadData();
   }, [loadData]);
 
+  const [presenceMap, setPresenceMap] = useState({});
+
+  const handleRiskScoreUpdated = useCallback((payload) => {
+    setProctoringSummary((prev) => {
+      if (!prev || !prev.candidates) return prev;
+      const nextCandidates = prev.candidates.map((c) => {
+        if (c.studentId === payload.studentId) {
+          return {
+            ...c,
+            riskScore: payload.riskScore,
+            violationCount: (c.violationCount || 0) + 1
+          };
+        }
+        return c;
+      });
+      const highRiskCount = nextCandidates.filter((c) => (Number(c.riskScore) || 0) >= 50).length;
+      return {
+        ...prev,
+        candidates: nextCandidates,
+        highRiskAttemptsCount: highRiskCount
+      };
+    });
+  }, []);
+
+  const handleFlagRaised = useCallback((payload) => {
+    setProctoringSummary((prev) => {
+      if (!prev || !prev.candidates) return prev;
+      const nextCandidates = prev.candidates.map((c) => {
+        if (c.studentId === payload.studentId) {
+          const activeFlags = Array.isArray(c.activeFlags) ? [...c.activeFlags] : [];
+          if (!activeFlags.some((f) => f.flagId === payload.flagId)) {
+            activeFlags.push(payload);
+          }
+          return {
+            ...c,
+            activeFlags,
+            activeFlagsCount: (c.activeFlagsCount || 0) + 1,
+            latestViolation: { eventType: payload.flagType, severity: payload.severity }
+          };
+        }
+        return c;
+      });
+      return {
+        ...prev,
+        candidates: nextCandidates
+      };
+    });
+  }, []);
+
+  const handleFlagReviewed = useCallback((payload) => {
+    setProctoringSummary((prev) => {
+      if (!prev || !prev.candidates) return prev;
+      const nextCandidates = prev.candidates.map((c) => {
+        if (c.studentId === payload.studentId && Array.isArray(c.activeFlags)) {
+          const activeFlags = c.activeFlags.filter((f) => f.flagId !== payload.flagId);
+          return {
+            ...c,
+            activeFlags,
+            activeFlagsCount: Math.max(0, (c.activeFlagsCount || 1) - 1)
+          };
+        }
+        return c;
+      });
+      return {
+        ...prev,
+        candidates: nextCandidates
+      };
+    });
+  }, []);
+
+  const handlePresenceChanged = useCallback((payload) => {
+    if (payload?.studentId) {
+      setPresenceMap((prev) => ({
+        ...prev,
+        [payload.studentId]: payload.status
+      }));
+    }
+  }, []);
+
+  const realtimeHandlers = useMemo(
+    () => ({
+      'proctoring:risk_score_updated': handleRiskScoreUpdated,
+      'proctoring:flag_raised': handleFlagRaised,
+      'proctoring:flag_reviewed': handleFlagReviewed,
+      'candidate:presence_changed': handlePresenceChanged
+    }),
+    [handleRiskScoreUpdated, handleFlagRaised, handleFlagReviewed, handlePresenceChanged]
+  );
+
+  const { status: wsStatus, isDegraded } = useRealtime(
+    sessionId ? `session:${sessionId}` : null,
+    realtimeHandlers
+  );
+
+  // Fallback to 10s REST polling when cross-node Redis synchronization is degraded
+  useEffect(() => {
+    if (!isDegraded) return;
+    const pollTimer = setInterval(() => {
+      loadData(true);
+    }, 10000);
+    return () => clearInterval(pollTimer);
+  }, [isDegraded, loadData]);
+
   const candidateProctorMap = useMemo(() => {
     const map = {};
     if (proctoringSummary?.candidates) {
@@ -94,6 +198,13 @@ export function SessionMonitorPage() {
                 {session?.exam_title || `Session #${sessionId.slice(0, 8)}`}
               </h1>
               <Badge variant={getStatusBadgeVariant(session?.status)}>{session?.status}</Badge>
+              {isDegraded ? (
+                <Badge variant="warning">Realtime Degraded (10s Polling)</Badge>
+              ) : wsStatus === 'CONNECTED' ? (
+                <Badge variant="success">Live Realtime</Badge>
+              ) : (
+                <Badge variant="neutral">Realtime {wsStatus}</Badge>
+              )}
             </div>
             <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9375rem' }}>
               Room: <strong>{session?.room_name || 'Online / Virtual'}</strong> | Active Proctoring Console
@@ -105,6 +216,24 @@ export function SessionMonitorPage() {
           </Button>
         </div>
       </div>
+
+      {isDegraded && (
+        <div
+          role="alert"
+          style={{
+            marginBottom: '1.5rem',
+            padding: '0.75rem 1rem',
+            borderRadius: 'var(--radius-md)',
+            backgroundColor: 'var(--color-warning-light)',
+            border: '1px solid var(--color-warning-border)',
+            color: 'var(--color-warning)',
+            fontWeight: 600,
+            fontSize: '0.875rem'
+          }}
+        >
+          ⚠️ Notice: Cross-node realtime synchronization is degraded. Invigilator console has automatically activated 10-second REST fallback polling.
+        </div>
+      )}
 
       {error && (
         <div
@@ -200,7 +329,16 @@ export function SessionMonitorPage() {
 
                   return (
                     <tr key={st.student_id} style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
-                      <td style={{ padding: '0.75rem 0.5rem', fontWeight: 500 }}>{st.name || 'Candidate'}</td>
+                      <td style={{ padding: '0.75rem 0.5rem', fontWeight: 500 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span>{st.name || 'Candidate'}</span>
+                          {presenceMap[st.student_id] === 'OFFLINE' ? (
+                            <Badge variant="danger" size="sm">OFFLINE</Badge>
+                          ) : (
+                            <Badge variant="success" size="sm">ONLINE</Badge>
+                          )}
+                        </div>
+                      </td>
                       <td style={{ padding: '0.75rem 0.5rem', color: 'var(--color-text-muted)' }}>{st.email || '—'}</td>
                       <td style={{ padding: '0.75rem 0.5rem' }}>
                         <Badge variant={getStatusBadgeVariant(pData.attemptStatus || st.attempt_status || 'READY')} size="sm">

@@ -14,7 +14,8 @@ import { recordAuditEvent } from '../audit/audit.service.js';
 import {
   proctoringEventsTotal,
   proctoringIngestDuration,
-  proctoringFlagsTotal
+  proctoringFlagsTotal,
+  wsBroadcastErrorsTotal
 } from '../../infrastructure/metrics/registry.js';
 import {
   NotFoundError,
@@ -23,6 +24,7 @@ import {
   BadRequestError
 } from '../../utils/errors.js';
 import { logger } from '../../utils/logger.js';
+import { defaultBroadcaster } from '../../infrastructure/realtime/index.js';
 
 /**
  * Checks if a user has staff authority over an exam session.
@@ -116,6 +118,7 @@ export async function ingestCandidateEvents(attemptId, user, events) {
 
       // Evaluate flag threshold crossings and immediate event overrides
       const flagsToRaise = evaluateFlagsToRaise(currentScore, newScore, insertedRows);
+      const createdFlagsList = [];
 
       for (const flag of flagsToRaise) {
         const createdFlag = await proctoringRepo.insertViolationFlag(
@@ -135,6 +138,18 @@ export async function ingestCandidateEvents(attemptId, user, events) {
 
         if (createdFlag) {
           flagsCreated++;
+          createdFlagsList.push({
+            flagId: createdFlag.flag_id,
+            attemptId,
+            sessionId: attempt.session_id,
+            studentId: attempt.student_id,
+            flagType: flag.flagType,
+            severity: flag.severity,
+            scoreDelta: flag.scoreDelta,
+            details: flag.details,
+            createdAt: createdFlag.created_at
+          });
+
           // Atomically insert PROCTORING_FLAG_RAISED into outbox_events
           await insertOutboxEvent(
             {
@@ -158,10 +173,43 @@ export async function ingestCandidateEvents(attemptId, user, events) {
           proctoringFlagsTotal.inc({ flag_type: flag.flagType, severity: flag.severity });
         }
       }
-    }
 
-    // 7. Commit database transaction
-    await client.query('COMMIT');
+      // 7. Commit database transaction
+      await client.query('COMMIT');
+
+      // Post-commit realtime broadcast (strictly isolated with try/catch)
+      if (newScore !== currentScore) {
+        try {
+          defaultBroadcaster.broadcastToSession(attempt.session_id, 'proctoring:risk_score_updated', {
+            studentId: attempt.student_id,
+            attemptId,
+            riskScore: newScore,
+            scoreDelta: newScore - currentScore
+          }).catch((err) => {
+            wsBroadcastErrorsTotal.inc();
+            logger.warn({ err, attemptId }, 'Failed to broadcast proctoring:risk_score_updated');
+          });
+        } catch (broadcastErr) {
+          wsBroadcastErrorsTotal.inc();
+          logger.warn({ err: broadcastErr, attemptId }, 'Realtime broadcast error on risk score update');
+        }
+      }
+
+      for (const cf of createdFlagsList) {
+        try {
+          defaultBroadcaster.broadcastToSession(attempt.session_id, 'proctoring:flag_raised', cf).catch((err) => {
+            wsBroadcastErrorsTotal.inc();
+            logger.warn({ err, flagId: cf.flagId }, 'Failed to broadcast proctoring:flag_raised');
+          });
+        } catch (broadcastErr) {
+          wsBroadcastErrorsTotal.inc();
+          logger.warn({ err: broadcastErr, flagId: cf.flagId }, 'Realtime broadcast error on flag raised');
+        }
+      }
+    } else {
+      // 7. Commit database transaction even when no new events inserted
+      await client.query('COMMIT');
+    }
 
     // 8. Track Prometheus metrics
     const endTime = process.hrtime.bigint();
@@ -387,6 +435,28 @@ export async function createManualProctorFlag(attemptId, user, flagData) {
 
     await client.query('COMMIT');
 
+    // Post-commit realtime broadcast (strictly isolated with try/catch)
+    try {
+      defaultBroadcaster.broadcastToSession(attempt.session_id, 'proctoring:flag_raised', {
+        flagId: createdFlag.flag_id,
+        attemptId,
+        sessionId: attempt.session_id,
+        studentId: attempt.student_id,
+        flagType: createdFlag.flag_type,
+        severity: createdFlag.severity,
+        scoreDelta: 0,
+        raisedBy: 'PROCTOR',
+        details: createdFlag.details,
+        createdAt: createdFlag.created_at
+      }).catch((err) => {
+        wsBroadcastErrorsTotal.inc();
+        logger.warn({ err, flagId: createdFlag.flag_id }, 'Failed to broadcast proctoring:flag_raised (manual)');
+      });
+    } catch (broadcastErr) {
+      wsBroadcastErrorsTotal.inc();
+      logger.warn({ err: broadcastErr, flagId: createdFlag.flag_id }, 'Realtime broadcast error on manual flag raised');
+    }
+
     proctoringFlagsTotal.inc({ flag_type: createdFlag.flag_type, severity: createdFlag.severity });
 
     return createdFlag;
@@ -464,6 +534,26 @@ export async function updateProctorFlagStatus(attemptId, flagId, user, updateDat
     );
 
     await client.query('COMMIT');
+
+    // Post-commit realtime broadcast (strictly isolated with try/catch)
+    try {
+      defaultBroadcaster.broadcastToSession(flag.session_id, 'proctoring:flag_reviewed', {
+        flagId,
+        attemptId,
+        sessionId: flag.session_id,
+        studentId: flag.student_id,
+        previousStatus: flag.status,
+        newStatus: updateData.status,
+        reviewerUserId: user.userId,
+        reviewedAt: new Date().toISOString()
+      }).catch((err) => {
+        wsBroadcastErrorsTotal.inc();
+        logger.warn({ err, flagId }, 'Failed to broadcast proctoring:flag_reviewed');
+      });
+    } catch (broadcastErr) {
+      wsBroadcastErrorsTotal.inc();
+      logger.warn({ err: broadcastErr, flagId }, 'Realtime broadcast error on flag review');
+    }
 
     return updatedFlag;
   } catch (err) {

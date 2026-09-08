@@ -12,6 +12,7 @@ import { LoginPage } from './pages/auth/LoginPage.jsx';
 import { RegisterPage } from './pages/auth/RegisterPage.jsx';
 import { NotFoundPage } from './pages/NotFoundPage.jsx';
 import { useAuth } from './hooks/useAuth.js';
+import { RealtimeProvider } from './context/RealtimeContext.jsx';
 
 // Candidate Pages
 import { CandidateDashboardPage } from './pages/candidate/CandidateDashboardPage.jsx';
@@ -45,8 +46,9 @@ function RootRedirect() {
 
 export function App() {
   return (
-    <Routes>
-      {/* Public Authentication Routes */}
+    <RealtimeProvider>
+      <Routes>
+        {/* Public Authentication Routes */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
 
@@ -165,5 +167,6 @@ export function App() {
       {/* Unmatched routes */}
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
+    </RealtimeProvider>
   );
 }

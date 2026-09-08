@@ -214,6 +214,56 @@ export const evidenceStorageLatencySeconds = new promClient.Histogram({
 });
 
 // ============================================================================
+// 7. WebSocket Realtime Metrics (Phase 16 - Bounded Labels, Zero UUIDs)
+// ============================================================================
+
+export const wsConnectionsActive = new promClient.Gauge({
+  name: 'proctornet_websocket_connections_active',
+  help: 'Current count of active WebSocket client connections',
+  labelNames: ['role'],
+  registers: [register]
+});
+
+export const wsConnectionsTotal = new promClient.Counter({
+  name: 'proctornet_websocket_connections_total',
+  help: 'Cumulative count of WebSocket connection lifecycle events',
+  labelNames: ['role', 'status'],
+  registers: [register]
+});
+
+export const wsMessagesReceivedTotal = new promClient.Counter({
+  name: 'proctornet_websocket_messages_received_total',
+  help: 'Total WebSocket frames received from clients',
+  labelNames: ['type'],
+  registers: [register]
+});
+
+export const wsMessagesSentTotal = new promClient.Counter({
+  name: 'proctornet_websocket_messages_sent_total',
+  help: 'Total WebSocket frames sent to clients',
+  labelNames: ['type', 'status'],
+  registers: [register]
+});
+
+export const wsHeartbeatTimeoutsTotal = new promClient.Counter({
+  name: 'proctornet_websocket_heartbeat_timeouts_total',
+  help: 'Total WebSocket connections terminated due to heartbeat/ping timeout',
+  registers: [register]
+});
+
+export const wsRedisSyncErrorsTotal = new promClient.Counter({
+  name: 'proctornet_websocket_redis_sync_errors_total',
+  help: 'Count of multi-node Redis Pub/Sub synchronization errors or partitions',
+  registers: [register]
+});
+
+export const wsBroadcastErrorsTotal = new promClient.Counter({
+  name: 'proctornet_websocket_broadcast_errors_total',
+  help: 'Count of isolated post-commit realtime broadcast errors',
+  registers: [register]
+});
+
+// ============================================================================
 // Helper Exports
 // ============================================================================
 
