@@ -14,7 +14,12 @@
     "test:watch": "node --test --watch",
     "db:migrate": "node src/infrastructure/postgres/migrate.js up",
     "db:rollback": "node src/infrastructure/postgres/migrate.js down",
-    "db:create": "npx node-pg-migrate create --migrations-dir migrations --migration-file-language js"
+    "db:create": "npx node-pg-migrate create --migrations-dir migrations --migration-file-language js",
+    "bench:smoke": "k6 run ../scripts/load/k6/smoke-test.js",
+    "bench:seed": "node ../scripts/load/seed-benchmark-data.js",
+    "bench:cleanup": "node ../scripts/load/cleanup-benchmark-data.js",
+    "bench:verify": "node ../scripts/load/verify-data-integrity.js",
+    "bench:run": "node ../scripts/load/run-benchmarks.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1127.0",
@@ -38,6 +43,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "artillery": "^2.0.34",
     "ioredis-mock": "^8.13.1",
     "supertest": "^7.0.0"
   },

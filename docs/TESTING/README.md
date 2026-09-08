@@ -92,14 +92,38 @@ The project testing pyramid encompasses ten distinct categories:
 
 ---
 
+## Phase 21 Load & Concurrency Benchmarks
+
+The Phase 21 benchmarking framework validates system throughput, latency, and data integrity under high-concurrency candidate workloads.
+
+### Test Suites (`scripts/load/`)
+- **Deterministic Fixture Seeder (`scripts/load/seed-benchmark-data.js`):** Creates isolated `bench_*` examinees, attempts, and questions with pre-computed HMAC signing keys.
+- **Login Burst Scenario (`scripts/load/k6/login-burst.js`):** Candidate authentication surge across ramping VUs.
+- **Autosave Contention Scenario (`scripts/load/k6/autosave-contention.js`):** High-frequency autosaves with Poisson arrival, OCC revision checks, and HMAC anti-tamper signing.
+- **Submission Surge Scenario (`scripts/load/k6/submission-surge.js`):** Synchronized end-of-exam submissions with duplicate rejection and idempotent replay verification.
+- **Post-Benchmark Integrity Auditor (`scripts/load/verify-data-integrity.js`):** Asserts zero orphan records, 100% outbox event emission, zero lost updates, and zero database deadlocks.
+- **Cascading Cleanup (`scripts/load/cleanup-benchmark-data.js`):** Safely cascades deletions for all benchmark fixtures.
+
+### Running Load Tests
+```bash
+# Full benchmark harness (all stages + integrity audit)
+node scripts/load/run-benchmarks.js
+
+# Fast CI smoke test (< 60s, 10-25 VUs)
+node scripts/load/run-benchmarks.js --smoke
+```
+
+Detailed runbooks and reports:
+- [Benchmark Methodology & Runbook](../benchmarks/BENCHMARK_METHODOLOGY.md)
+- [Capacity & Scaling Assessment Report](../benchmarks/CAPACITY_AND_SCALING_REPORT.md)
+
+---
+
 ## Tooling Roadmap
 
 - **Unit & Integration Testing:** Vitest / Jest, Supertest.
 - **Database Testing:** Testcontainers / localized PostgreSQL docker instances with transaction rollback per test.
-- **Load Testing:** k6 / Artillery.
+- **Load Testing:** k6 / Artillery (Phase 21).
 - **Frontend E2E Testing:** Playwright.
 - **Static Analysis & Security:** ESLint, Checkov/tfsec.
 
----
-
-*Note: Specific test harnesses and runners will be instantiated in their respective implementation phases.*

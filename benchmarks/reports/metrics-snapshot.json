@@ -1,0 +1,104 @@
+{
+  "generated_at": "2026-09-08T12:20:49.035Z",
+  "summary": {
+    "sample_count": 3,
+    "duration_sec": 3,
+    "postgres": {
+      "active_connections": {
+        "min": 1,
+        "max": 1,
+        "avg": 1,
+        "p95": 1
+      },
+      "waiting_locks": {
+        "min": 2,
+        "max": 2,
+        "avg": 2,
+        "p95": 2
+      },
+      "total_deadlocks": 0
+    },
+    "redis": {
+      "connected_clients": {
+        "min": 1,
+        "max": 1,
+        "avg": 1,
+        "p95": 1
+      },
+      "used_memory_mb": {
+        "min": 1.19,
+        "max": 1.2,
+        "avg": 1.19,
+        "p95": 1.2
+      },
+      "ops_per_sec": {
+        "min": 0,
+        "max": 2,
+        "avg": 1,
+        "p95": 2
+      }
+    }
+  },
+  "samples": [
+    {
+      "timestamp": "2026-09-08T12:20:45.947Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1538,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 2,
+        "deadlocks": 0,
+        "commits": 302,
+        "rollbacks": 85
+      },
+      "redis": {
+        "connected_clients": 1,
+        "used_memory_mb": 1.2,
+        "ops_per_sec": 0
+      }
+    },
+    {
+      "timestamp": "2026-09-08T12:20:46.977Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1537,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 2,
+        "deadlocks": 0,
+        "commits": 305,
+        "rollbacks": 85
+      },
+      "redis": {
+        "connected_clients": 1,
+        "used_memory_mb": 1.19,
+        "ops_per_sec": 2
+      }
+    },
+    {
+      "timestamp": "2026-09-08T12:20:48.004Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1541,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 2,
+        "deadlocks": 0,
+        "commits": 307,
+        "rollbacks": 85
+      },
+      "redis": {
+        "connected_clients": 1,
+        "used_memory_mb": 1.19,
+        "ops_per_sec": 1
+      }
+    }
+  ]
+}

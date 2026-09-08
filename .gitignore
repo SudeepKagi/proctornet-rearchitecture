@@ -153,3 +153,10 @@ crash.*.log
 *.tfplan
 *.tflock
 
+# Load Testing (Phase 21)
+scripts/load/fixtures/*.json
+!scripts/load/fixtures/README.md
+scripts/load/telemetry/*.csv
+scripts/load/telemetry/*.json
+scripts/load/results/*.json
+

@@ -1,0 +1,42 @@
+{
+  "started_at": "2026-09-08T13:26:00.955Z",
+  "configuration": {
+    "vus": 10,
+    "duration": "5s",
+    "isFull": false
+  },
+  "stages": {
+    "1. Seed Benchmark Fixtures": {
+      "status": "PASSED",
+      "exit_code": 0,
+      "elapsed_sec": 0.86
+    },
+    "2. Login Burst Scenario": {
+      "status": "PASSED",
+      "exit_code": 0,
+      "elapsed_sec": 46.38
+    },
+    "3. Autosave Contention Scenario": {
+      "status": "PASSED",
+      "exit_code": 0,
+      "elapsed_sec": 5.94
+    },
+    "4. Submission Surge & Idempotency Replay": {
+      "status": "PASSED",
+      "exit_code": 0,
+      "elapsed_sec": 1.12
+    },
+    "5. Post-Benchmark Data Integrity Audit": {
+      "status": "PASSED",
+      "exit_code": 0,
+      "elapsed_sec": 0.25
+    },
+    "6. Database & Fixture Cleanup": {
+      "status": "PASSED",
+      "exit_code": 0,
+      "elapsed_sec": 0.25
+    }
+  },
+  "completed_at": "2026-09-08T13:26:55.816Z",
+  "overall_status": "PASSED"
+}

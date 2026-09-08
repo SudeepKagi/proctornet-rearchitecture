@@ -1,0 +1,28 @@
+config:
+  target: "http://localhost:4000"
+  phases:
+    - duration: 30
+      arrivalRate: 5
+      rampTo: 25
+      name: "Candidate arrival ramp"
+    - duration: 60
+      arrivalRate: 25
+      name: "Sustained candidate activity"
+  payload:
+    path: "../fixtures/benchmark-fixtures.json"
+    fields:
+      - "candidates"
+
+scenarios:
+  - name: "Candidate Exam Journey"
+    flow:
+      - log: "Health ping verification"
+      - get:
+          url: "/health"
+          expect:
+            - statusCode: 200
+      - log: "Candidate readiness verification"
+      - get:
+          url: "/ready"
+          expect:
+            - statusCode: 200
