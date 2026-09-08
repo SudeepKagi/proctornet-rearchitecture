@@ -1,0 +1,273 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# ==============================================================================
+# ProctorNet Cloud-Init Bootstrapping Script
+# Provisions single-host EC2 production baseline:
+# 1. Mounts encrypted gp3 data volume at /opt/proctornet/data
+# 2. Installs Docker CE, Compose v2, Certbot, AWS CLI, CloudWatch Agent
+# 3. Configures CloudWatch Agent host telemetry (mem/disk)
+# 4. Sets up secrets retrieval, automated backup timer, and systemd service
+# ==============================================================================
+
+export DEBIAN_FRONTEND=noninteractive
+
+echo "==> [Boot 1/8] Formatting and mounting persistent EBS data volume..."
+# Identify persistent EBS device (attached as /dev/xvdf or mapped to /dev/nvme1n1 on Nitro instances)
+DATA_DEV=""
+for dev in /dev/xvdf /dev/nvme1n1; do
+  if [ -b "$dev" ]; then
+    DATA_DEV="$dev"
+    break
+  fi
+done
+
+if [ -n "$DATA_DEV" ]; then
+  # Format if device does not contain a filesystem
+  if ! blkid "$DATA_DEV"; then
+    echo "Formatting $DATA_DEV with ext4 filesystem..."
+    mkfs.ext4 -F "$DATA_DEV"
+  fi
+
+  mkdir -p /opt/proctornet/data
+  UUID=$(blkid -s UUID -o value "$DATA_DEV")
+  if ! grep -q "$UUID" /etc/fstab; then
+    echo "UUID=$UUID /opt/proctornet/data ext4 defaults,nofail 0 2" >> /etc/fstab
+  fi
+  mount -a
+  echo "Persistent data volume mounted at /opt/proctornet/data"
+else
+  echo "WARNING: Persistent EBS data device not detected immediately; creating fallback directory."
+  mkdir -p /opt/proctornet/data
+fi
+
+mkdir -p /opt/proctornet/data/pg_data
+mkdir -p /opt/proctornet/data/redis_data
+mkdir -p /opt/proctornet/data/rmq_data
+mkdir -p /opt/proctornet/backups
+mkdir -p /opt/proctornet/bin
+
+echo "==> [Boot 2/8] Installing core dependencies, AWS CLI, and Certbot..."
+apt-get update -y
+apt-get install -y \
+  apt-transport-https \
+  ca-certificates \
+  curl \
+  gnupg \
+  lsb-release \
+  jq \
+  unzip \
+  certbot
+
+# Install AWS CLI v2 if not present
+if ! command -v aws &> /dev/null; then
+  curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "/tmp/awscliv2.zip"
+  unzip -q /tmp/awscliv2.zip -d /tmp
+  /tmp/aws/install
+  rm -rf /tmp/aws /tmp/awscliv2.zip
+fi
+
+echo "==> [Boot 3/8] Installing Docker CE and Docker Compose v2..."
+install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+chmod a+r /etc/apt/keyrings/docker.gpg
+
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+  $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+apt-get update -y
+apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+systemctl enable docker
+systemctl start docker
+
+echo "==> [Boot 4/8] Installing and configuring Amazon CloudWatch Agent..."
+CWA_DEB="amazon-cloudwatch-agent.deb"
+curl -fsSL "https://amazoncloudwatch-agent-${aws_region}.s3.${aws_region}.amazonaws.com/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb" -o "/tmp/$CWA_DEB"
+dpkg -i -E "/tmp/$CWA_DEB" || apt-get install -f -y
+rm -f "/tmp/$CWA_DEB"
+
+mkdir -p /opt/aws/amazon-cloudwatch-agent/bin
+cat << 'EOF' > /opt/aws/amazon-cloudwatch-agent/bin/config.json
+{
+  "agent": {
+    "metrics_collection_interval": 60,
+    "run_as_user": "root"
+  },
+  "metrics": {
+    "namespace": "CWAgent",
+    "metrics_collected": {
+      "mem": {
+        "measurement": [
+          "mem_used_percent"
+        ]
+      },
+      "disk": {
+        "measurement": [
+          "disk_used_percent"
+        ],
+        "resources": [
+          "/",
+          "/opt/proctornet/data"
+        ]
+      }
+    },
+    "append_dimensions": {
+      "InstanceId": "$${aws:InstanceId}"
+    }
+  },
+  "logs": {
+    "logs_collected": {
+      "files": {
+        "collect_list": [
+          {
+            "file_path": "/var/log/syslog",
+            "log_group_name": "/aws/ec2/proctornet/${environment}",
+            "log_stream_name": "{instance_id}/syslog"
+          }
+        ]
+      }
+    }
+  }
+}
+EOF
+
+/opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
+  -a fetch-config -m ec2 -s -c file:/opt/aws/amazon-cloudwatch-agent/bin/config.json
+systemctl enable amazon-cloudwatch-agent.service
+systemctl restart amazon-cloudwatch-agent.service
+
+echo "==> [Boot 5/8] Materializing fetch-secrets.sh operational script..."
+cat << 'EOF' > /opt/proctornet/bin/fetch-secrets.sh
+#!/usr/bin/env bash
+set -euo pipefail
+
+ENV_FILE="/opt/proctornet/.env"
+ENVIRONMENT="${environment}"
+REGION="${aws_region}"
+
+echo "==> [SSM] Fetching production secrets from AWS Systems Manager (/proctornet/$ENVIRONMENT/)..."
+UMASK_ORIG=$(umask)
+umask 077
+
+PARAMS=$(aws ssm get-parameters-by-path \
+  --path "/proctornet/$ENVIRONMENT/" \
+  --with-decryption \
+  --region "$REGION" \
+  --query "Parameters[*].{Name:Name,Value:Value}" \
+  --output json 2>/dev/null || echo "[]")
+
+PARAM_COUNT=$(echo "$PARAMS" | jq '. | length')
+if [ "$PARAM_COUNT" -eq 0 ]; then
+  echo "WARNING: Zero parameters found in SSM for /proctornet/$ENVIRONMENT/."
+  echo "If bootstrap template exists, preserving existing .env file."
+  if [ ! -f "$ENV_FILE" ]; then
+    touch "$ENV_FILE"
+    chmod 0600 "$ENV_FILE"
+  fi
+  umask "$UMASK_ORIG"
+  exit 0
+fi
+
+# Materialize .env with mode 0600 owned by root:root
+> "$ENV_FILE.tmp"
+echo "# Generated by ProctorNet fetch-secrets.sh from AWS SSM at $(date -u)" >> "$ENV_FILE.tmp"
+
+echo "$PARAMS" | jq -r '.[] | "\(.Name | split("/") | last | ascii_upcase)=\(.Value)"' >> "$ENV_FILE.tmp"
+
+mv "$ENV_FILE.tmp" "$ENV_FILE"
+chmod 0600 "$ENV_FILE"
+chown root:root "$ENV_FILE"
+umask "$UMASK_ORIG"
+
+echo "==> [SSM] Successfully materialized $ENV_FILE with mode 0600 (root:root)."
+EOF
+
+chmod 0700 /opt/proctornet/bin/fetch-secrets.sh
+chown root:root /opt/proctornet/bin/fetch-secrets.sh
+
+# Run initial secret fetch
+/opt/proctornet/bin/fetch-secrets.sh || true
+
+echo "==> [Boot 6/8] Deploying database backup script and systemd timer..."
+cat << 'EOF' > /opt/proctornet/backup-db.sh
+#!/usr/bin/env bash
+set -euo pipefail
+
+BACKUP_DIR="$${BACKUP_DIR:-/opt/proctornet/backups}"
+TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+BACKUP_FILE="$${BACKUP_DIR}/proctornet_db_$${TIMESTAMP}.sql.gz"
+BACKUP_BUCKET="${backup_bucket_name}"
+COMPOSE_FILE="$${COMPOSE_FILE:-/opt/proctornet/docker-compose.prod.yml}"
+
+mkdir -p "$${BACKUP_DIR}"
+
+if [ ! -f "$COMPOSE_FILE" ]; then
+  echo "==> [Backup] Compose file $COMPOSE_FILE not present yet. Skipping backup run."
+  exit 0
+fi
+
+echo "==> [Backup] Initiating PostgreSQL backup to $${BACKUP_FILE}..."
+docker compose -f "$COMPOSE_FILE" exec -T postgres \
+  pg_dump -U "$${DB_USER:-postgres}" "$${DB_NAME:-proctornet}" | gzip > "$${BACKUP_FILE}"
+
+echo "==> [Backup] Backup created successfully: $(du -h "$${BACKUP_FILE}")"
+
+# Local retention: purge local dumps older than 30 days
+find "$${BACKUP_DIR}" -name "proctornet_db_*.sql.gz" -mtime +30 -delete
+echo "==> [Backup] Local retention policy applied."
+
+# S3 upload with SSE-S3 AES256 encryption
+if [ -n "$BACKUP_BUCKET" ] && aws s3 ls "s3://${backup_bucket_name}" &>/dev/null; then
+  echo "==> [Backup] Uploading backup to S3 bucket ${backup_bucket_name}..."
+  aws s3 cp "$${BACKUP_FILE}" "s3://${backup_bucket_name}/postgres/$(basename "$${BACKUP_FILE}")" --sse AES256
+  echo "==> [Backup] S3 upload completed successfully."
+fi
+EOF
+
+chmod 0755 /opt/proctornet/backup-db.sh
+
+cat << 'EOF' > /etc/systemd/system/proctornet-backup.service
+[Unit]
+Description=ProctorNet Scheduled Database Backup Service
+After=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/proctornet/backup-db.sh
+User=root
+EOF
+
+cat << 'EOF' > /etc/systemd/system/proctornet-backup.timer
+[Unit]
+Description=ProctorNet Scheduled Daily Database Backup Timer
+
+[Timer]
+OnCalendar=*-*-* 02:00:00 UTC
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
+
+systemctl daemon-reload
+systemctl enable proctornet-backup.timer
+systemctl start proctornet-backup.timer
+
+echo "==> [Boot 7/8] Configuring Let's Encrypt TLS renewal hook and permissions..."
+mkdir -p /etc/letsencrypt/renewal-hooks/deploy
+cat << 'EOF' > /etc/letsencrypt/renewal-hooks/deploy/reload-nginx.sh
+#!/usr/bin/env bash
+set -euo pipefail
+echo "==> Let's Encrypt certificate renewed. Enforcing mode 0640 and reloading Nginx..."
+chmod -R 0750 /etc/letsencrypt/live /etc/letsencrypt/archive 2>/dev/null || true
+find /etc/letsencrypt/live /etc/letsencrypt/archive -type f -exec chmod 0640 {} + 2>/dev/null || true
+chown -R root:101 /etc/letsencrypt/live /etc/letsencrypt/archive 2>/dev/null || true
+
+if docker ps --format '{{.Names}}' | grep -q 'proctornet-frontend'; then
+  docker compose -f /opt/proctornet/docker-compose.prod.yml exec -T frontend nginx -s reload || true
+fi
+EOF
+chmod +x /etc/letsencrypt/renewal-hooks/deploy/reload-nginx.sh
+
+echo "==> [Boot 8/8] Cloud-Init bootstrapping completed successfully."
