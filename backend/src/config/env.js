@@ -19,6 +19,15 @@ const envSchema = z.object({
   CORS_ORIGIN: z
     .string()
     .default('http://localhost:3000'),
+  CORS_ALLOWED_ORIGINS: z
+    .string()
+    .default('http://localhost:3000,http://localhost:5173')
+    .transform((val) =>
+      val
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
+    ),
 
   // PostgreSQL configuration
   DATABASE_URL: z.string().url().optional(),
@@ -314,8 +323,69 @@ const envSchema = z.object({
     .string()
     .min(32, { message: 'MEDIA_SIGNING_SECRET must be at least 32 characters' })
     .optional()
-    .transform((val) => (val && val.trim() !== '' ? val : undefined))
+    .transform((val) => (val && val.trim() !== '' ? val : undefined)),
+
+  // Phase 18 Security Hardening configuration
+  ANTI_TAMPER_SECRET: z
+    .string()
+    .min(32, { message: 'ANTI_TAMPER_SECRET must be at least 32 characters' })
+    .optional()
+    .transform((val) => (val && val.trim() !== '' ? val : undefined)),
+  ANTI_TAMPER_MAX_DRIFT_MS: z
+    .string()
+    .regex(/^\d+$/)
+    .transform(Number)
+    .default('300000'),
+  ALLOW_IN_MEMORY_NONCE_FALLBACK: z
+    .union([z.boolean(), z.enum(['true', 'false', '1', '0'])])
+    .optional()
+    .transform((val) => {
+      if (val === undefined) return process.env.NODE_ENV !== 'production';
+      return typeof val === 'boolean' ? val : val === 'true' || val === '1';
+    }),
+  SECURITY_MAGIC_BYTES_VERIFICATION: z
+    .union([z.boolean(), z.enum(['true', 'false', '1', '0'])])
+    .default('true')
+    .transform((val) => (typeof val === 'boolean' ? val : val === 'true' || val === '1')),
+  CSP_REPORT_ONLY: z
+    .union([z.boolean(), z.enum(['true', 'false', '1', '0'])])
+    .default('false')
+    .transform((val) => (typeof val === 'boolean' ? val : val === 'true' || val === '1'))
 }).superRefine((data, ctx) => {
+  // Phase 18 Security Hardening production checks
+  if (data.NODE_ENV === 'production') {
+    if (!data.ANTI_TAMPER_SECRET || data.ANTI_TAMPER_SECRET.length < 32) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['ANTI_TAMPER_SECRET'],
+        message: 'ANTI_TAMPER_SECRET must be at least 32 characters in production'
+      });
+    }
+    if (data.ALLOW_IN_MEMORY_NONCE_FALLBACK === true) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['ALLOW_IN_MEMORY_NONCE_FALLBACK'],
+        message: 'ALLOW_IN_MEMORY_NONCE_FALLBACK cannot be true in production; multi-node replay protection requires shared Redis'
+      });
+    }
+    if (data.CORS_ALLOWED_ORIGINS.some((origin) => origin === '*' || origin.includes('*'))) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['CORS_ALLOWED_ORIGINS'],
+        message: 'Wildcard origins (*) are strictly prohibited in production CORS_ALLOWED_ORIGINS when credentials are enabled'
+      });
+    }
+    for (const origin of data.CORS_ALLOWED_ORIGINS) {
+      if (!origin.startsWith('http://') && !origin.startsWith('https://')) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['CORS_ALLOWED_ORIGINS'],
+          message: `CORS_ALLOWED_ORIGINS contains invalid origin '${origin}'; must start with http:// or https://`
+        });
+      }
+    }
+  }
+
   if (data.NODE_ENV === 'production' && data.MEDIA_ENABLED) {
     if (!data.TURN_SERVER_URL) {
       ctx.addIssue({
@@ -363,7 +433,12 @@ export function validateConfig(envSource = process.env) {
     throw new Error('Environment configuration validation failed on startup');
   }
 
-  return Object.freeze(result.data);
+  const resolvedData = {
+    ...result.data,
+    ANTI_TAMPER_SECRET: result.data.ANTI_TAMPER_SECRET || result.data.JWT_ACCESS_SECRET
+  };
+
+  return Object.freeze(resolvedData);
 }
 
 // Export parsed and frozen configuration singleton

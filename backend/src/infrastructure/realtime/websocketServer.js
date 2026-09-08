@@ -339,8 +339,9 @@ export class ProctorNetWebSocketServer {
     //    subprotocol JWT authentication still applies at step 4-6 below — an
     //    unauthenticated origin-less connection is rejected at the token stage.
     const origin = req.headers.origin;
-    if (origin && origin !== config.CORS_ORIGIN) {
-      logger.warn({ origin, expected: config.CORS_ORIGIN }, 'Rejected WebSocket upgrade from untrusted origin');
+    const isAllowedOrigin = config.CORS_ALLOWED_ORIGINS?.includes(origin) || origin === config.CORS_ORIGIN;
+    if (origin && !isAllowedOrigin) {
+      logger.warn({ origin, allowedOrigins: config.CORS_ALLOWED_ORIGINS }, 'Rejected WebSocket upgrade from untrusted origin');
       socket.write('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\nForbidden Origin');
       socket.destroy();
       return;

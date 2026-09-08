@@ -61,6 +61,39 @@ export function setupMockS3(handlerMap = {}) {
       };
     }
 
+    if (name === 'GetObjectCommand') {
+      const isPng = command.input.Key?.endsWith('.png');
+      const isWebp = command.input.Key?.endsWith('.webp');
+      const isWebm = command.input.Key?.endsWith('.webm');
+      const isOgg = command.input.Key?.endsWith('.ogg');
+      const isWav = command.input.Key?.endsWith('.wav');
+
+      let magicBytes;
+      if (isPng) {
+        magicBytes = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52]);
+      } else if (isWebp) {
+        magicBytes = Buffer.concat([Buffer.from('RIFF'), Buffer.alloc(4), Buffer.from('WEBP')]);
+      } else if (isWebm) {
+        magicBytes = Buffer.from([0x1a, 0x45, 0xdf, 0xa3, 0x9f, 0x42, 0x86, 0x81, 0x01, 0x42, 0xf7, 0x81, 0x01, 0x42, 0xf2, 0x81]);
+      } else if (isOgg) {
+        magicBytes = Buffer.from('OggS\x00\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00');
+      } else if (isWav) {
+        magicBytes = Buffer.concat([Buffer.from('RIFF'), Buffer.alloc(4), Buffer.from('WAVE')]);
+      } else {
+        magicBytes = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01, 0x01, 0x01, 0x00, 0x60]);
+      }
+
+      async function* generateStream() {
+        yield magicBytes;
+      }
+
+      return {
+        Body: generateStream(),
+        ContentLength: magicBytes.length,
+        ContentType: isPng ? 'image/png' : 'image/jpeg'
+      };
+    }
+
     throw new Error(`Unhandled mock S3 command: ${name}`);
   };
 

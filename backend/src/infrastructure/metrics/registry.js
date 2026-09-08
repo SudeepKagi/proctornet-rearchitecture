@@ -302,6 +302,38 @@ export const wsMediaIceRestartsTotal = new promClient.Counter({
 });
 
 // ============================================================================
+// 10. Phase 18 Security Hardening Metrics (Bounded Labels)
+// ============================================================================
+
+export const securityTamperViolationsTotal = new promClient.Counter({
+  name: 'security_tamper_violations_total',
+  help: 'Total anti-tamper signature, clock skew, or replay failures',
+  labelNames: ['reason'], // 'missing_header' | 'expired_ts' | 'replay_detected' | 'signature_mismatch' | 'redis_unavailable' | 'invalid_format'
+  registers: [register]
+});
+
+export const securityInputSanitizationsTotal = new promClient.Counter({
+  name: 'security_input_sanitizations_total',
+  help: 'Total structural input sanitizations performed',
+  labelNames: ['action'], // 'proto_pollution_stripped' | 'null_byte_stripped'
+  registers: [register]
+});
+
+export const securityCorsRejectionsTotal = new promClient.Counter({
+  name: 'security_cors_rejections_total',
+  help: 'Total requests rejected by CORS policy',
+  labelNames: ['origin_type'], // 'unauthorized' | 'malformed'
+  registers: [register]
+});
+
+export const securityMagicByteMismatchesTotal = new promClient.Counter({
+  name: 'security_magic_byte_mismatches_total',
+  help: 'Total evidence files failing magic byte verification',
+  labelNames: ['mime_type'],
+  registers: [register]
+});
+
+// ============================================================================
 // Helper Exports
 // ============================================================================
 

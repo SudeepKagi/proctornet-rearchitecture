@@ -14,18 +14,21 @@ import {
   generatePresignedUploadUrl,
   generatePresignedDownloadUrl,
   headEvidenceObject,
-  deleteEvidenceObjectVersions
+  deleteEvidenceObjectVersions,
+  getEvidenceObjectHeader
 } from '../../infrastructure/storage/s3Storage.js';
 import {
   getExtensionForMime,
-  validateEvidenceSize
+  validateEvidenceSize,
+  validateMagicBytes
 } from './evidence.schemas.js';
 import { recordAuditEvent } from '../audit/audit.service.js';
 import {
   evidenceUploadsInitiatedTotal,
   evidenceUploadsConfirmedTotal,
   evidenceDownloadsTotal,
-  evidenceBytesTotal
+  evidenceBytesTotal,
+  securityMagicByteMismatchesTotal
 } from '../../infrastructure/metrics/registry.js';
 import {
   NotFoundError,
@@ -265,6 +268,51 @@ export async function confirmUpload(attemptId, evidenceId, user, payload = {}) {
       throw new BadRequestError(
         `Evidence content type mismatch. Declared '${evidence.content_type}', storage reported '${headResult.contentType}'.`
       );
+    }
+
+    // Binary file signature (magic bytes) verification
+    if (config.SECURITY_MAGIC_BYTES_VERIFICATION) {
+      let headerBuffer;
+      try {
+        headerBuffer = await getEvidenceObjectHeader({
+          bucket: evidence.bucket_name,
+          key: evidence.object_key,
+          byteCount: 16
+        });
+      } catch (err) {
+        logger.error({ err, evidenceId, objectKey: evidence.object_key }, 'Failed to fetch object header for magic byte verification');
+        await evidenceRepo.updateEvidenceStatus(evidenceId, 'FAILED', { actualByteSize: headResult.contentLength }, client);
+        await client.query('COMMIT');
+        evidenceUploadsConfirmedTotal.inc({ evidence_type: evidence.evidence_type, status: 'failed' });
+        throw new BadRequestError('Failed to inspect evidence object header for file signature verification.');
+      }
+
+      const isValidMagic = validateMagicBytes(headerBuffer, evidence.content_type);
+      if (!isValidMagic) {
+        securityMagicByteMismatchesTotal.inc({ mime_type: evidence.content_type });
+        await evidenceRepo.updateEvidenceStatus(evidenceId, 'FAILED', { actualByteSize: headResult.contentLength }, client);
+        await recordAuditEvent(
+          {
+            actorUserId: user.userId,
+            action: 'SECURITY_MALFORMED_EVIDENCE',
+            resourceType: 'evidence',
+            resourceId: evidenceId,
+            attemptId,
+            metadata: {
+              declaredContentType: evidence.content_type,
+              evidenceType: evidence.evidence_type,
+              objectKey: evidence.object_key,
+              actualHeaderHex: headerBuffer.slice(0, 16).toString('hex')
+            }
+          },
+          client
+        );
+        await client.query('COMMIT');
+        evidenceUploadsConfirmedTotal.inc({ evidence_type: evidence.evidence_type, status: 'failed' });
+        throw new BadRequestError(
+          `Uploaded file magic bytes do not match declared MIME type '${evidence.content_type}'.`
+        );
+      }
     }
 
     const s3VersionId = headResult.versionId || null;

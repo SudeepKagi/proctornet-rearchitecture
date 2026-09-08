@@ -7,6 +7,7 @@ import { Router } from 'express';
 import { authenticate } from '../../middleware/authenticate.js';
 import { requireRole } from '../../middleware/authorize.js';
 import { createRateLimiter } from '../../middleware/rateLimiter.js';
+import { antiTamperMiddleware } from '../../middleware/antiTamper.js';
 import {
   handleIngestEvents,
   handleGetAttemptTimeline,
@@ -29,7 +30,7 @@ export const proctoringRateLimiter = createRateLimiter({
 
 // Router mounted on attemptsRouter at '/:attemptId/events'
 export const attemptEventsRouter = Router({ mergeParams: true });
-attemptEventsRouter.post('/', authenticate, requireRole('STUDENT'), proctoringRateLimiter, handleIngestEvents);
+attemptEventsRouter.post('/', authenticate, requireRole('STUDENT'), antiTamperMiddleware, proctoringRateLimiter, handleIngestEvents);
 attemptEventsRouter.get('/', authenticate, handleGetAttemptTimeline);
 
 // Router mounted on attemptsRouter at '/:attemptId/proctoring/flags'

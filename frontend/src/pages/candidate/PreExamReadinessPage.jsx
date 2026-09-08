@@ -11,6 +11,7 @@ import { Button } from '../../components/common/Button.jsx';
 import { Badge, getStatusBadgeVariant } from '../../components/common/Badge.jsx';
 import { Spinner } from '../../components/common/Spinner.jsx';
 import { stopMediaStream } from '../../hooks/useMediaCapture.js';
+import { setAntiTamperToken } from '../../api/client.js';
 
 export function PreExamReadinessPage() {
   const { sessionId } = useParams();
@@ -118,6 +119,9 @@ export function PreExamReadinessPage() {
     setStarting(true);
     try {
       const attempt = await sessionsApi.startAttemptForSession(sessionId);
+      if (attempt?.anti_tamper_token) {
+        setAntiTamperToken(attempt.anti_tamper_token);
+      }
       navigate(`/candidate/attempts/${attempt.id}`);
     } catch (err) {
       setError(err.message || 'Could not start examination attempt');

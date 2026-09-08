@@ -17,6 +17,8 @@ import { validateAttemptInvariants } from '../../domain/attempt/attemptInvariant
 import { generateSeed, selectQuestionsDeterministically } from './attempts.shuffler.js';
 import * as attemptsRepo from './attempts.repository.js';
 import { cacheService } from '../../infrastructure/redis/cacheService.js';
+import { config } from '../../config/env.js';
+import { deriveAttemptSigningKey } from '../../utils/antiTamper.js';
 
 /**
  * Calculates authoritative remaining seconds for an attempt against PostgreSQL server time.
@@ -220,7 +222,13 @@ export async function startAttempt(sessionId, user, requestId = null) {
           time_remaining_seconds: calculateRemainingSeconds(existingAttempt.expires_at, serverNow),
           total_questions: totalQuestions,
           total_marks: Number(exam.total_marks),
-          is_new: false
+          is_new: false,
+          anti_tamper_token: deriveAttemptSigningKey(
+            config.ANTI_TAMPER_SECRET,
+            existingAttempt.attempt_id,
+            user.userId,
+            existingAttempt.started_at
+          )
         };
       }
 
@@ -344,7 +352,13 @@ export async function startAttempt(sessionId, user, requestId = null) {
       time_remaining_seconds: calculateRemainingSeconds(attempt.expires_at, serverNow),
       total_questions: questionMappings.length,
       total_marks: Number(exam.total_marks),
-      is_new: true
+      is_new: true,
+      anti_tamper_token: deriveAttemptSigningKey(
+        config.ANTI_TAMPER_SECRET,
+        attempt.attempt_id,
+        user.userId,
+        attempt.started_at
+      )
     };
   } catch (err) {
     await client.query('ROLLBACK');
@@ -371,7 +385,13 @@ export async function startAttempt(sessionId, user, requestId = null) {
             server_time: recoveredNow.toISOString(),
             time_remaining_seconds: calculateRemainingSeconds(recovered.expires_at, recoveredNow),
             total_questions: totalQuestions,
-            is_new: false
+            is_new: false,
+            anti_tamper_token: deriveAttemptSigningKey(
+              config.ANTI_TAMPER_SECRET,
+              recovered.attempt_id,
+              user.userId,
+              recovered.started_at
+            )
           };
         }
 
@@ -425,7 +445,16 @@ export async function getAttemptById(attemptId, user, requestId = null) {
     total_questions: totalQuestions,
     exam_title: currentAttempt.exam_title,
     duration_minutes: Number(currentAttempt.duration_minutes),
-    total_marks: Number(currentAttempt.total_marks)
+    total_marks: Number(currentAttempt.total_marks),
+    anti_tamper_token:
+      currentAttempt.student_id === user.userId
+        ? deriveAttemptSigningKey(
+            config.ANTI_TAMPER_SECRET,
+            currentAttempt.attempt_id,
+            user.userId,
+            currentAttempt.started_at
+          )
+        : undefined
   };
 }
 
