@@ -148,6 +148,33 @@ export const rateLimitBlocksTotal = new promClient.Counter({
 });
 
 // ============================================================================
+// 6. Proctoring Events & Anomaly Telemetry (Phase 14)
+// ============================================================================
+
+export const proctoringEventsTotal = new promClient.Counter({
+  name: 'proctornet_proctoring_events_total',
+  help: 'Total candidate proctoring and telemetry events ingested',
+  labelNames: ['event_type', 'severity'],
+  registers: [register]
+});
+
+export const proctoringIngestDuration = new promClient.Histogram({
+  name: 'proctornet_proctoring_ingest_duration_seconds',
+  help: 'Latency of candidate proctoring event ingestion batches in seconds',
+  labelNames: ['status'],
+  buckets: [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5],
+  registers: [register]
+});
+
+export const proctoringFlagsTotal = new promClient.Counter({
+  name: 'proctornet_proctoring_flags_total',
+  help: 'Total proctoring violation anomaly flags raised',
+  labelNames: ['flag_type', 'severity'],
+  registers: [register]
+});
+
+
+// ============================================================================
 // Helper Exports
 // ============================================================================
 

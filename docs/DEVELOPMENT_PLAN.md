@@ -324,7 +324,7 @@ $$\text{Plan} \longrightarrow \text{Implement} \longrightarrow \text{Test} \long
 ---
 
 ### Phase 14 — Proctoring Events
-- [ ] **Status:** Pending
+- [ ] **Status:** Planned / Ready for Plan Review
 - **Objective:** Implement automated client-side violation detection (tab switch, window blur, keyboard shortcuts, multi-display) and server ingestion.
 - **Dependencies:** Phase 13
 - **Major Tasks:**
