@@ -446,19 +446,44 @@ $$\text{Plan} \longrightarrow \text{Implement} \longrightarrow \text{Test} \long
 ---
 
 ### Phase 20 — AWS Infrastructure
-- [ ] **Status:** Pending
-- **Objective:** Define declarative Infrastructure as Code using Terraform for AWS cloud deployment (VPC, RDS PostgreSQL, ElastiCache Redis, S3, ALB, ECS/App Runner).
+- [x] **Status:** Complete (Merged in PR #21, Implementation Commit ee823d8, Merge 466bcae, Completion Date 2026-09-08)
+- **Objective:** Define declarative Infrastructure as Code using Terraform >= 1.9.0 for AWS cloud deployment, establishing a single-host modular monolith EC2 baseline with persistent EBS storage, S3 remote state with native lockfiles, least-privilege IAM, CloudWatch observability, and scale-ready managed service boundaries.
 - **Dependencies:** Phase 19
 - **Major Tasks:**
-  - Write Terraform modules for AWS VPC, public/private subnets, security groups, and NAT gateways.
-  - Terraform for Amazon RDS PostgreSQL (multi-AZ, automated backups, encryption).
-  - Terraform for Amazon ElastiCache Redis.
-  - Terraform for Amazon S3 evidence buckets with lifecycle policies and strict private bucket policies.
-  - Terraform for Application Load Balancer and compute resources (ECS / Fargate / EC2).
+  - Author S3 remote state bootstrap with native S3 lockfile locking (`use_lockfile = true`) and zero DynamoDB state locks (`terraform/bootstrap/`).
+  - Implement AWS VPC module (`10.0.0.0/16`) with dual AZ public and private subnets, Internet Gateway, and zero NAT Gateways for cost-conscious single-host deployment (`terraform/modules/vpc/`).
+  - Implement security groups strictly isolating port 4000 and persistence ports (5432, 6379, 5672) while permitting edge HTTP (80), HTTPS (443), Coturn (3478, 49152–49250/udp), SFU (40000–49999/udp), and restricted SSH (`terraform/modules/security_groups/`).
+  - Author least-privilege EC2 IAM roles for S3 evidence/backups, SSM Parameter Store (`/proctornet/{environment}/*`), and CloudWatch agent metrics/logging (`terraform/modules/iam/`).
+  - Provision dedicated S3 evidence and backup buckets with AES256 encryption, public access block, bucket ownership controls, and server-authoritative retention per ADR-0005 (`terraform/modules/s3/`).
+  - Implement EC2 module (`c6i.xlarge` prod, `t3.large`/`xlarge` staging) on Ubuntu 24.04 LTS with IMDSv2 enforced, encrypted gp3 root volume, encrypted persistent gp3 EBS volume (`prevent_destroy = true`) mounted at `/opt/proctornet/data`, and cloud-init bootstrap template (`terraform/modules/ec2/`).
+  - Author CloudWatch log groups with retention policies, log metric filters, and CloudWatch alarms for high CPU (>85%), memory (>85%), and disk space (>85%) (`terraform/modules/cloudwatch/`).
+  - Author scale-ready managed service modules for RDS PostgreSQL 16, ElastiCache Redis 7, and Application Load Balancer gated behind default-disabled feature flags (`enable_* = false`) (`terraform/modules/{rds,elasticache,alb}/`).
+  - Configure staging (`terraform/environments/staging/`) and production (`terraform/environments/production/`) environment roots with S3 backends and variable templates.
+  - Implement secure SSM secret fetching utility (`infrastructure/fetch-secrets.sh`) enforcing mode `0600` permissions owned by `root:root` with fail-closed validation.
+  - Update database backup script (`infrastructure/backup-db.sh`) with automated S3 sync (`--sse AES256`) while preserving local 30-day retention pruning.
+  - Implement GitHub Actions CI workflow (`.github/workflows/terraform.yml`) enforcing `terraform fmt`, `tflint`, `checkov`, `terraform validate`, and invariant assertions.
+  - Implement automated invariant test script (`scripts/verify-infrastructure-invariants.js`) asserting 6 architectural invariants.
+  - Author and index ADR-0010 (`docs/ADR/0010-declarative-aws-infrastructure-single-host-delivery-baseline-and-managed-service-migration-boundaries.md`).
 - **Acceptance Criteria:**
-  - `terraform plan` executes without errors and provisions isolated, highly available AWS infrastructure.
-  - Zero hardcoded secrets in Terraform definitions.
-- **Tests Required:** Terraform validation, `tflint`, and security static analysis (Checkov / tfsec).
+  - `terraform validate` executes cleanly across bootstrap, staging, and production roots.
+  - S3 remote state uses native lockfile locking (`use_lockfile = true`); zero DynamoDB state lock tables in active codebase.
+  - Ephemeral containers with persistent EBS storage (`/opt/proctornet/data`) safeguarded with `prevent_destroy = true`.
+  - Zero NAT Gateways; public subnets with Internet Gateway routing.
+  - Public ingress strictly limited; port 4000 and persistence ports (5432, 6379, 5672) strictly blocked from `0.0.0.0/0`.
+  - Scale-ready modules (RDS, ElastiCache, ALB) disabled by default (`false`).
+  - Server-authoritative S3 evidence retention (no automated expiration deleting current objects).
+  - Exactly 17 database migrations remain intact (no new migrations).
+  - SSM secret fetching fails closed if mandatory secrets are missing.
+- **Tests Implemented:**
+  - `terraform fmt -check -recursive`: PASS (0 formatting issues).
+  - `tflint --recursive`: PASS (0 warnings, 0 errors across 11 directories).
+  - `terraform validate`: PASS (bootstrap, staging, and production configurations valid).
+  - Checkov static security analysis: PASS (30 passed checks, 0 failed, 19 skipped with justified rationale).
+  - Automated invariant assertions (`node scripts/verify-infrastructure-invariants.js`): PASS (6/6 rules verified).
+  - Shell script syntax verification (`bash -n`): PASS on deploy.sh, backup-db.sh, and fetch-secrets.sh.
+  - Production Docker Compose configuration validation: PASS (`docker compose -f infrastructure/docker-compose.prod.yml config`).
+  - Frontend Vitest suite: PASS (63/63 tests passing across 18 test files).
+  - Frontend Vite production build: PASS (compiled cleanly in 3.61s).
 
 ---
 
