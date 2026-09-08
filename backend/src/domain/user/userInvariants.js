@@ -33,11 +33,18 @@ export function assertNotLastAdmin({
  * @param {object} params
  * @param {string} params.actorUserId
  * @param {string} params.targetUserId
- * @param {'SUSPEND' | 'DISABLE'} params.action
+ * @param {'SUSPEND' | 'DISABLE' | 'REVOKE_ADMIN'} params.action
  * @throws {DomainInvariantError}
  */
 export function assertNotSelfTarget({ actorUserId, targetUserId, action }) {
   if (actorUserId && targetUserId && String(actorUserId) === String(targetUserId)) {
+    if (action === 'REVOKE_ADMIN') {
+      throw new DomainInvariantError(
+        'User',
+        'Administrator cannot revoke their own ADMIN role',
+        { actorUserId, targetUserId, action }
+      );
+    }
     if (['SUSPEND', 'DISABLE'].includes(action)) {
       throw new DomainInvariantError(
         'User',

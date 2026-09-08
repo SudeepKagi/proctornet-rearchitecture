@@ -86,12 +86,31 @@ describe('User Domain — Invariants (Level 1 Unit Tests)', () => {
       );
     });
 
+    it('throws DomainInvariantError when admin attempts to revoke their own ADMIN role', () => {
+      assert.throws(
+        () =>
+          assertNotSelfTarget({
+            actorUserId: 'admin-uuid-1',
+            targetUserId: 'admin-uuid-1',
+            action: 'REVOKE_ADMIN'
+          }),
+        (err) => err instanceof DomainInvariantError && /cannot revoke their own ADMIN role/i.test(err.message)
+      );
+    });
+
     it('permits admin modifying a different target user', () => {
       assert.doesNotThrow(() =>
         assertNotSelfTarget({
           actorUserId: 'admin-uuid-1',
           targetUserId: 'student-uuid-2',
           action: 'SUSPEND'
+        })
+      );
+      assert.doesNotThrow(() =>
+        assertNotSelfTarget({
+          actorUserId: 'admin-uuid-1',
+          targetUserId: 'admin-uuid-2',
+          action: 'REVOKE_ADMIN'
         })
       );
     });

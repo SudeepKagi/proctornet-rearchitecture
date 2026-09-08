@@ -127,6 +127,15 @@ export async function createSingleUser({
 }) {
   assertValidRole(role);
 
+  // Enforce server-side required identifiers for academic accounts
+  const trimmedIdentifier = typeof identifier === 'string' ? identifier.trim() : null;
+  if (role === 'STUDENT' && (!trimmedIdentifier || trimmedIdentifier.length === 0)) {
+    throw new BadRequestError('USN / Enrollment Number is required for student accounts');
+  }
+  if (role === 'FACULTY' && (!trimmedIdentifier || trimmedIdentifier.length === 0)) {
+    throw new BadRequestError('Employee / Faculty ID is required for faculty accounts');
+  }
+
   const normalizedEmail = email.toLowerCase().trim();
 
   // Check duplicate email
@@ -145,7 +154,7 @@ export async function createSingleUser({
     phone,
     passwordHash,
     role,
-    identifier
+    identifier: trimmedIdentifier
   });
 
   await recordAuditEvent({
@@ -156,7 +165,7 @@ export async function createSingleUser({
     metadata: {
       email: user.email,
       role,
-      identifier
+      identifier: trimmedIdentifier
     }
   }).catch(() => {});
 
@@ -345,6 +354,12 @@ export async function revokeRoleFromUser({ targetUserId, role, actorUserId }) {
   }
 
   if (role === 'ADMIN') {
+    assertNotSelfTarget({
+      actorUserId,
+      targetUserId,
+      action: 'REVOKE_ADMIN'
+    });
+
     const activeAdmins = await userRepo.countActiveAdmins();
     assertNotLastAdmin({
       activeAdminCount: activeAdmins,

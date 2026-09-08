@@ -5,24 +5,57 @@
 
 import { z } from 'zod';
 
-export const createUserSchema = z.object({
-  name: z
-    .string({ required_error: 'Name is required' })
-    .trim()
-    .min(2, 'Name must be at least 2 characters')
-    .max(255),
-  email: z
-    .string({ required_error: 'Email is required' })
-    .trim()
-    .email('Invalid email address format')
-    .toLowerCase()
-    .max(255),
-  phone: z.string().trim().max(32).optional().nullable(),
-  role: z.enum(['STUDENT', 'FACULTY', 'INVIGILATOR', 'ADMIN', 'DEVELOPER'], {
-    required_error: 'Role is required'
-  }),
-  identifier: z.string().trim().min(2).max(64).optional().nullable()
-});
+export const createUserSchema = z
+  .object({
+    name: z
+      .string({ required_error: 'Name is required' })
+      .trim()
+      .min(2, 'Name must be at least 2 characters')
+      .max(255),
+    email: z
+      .string({ required_error: 'Email is required' })
+      .trim()
+      .email('Invalid email address format')
+      .toLowerCase()
+      .max(255),
+    phone: z.string().trim().max(32).optional().nullable(),
+    role: z.enum(['STUDENT', 'FACULTY', 'INVIGILATOR', 'ADMIN', 'DEVELOPER'], {
+      required_error: 'Role is required'
+    }),
+    identifier: z.string().trim().max(64).optional().nullable()
+  })
+  .superRefine((data, ctx) => {
+    const trimmed = typeof data.identifier === 'string' ? data.identifier.trim() : '';
+    if (data.role === 'STUDENT') {
+      if (!trimmed || trimmed.length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'USN / Enrollment Number is required for student accounts',
+          path: ['identifier']
+        });
+      } else if (trimmed.length < 2) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Identifier must be at least 2 characters',
+          path: ['identifier']
+        });
+      }
+    } else if (data.role === 'FACULTY') {
+      if (!trimmed || trimmed.length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Employee / Faculty ID is required for faculty accounts',
+          path: ['identifier']
+        });
+      } else if (trimmed.length < 2) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Identifier must be at least 2 characters',
+          path: ['identifier']
+        });
+      }
+    }
+  });
 
 export const updateUserStatusSchema = z.object({
   status: z.enum(['ACTIVE', 'SUSPENDED', 'DISABLED'], {
