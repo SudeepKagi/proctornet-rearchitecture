@@ -121,6 +121,17 @@ export function UserDetailPage() {
     }
   };
 
+  const handleRevokeSessions = async () => {
+    if (!window.confirm(`Revoke all active sessions for ${user.name}? The user will be required to re-authenticate.`)) return;
+    try {
+      await adminUsersApi.revokeUserSessions(id);
+      alert('Active sessions revoked successfully.');
+      loadUser();
+    } catch (err) {
+      alert(`Failed to revoke sessions: ${err?.message}`);
+    }
+  };
+
   const copyPassword = () => {
     navigator.clipboard.writeText(newTempPassword);
     setCopied(true);
@@ -184,6 +195,9 @@ export function UserDetailPage() {
             </Button>
             <Button variant="outline" onClick={handleResetPassword}>
               Reset Password
+            </Button>
+            <Button variant="outline" onClick={handleRevokeSessions}>
+              Revoke Sessions
             </Button>
             {user.lockedUntil && new Date(user.lockedUntil) > new Date() && (
               <Button variant="warning" onClick={handleUnlockUser}>

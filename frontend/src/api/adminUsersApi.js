@@ -87,6 +87,12 @@ export async function removeUserRole(userId, role) {
   });
 }
 
+export async function revokeUserSessions(userId) {
+  return await apiClient(`/api/v1/admin/users/${userId}/revoke-sessions`, {
+    method: 'POST'
+  });
+}
+
 export async function fetchVerificationQueue(params = {}) {
   const query = new URLSearchParams();
   if (params.page) query.set('page', params.page);
