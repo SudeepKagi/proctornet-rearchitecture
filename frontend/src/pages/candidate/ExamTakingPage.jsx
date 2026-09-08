@@ -13,6 +13,8 @@ import { useAutosave } from '../../hooks/useAutosave.js';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus.js';
 import { useProctoringEvents } from '../../hooks/useProctoringEvents.js';
 import { useRealtime } from '../../hooks/useRealtime.js';
+import { useMediaCapture } from '../../hooks/useMediaCapture.js';
+import { mediaClient } from '../../services/mediaClient.js';
 import { generateUUID } from '../../utils/uuid.js';
 
 import { QuestionRenderer } from '../../components/exam/QuestionRenderer.jsx';
@@ -107,6 +109,10 @@ export function ExamTakingPage() {
 
     try {
       await attemptsApi.submitAttempt(attemptId, payload, idempotencyKey);
+      // Clean up media streams and transports
+      stopCapture();
+      mediaClient.closeAll();
+      setMediaPublishing(false);
       // On backend 200 OK: attempt is permanently submitted
       navigate(`/candidate/attempts/${attemptId}/result`, { replace: true });
     } catch (err) {
@@ -182,6 +188,58 @@ export function ExamTakingPage() {
 
     return () => clearInterval(pulseInterval);
   }, [attempt, isExpired, isSubmitting, autoSubmittingBanner, sendHeartbeat, attemptId]);
+
+  // Candidate WebRTC Media Capture & SFU Publishing (Phase 17)
+  const { stream: mediaStream, isCapturing, startCapture, stopCapture } = useMediaCapture();
+  const [mediaPublishing, setMediaPublishing] = useState(false);
+  const mediaVideoRef = useRef(null);
+
+  useEffect(() => {
+    const isLive = !!attempt && !isExpired && !isSubmitting && !autoSubmittingBanner;
+    if (!isLive || !attempt?.session_id) return;
+
+    let isMounted = true;
+
+    async function initMedia() {
+      try {
+        const { stream } = await startCapture({ video: true, audio: true });
+        if (!isMounted || !stream) return;
+
+        await mediaClient.createSendTransport(attempt.session_id);
+
+        const videoTrack = stream.getVideoTracks()[0];
+        if (videoTrack) {
+          await mediaClient.produceTrack(videoTrack, 'webcam', true);
+        }
+
+        const audioTrack = stream.getAudioTracks()[0];
+        if (audioTrack) {
+          await mediaClient.produceTrack(audioTrack, 'microphone', false);
+        }
+
+        if (isMounted) {
+          setMediaPublishing(true);
+        }
+      } catch (err) {
+        console.warn('Could not initialize candidate WebRTC media streaming:', err);
+      }
+    }
+
+    initMedia();
+
+    return () => {
+      isMounted = false;
+      stopCapture();
+      mediaClient.closeAll();
+      setMediaPublishing(false);
+    };
+  }, [attempt, isExpired, isSubmitting, autoSubmittingBanner, startCapture, stopCapture]);
+
+  useEffect(() => {
+    if (mediaVideoRef.current && mediaStream) {
+      mediaVideoRef.current.srcObject = mediaStream;
+    }
+  }, [mediaStream]);
 
   // Input locking if expired
   const inputsDisabled = isExpired || isSubmitting || autoSubmittingBanner;
@@ -414,6 +472,55 @@ export function ExamTakingPage() {
         errorMessage={submissionError}
         onRetry={executeSubmission}
       />
+
+      {/* Floating Candidate Camera Preview Widget (Phase 17) */}
+      {isCapturing && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: '1rem',
+            right: '1rem',
+            width: '180px',
+            borderRadius: '8px',
+            overflow: 'hidden',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+            border: '2px solid var(--color-primary, #3b82f6)',
+            backgroundColor: '#000',
+            zIndex: 1000
+          }}
+        >
+          <video
+            ref={mediaVideoRef}
+            autoPlay
+            playsInline
+            muted
+            style={{ width: '100%', height: '120px', objectFit: 'cover' }}
+          />
+          <div
+            style={{
+              padding: '0.25rem 0.5rem',
+              backgroundColor: 'rgba(0,0,0,0.8)',
+              color: '#fff',
+              fontSize: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}
+          >
+            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <span
+                style={{
+                  width: '6px',
+                  height: '6px',
+                  borderRadius: '50%',
+                  backgroundColor: mediaPublishing ? '#22c55e' : '#eab308'
+                }}
+              />
+              {mediaPublishing ? 'Proctoring Active' : 'Connecting...'}
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

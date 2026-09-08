@@ -3,7 +3,8 @@
  * @description HTTP request handlers for Exam Sessions, Scheduling, Rosters, and Invigilation.
  */
 
-import { BadRequestError } from '../../utils/errors.js';
+import { BadRequestError, ForbiddenError } from '../../utils/errors.js';
+import { getIceServersForSession, authorizeParticipant } from '../../infrastructure/media/index.js';
 import {
   createSessionSchema,
   updateSessionSchema,
@@ -213,6 +214,37 @@ export async function handleListRooms(req, res, next) {
     res.status(200).json({
       status: 'success',
       data: { rooms }
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Handles retrieving ephemeral STUN/TURN ICE server credentials for an authorized session participant.
+ */
+export async function handleGetIceServers(req, res, next) {
+  try {
+    const sessionId = req.params.id || req.params.sessionId;
+    const user = req.user;
+
+    const direction = user.roles?.includes('STUDENT') ? 'send' : 'recv';
+    const auth = await authorizeParticipant({
+      sessionId,
+      userId: user.userId,
+      roles: user.roles,
+      direction
+    });
+
+    if (!auth.authorized) {
+      throw new ForbiddenError(`Access denied: not authorized for session media (${auth.reason})`);
+    }
+
+    const iceData = getIceServersForSession(sessionId, user);
+
+    res.status(200).json({
+      status: 'success',
+      data: iceData
     });
   } catch (err) {
     next(err);

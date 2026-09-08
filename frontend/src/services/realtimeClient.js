@@ -245,6 +245,60 @@ export class RealtimeClient {
   }
 
   /**
+   * Sends a command with type and payload over the active socket.
+   * @param {string} type
+   * @param {any} [payload]
+   */
+  send(type, payload = {}) {
+    this._sendFrame({ type, payload });
+  }
+
+  /**
+   * Sends a command and awaits a specific response type or error.
+   * @param {string} type
+   * @param {string} responseType
+   * @param {any} [payload]
+   * @param {number} [timeoutMs]
+   * @returns {Promise<any>}
+   */
+  request(type, responseType, payload = {}, timeoutMs = 10000) {
+    return new Promise((resolve, reject) => {
+      let timer = null;
+
+      const onResponse = (resPayload) => {
+        cleanup();
+        resolve(resPayload);
+      };
+
+      const onError = (errPayload) => {
+        cleanup();
+        const err = new Error(errPayload?.message || 'Realtime command failed');
+        err.code = errPayload?.code;
+        err.payload = errPayload;
+        reject(err);
+      };
+
+      const cleanup = () => {
+        if (timer) clearTimeout(timer);
+        this.off(responseType, onResponse);
+        this.off('error', onError);
+      };
+
+      timer = setTimeout(() => {
+        cleanup();
+        const err = new Error(`Request timed out waiting for ${responseType}`);
+        err.code = 'TIMEOUT';
+        reject(err);
+      }, timeoutMs);
+
+      this.on(responseType, onResponse);
+      this.on('error', onError);
+
+      this.send(type, payload);
+    });
+  }
+
+  /**
    * Registers a global event listener by event type.
    * @param {string} eventType
    * @param {(payload: any, envelope: any) => void} handler

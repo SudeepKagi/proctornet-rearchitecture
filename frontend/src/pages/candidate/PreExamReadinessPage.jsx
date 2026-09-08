@@ -10,6 +10,7 @@ import { Card } from '../../components/common/Card.jsx';
 import { Button } from '../../components/common/Button.jsx';
 import { Badge, getStatusBadgeVariant } from '../../components/common/Badge.jsx';
 import { Spinner } from '../../components/common/Spinner.jsx';
+import { stopMediaStream } from '../../hooks/useMediaCapture.js';
 
 export function PreExamReadinessPage() {
   const { sessionId } = useParams();
@@ -21,6 +22,12 @@ export function PreExamReadinessPage() {
   const [starting, setStarting] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState('');
+
+  // Media readiness preview state
+  const [previewStream, setPreviewStream] = useState(null);
+  const [mediaCheckStatus, setMediaCheckStatus] = useState('IDLE'); // 'IDLE' | 'CHECKING' | 'READY' | 'FAILED'
+  const [mediaError, setMediaError] = useState('');
+  const previewVideoRef = React.useRef(null);
 
   useEffect(() => {
     async function loadData() {
@@ -41,8 +48,60 @@ export function PreExamReadinessPage() {
     loadData();
   }, [sessionId]);
 
+  const cleanupPreview = React.useCallback(() => {
+    if (previewVideoRef.current) {
+      previewVideoRef.current.srcObject = null;
+    }
+    stopMediaStream(previewStream);
+    setPreviewStream(null);
+  }, [previewStream]);
+
+  // Clean up preview stream on unmount or beforeunload to prevent hardware locks
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      cleanupPreview();
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      cleanupPreview();
+    };
+  }, [cleanupPreview]);
+
+  async function testCameraAndMic() {
+    cleanupPreview();
+    setMediaCheckStatus('CHECKING');
+    setMediaError('');
+
+    try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error('WebRTC camera and microphone access not supported in this browser');
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 20 } },
+        audio: true
+      });
+
+      setPreviewStream(stream);
+      if (previewVideoRef.current) {
+        previewVideoRef.current.srcObject = stream;
+        previewVideoRef.current.play().catch(() => {});
+      }
+      setMediaCheckStatus('READY');
+    } catch (err) {
+      setMediaCheckStatus('FAILED');
+      setMediaError(err.name === 'NotAllowedError' ? 'Camera and microphone permission denied' : err.message);
+      cleanupPreview();
+    }
+  }
+
   async function handleStartOrResume() {
     setError('');
+
+    // Mandatory hardware release before route change
+    cleanupPreview();
 
     // If attempt already active, resume directly
     if (existingAttempt?.id && existingAttempt.status === 'ACTIVE') {
@@ -146,6 +205,49 @@ export function PreExamReadinessPage() {
           <div>
             <span style={{ color: 'var(--color-text-muted)' }}>Closing Window:</span>{' '}
             <strong>{new Date(session.end_time).toLocaleString()}</strong>
+          </div>
+        </div>
+      </Card>
+
+      <Card style={{ marginBottom: '1.5rem' }}>
+        <h3 style={{ fontSize: '1.125rem', marginBottom: '0.75rem', color: 'var(--color-text-primary)' }}>
+          Hardware Readiness Check (Webcam & Microphone)
+        </h3>
+        <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem', marginBottom: '1rem' }}>
+          This proctored examination requires active video and audio surveillance. Verify that your camera and microphone function properly before starting.
+        </p>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center' }}>
+          {previewStream ? (
+            <div style={{ width: '100%', maxWidth: '400px', aspectRatio: '4/3', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#000' }}>
+              <video ref={previewVideoRef} autoPlay playsInline muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            </div>
+          ) : (
+            <div style={{ width: '100%', maxWidth: '400px', height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--color-bg-subtle, #1e293b)', borderRadius: '8px', color: 'var(--color-text-muted)' }}>
+              {mediaCheckStatus === 'CHECKING' ? 'Requesting Device Access...' : 'Camera Preview Inactive'}
+            </div>
+          )}
+
+          {mediaError && (
+            <div style={{ color: 'var(--color-danger, #ef4444)', fontSize: '0.875rem' }}>
+              {mediaError}
+            </div>
+          )}
+
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <Button
+              variant="secondary"
+              size="sm"
+              loading={mediaCheckStatus === 'CHECKING'}
+              onClick={testCameraAndMic}
+            >
+              {mediaCheckStatus === 'READY' ? 'Re-test Hardware' : 'Test Camera & Microphone'}
+            </Button>
+            {previewStream && (
+              <Button variant="secondary" size="sm" onClick={cleanupPreview}>
+                Turn Off Preview
+              </Button>
+            )}
           </div>
         </div>
       </Card>

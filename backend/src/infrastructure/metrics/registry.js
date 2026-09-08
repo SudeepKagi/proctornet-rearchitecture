@@ -264,6 +264,44 @@ export const wsBroadcastErrorsTotal = new promClient.Counter({
 });
 
 // ============================================================================
+// 9. WebRTC / SFU Media Metrics (Phase 17 - Bounded Cardinality, Zero UUIDs)
+// ============================================================================
+
+export const wsMediaTransportsActive = new promClient.Gauge({
+  name: 'proctornet_media_transports_active',
+  help: 'Current active WebRTC media transports',
+  labelNames: ['direction'], // 'send' | 'recv'
+  registers: [register]
+});
+
+export const wsMediaProducersActive = new promClient.Gauge({
+  name: 'proctornet_media_producers_active',
+  help: 'Current active WebRTC media producers',
+  labelNames: ['track_type', 'kind'], // track_type: 'webcam'|'microphone'|'screen', kind: 'audio'|'video'
+  registers: [register]
+});
+
+export const wsMediaConsumersActive = new promClient.Gauge({
+  name: 'proctornet_media_consumers_active',
+  help: 'Current active WebRTC media consumers',
+  labelNames: ['track_type'],
+  registers: [register]
+});
+
+export const wsMediaFailuresTotal = new promClient.Counter({
+  name: 'proctornet_media_failures_total',
+  help: 'Total media transport, produce, consume, or worker failures',
+  labelNames: ['reason'], // 'TRANSPORT_FAILED' | 'BOLA_REJECTED' | 'WORKER_DIED' | 'RATE_LIMITED' | 'PERMISSION_DENIED' | 'TIMEOUT'
+  registers: [register]
+});
+
+export const wsMediaIceRestartsTotal = new promClient.Counter({
+  name: 'proctornet_media_ice_restarts_total',
+  help: 'Total ICE restarts executed on media transports',
+  registers: [register]
+});
+
+// ============================================================================
 // Helper Exports
 // ============================================================================
 

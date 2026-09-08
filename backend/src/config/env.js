@@ -254,7 +254,98 @@ const envSchema = z.object({
     .string()
     .regex(/^\d+$/)
     .transform(Number)
-    .default('60000')
+    .default('60000'),
+
+  // WebRTC / SFU Media configuration (Phase 17)
+  MEDIA_ENABLED: z
+    .union([z.boolean(), z.enum(['true', 'false', '1', '0'])])
+    .default('true')
+    .transform((val) => (typeof val === 'boolean' ? val : val === 'true' || val === '1')),
+  MEDIA_LISTEN_IP: z.string().default('127.0.0.1'),
+  MEDIA_ANNOUNCED_IP: z
+    .string()
+    .optional()
+    .transform((val) => (val && val.trim() !== '' ? val : undefined)),
+  MEDIA_MIN_PORT: z
+    .string()
+    .regex(/^\d+$/)
+    .transform(Number)
+    .default('40000'),
+  MEDIA_MAX_PORT: z
+    .string()
+    .regex(/^\d+$/)
+    .transform(Number)
+    .default('49999'),
+  MEDIASOUP_NUM_WORKERS: z
+    .string()
+    .regex(/^\d+$/)
+    .transform(Number)
+    .optional(),
+  STUN_SERVER_URL: z.string().default('stun:stun.l.google.com:19302'),
+  TURN_SERVER_URL: z
+    .string()
+    .optional()
+    .transform((val) => (val && val.trim() !== '' ? val : undefined)),
+  TURN_STATIC_AUTH_SECRET: z
+    .string()
+    .optional()
+    .transform((val) => (val && val.trim() !== '' ? val : undefined)),
+  TURN_CREDENTIAL_TTL_SEC: z
+    .string()
+    .regex(/^\d+$/)
+    .transform(Number)
+    .default('900'),
+  WS_MEDIA_RATE_LIMIT_PER_MIN: z
+    .string()
+    .regex(/^\d+$/)
+    .transform(Number)
+    .default('240'),
+  WS_MEDIA_BURST_CAPACITY: z
+    .string()
+    .regex(/^\d+$/)
+    .transform(Number)
+    .default('60'),
+  WS_MEDIA_MAX_PAYLOAD_BYTES: z
+    .string()
+    .regex(/^\d+$/)
+    .transform(Number)
+    .default('65536'),
+  MEDIA_SIGNING_SECRET: z
+    .string()
+    .min(32, { message: 'MEDIA_SIGNING_SECRET must be at least 32 characters' })
+    .optional()
+    .transform((val) => (val && val.trim() !== '' ? val : undefined))
+}).superRefine((data, ctx) => {
+  if (data.NODE_ENV === 'production' && data.MEDIA_ENABLED) {
+    if (!data.TURN_SERVER_URL) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['TURN_SERVER_URL'],
+        message: 'TURN_SERVER_URL is required in production when MEDIA_ENABLED is true'
+      });
+    }
+    if (!data.TURN_STATIC_AUTH_SECRET || data.TURN_STATIC_AUTH_SECRET.length < 16) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['TURN_STATIC_AUTH_SECRET'],
+        message: 'TURN_STATIC_AUTH_SECRET must be at least 16 characters in production when MEDIA_ENABLED is true'
+      });
+    }
+    if (!data.MEDIA_ANNOUNCED_IP) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['MEDIA_ANNOUNCED_IP'],
+        message: 'MEDIA_ANNOUNCED_IP is required in production when MEDIA_ENABLED is true'
+      });
+    }
+    if (data.MEDIA_LISTEN_IP === '127.0.0.1' || data.MEDIA_LISTEN_IP === 'localhost') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['MEDIA_LISTEN_IP'],
+        message: 'MEDIA_LISTEN_IP cannot be loopback in production; must be 0.0.0.0 or private interface address'
+      });
+    }
+  }
 });
 
 /**
