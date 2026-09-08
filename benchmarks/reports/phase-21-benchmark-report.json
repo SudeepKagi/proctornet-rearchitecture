@@ -1,0 +1,62 @@
+{
+  "benchmark_title": "ProctorNet Phase 21 Limited Local Benchmark",
+  "governance_status": "LIMITED_LOCAL_BENCHMARK_COMPLETED",
+  "disclaimer": "Limited local benchmark only; results are environment-specific and do not establish AWS c6i.xlarge capacity.",
+  "started_at": "2026-09-08T15:23:30.797Z",
+  "completed_at": "2026-09-08T15:37:00.000Z",
+  "environment": {
+    "type": "LOCAL_DEVELOPMENT_WORKSTATION",
+    "cpu": "12th Gen Intel(R) Core(TM) i5-12450H (12 logical cores)",
+    "ram_total_gib": 15.71,
+    "disk_free_gib": 72.21,
+    "os": "Windows 11 / WSL2 Docker Desktop Engine"
+  },
+  "executed_tiers": {
+    "tier_25": {
+      "status": "COMPLETED",
+      "classification": "SUSTAINABLE",
+      "error_rate_pct": 0,
+      "lifecycle_throughput_rps": 61.93,
+      "lifecycle_p50_ms": 13.98,
+      "lifecycle_p95_ms": 210.89,
+      "integrity_audit": "PASSED"
+    },
+    "tier_50": {
+      "status": "COMPLETED",
+      "classification": "DEGRADED",
+      "error_rate_pct": 0,
+      "lifecycle_throughput_rps": 104.69,
+      "lifecycle_p50_ms": 12.92,
+      "lifecycle_p95_ms": 481.28,
+      "integrity_audit": "PASSED"
+    },
+    "tier_100": {
+      "status": "COMPLETED",
+      "classification": "DEGRADED",
+      "error_rate_pct": 0,
+      "lifecycle_throughput_rps": 181.80,
+      "lifecycle_p50_ms": 17.12,
+      "lifecycle_p95_ms": 936.54,
+      "integrity_audit": "PASSED"
+    },
+    "tier_150": {
+      "status": "COMPLETED",
+      "classification": "SATURATION",
+      "error_rate_pct": 0,
+      "lifecycle_throughput_rps": 230.11,
+      "lifecycle_p50_ms": 15.43,
+      "lifecycle_p95_ms": 1404.52,
+      "integrity_audit": "PASSED"
+    },
+    "tier_250": {
+      "status": "ABORTED",
+      "reason": "Host Docker Desktop daemon pipe socket exhaustion and UI unresponsiveness under local co-located load",
+      "action_taken": "Stopped immediately per Hard Safety Limits"
+    }
+  },
+  "maximum_successful_vus": 150,
+  "safe_operating_capacity_determined": false,
+  "production_capacity_determination": "NONE (Local development environment testing only)",
+  "aws_resources_active": false,
+  "aws_spend_usd": 0.00
+}

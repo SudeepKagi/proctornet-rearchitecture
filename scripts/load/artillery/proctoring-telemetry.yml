@@ -1,0 +1,35 @@
+config:
+  target: "http://localhost:4000"
+  phases:
+    - duration: 30
+      arrivalRate: 10
+      rampTo: 50
+      name: "Warm-up ramp"
+    - duration: 60
+      arrivalRate: 50
+      name: "Sustained telemetry load"
+  payload:
+    path: "../fixtures/benchmark-fixtures.json"
+    fields:
+      - "candidates"
+  plugins:
+    expect: {}
+
+scenarios:
+  - name: "Candidate Telemetry Stream"
+    flow:
+      - log: "Sending proctoring telemetry event"
+      - post:
+          url: "/api/v1/attempts/00000000-0000-0000-0000-000000000000/events"
+          json:
+            event_type: "PROCTORING_HEARTBEAT"
+            severity: "LOW"
+            metadata:
+              face_count: 1
+              head_pose: "NORMAL"
+              focus_state: "FOCUSED"
+          expect:
+            - statusCode:
+                - 200
+                - 201
+                - 401 # When unauthenticated in generic runner
