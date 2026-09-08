@@ -1,0 +1,221 @@
+{
+  "suite": "ProctorNet Phase 22 Failure, Resilience & Chaos Testing",
+  "timestamp": "2026-09-08T16:35:42.559Z",
+  "durationSeconds": 21.38,
+  "overallPassed": true,
+  "scenariosExecuted": 11,
+  "scenariosPassed": 11,
+  "scenariosFailed": 0,
+  "invariantsAudit": {
+    "passed": true,
+    "checks": [
+      {
+        "id": 1,
+        "name": "Zero Orphan Answers",
+        "passed": true,
+        "details": "0 orphan answers"
+      },
+      {
+        "id": 2,
+        "name": "Zero Orphan Attempt Questions",
+        "passed": true,
+        "details": "0 orphan attempt questions"
+      },
+      {
+        "id": 3,
+        "name": "Zero Duplicate Submission Idempotency Records",
+        "passed": true,
+        "details": "0 duplicate idempotency keys"
+      },
+      {
+        "id": 4,
+        "name": "Monotonic Answer OCC Revisions (revisions >= 1)",
+        "passed": true,
+        "details": "0 non-positive revision records"
+      },
+      {
+        "id": 5,
+        "name": "Zero Duplicate Completed Results",
+        "passed": true,
+        "details": "0 attempts with duplicate results"
+      },
+      {
+        "id": 6,
+        "name": "Outbox Event Consistency for Submitted Attempts",
+        "passed": true,
+        "details": "0 submitted pipeline attempts without outbox events"
+      },
+      {
+        "id": 7,
+        "name": "Outbox Status Lifecycle Integrity",
+        "passed": true,
+        "details": "0 events with invalid status"
+      },
+      {
+        "id": 8,
+        "name": "Audit Log Immutability (SQLSTATE 20000 Trigger Protection)",
+        "passed": true,
+        "details": "SQLSTATE 20000 trigger correctly raised (Audit logs are immutable. UPDATE, DELETE, and TRUNCATE operations are strictly prohibited.)",
+        "isIndependentTriggerCheck": true
+      }
+    ]
+  },
+  "thresholdsCompliance": {
+    "faultDetectionTimeThresholdMs": 2000,
+    "faultRecoveryTimeThresholdMs": 5000,
+    "maxDetectionTimeObservedMs": 1503,
+    "maxRecoveryTimeObservedMs": 317,
+    "totalDataLoss": 0,
+    "totalDuplicateEffects": 0
+  },
+  "scenarios": [
+    {
+      "scenarioId": "CH-01",
+      "title": "Redis Outage During Active Autosave & Rate Limiting",
+      "passed": true,
+      "faultDetectionTimeMs": 217,
+      "faultRecoveryTimeMs": 84,
+      "dataLossCount": 0,
+      "duplicateEffects": 0,
+      "details": {
+        "container": "proctornet-redis",
+        "answerRevision": 2,
+        "persistedInPostgres": true
+      }
+    },
+    {
+      "scenarioId": "CH-02",
+      "title": "RabbitMQ Outage During Synchronized Submission Surge",
+      "passed": true,
+      "faultDetectionTimeMs": 169,
+      "faultRecoveryTimeMs": 0,
+      "dataLossCount": 0,
+      "duplicateEffects": 0,
+      "details": {
+        "submissionsCommitted": 5,
+        "outboxBuffered": 5
+      }
+    },
+    {
+      "scenarioId": "CH-03",
+      "title": "RabbitMQ Restoration & Outbox Drain Recovery",
+      "passed": true,
+      "faultDetectionTimeMs": 0,
+      "faultRecoveryTimeMs": 75,
+      "dataLossCount": 0,
+      "duplicateEffects": 0,
+      "details": {
+        "eventsPublished": 5,
+        "outboxBacklogRemaining": 0
+      }
+    },
+    {
+      "scenarioId": "CH-04",
+      "title": "Evaluation Worker Crash Mid-Processing & Idempotent Scoring",
+      "passed": true,
+      "faultDetectionTimeMs": 12,
+      "faultRecoveryTimeMs": 48,
+      "dataLossCount": 0,
+      "duplicateEffects": 0,
+      "details": {
+        "uniqueResultEnforced": true,
+        "poisonHandled": true
+      }
+    },
+    {
+      "scenarioId": "CH-05",
+      "title": "PostgreSQL Connection Pool Saturation & Recovery",
+      "passed": true,
+      "faultDetectionTimeMs": 1503,
+      "faultRecoveryTimeMs": 11,
+      "dataLossCount": 0,
+      "duplicateEffects": 0,
+      "details": {
+        "poolMax": 5,
+        "timeoutCaught": true,
+        "queryLatencyMs": 10
+      }
+    },
+    {
+      "scenarioId": "CH-06",
+      "title": "Abrupt Backend Termination & Transaction Rollback",
+      "passed": true,
+      "faultDetectionTimeMs": 19,
+      "faultRecoveryTimeMs": 3,
+      "dataLossCount": 0,
+      "duplicateEffects": 0,
+      "details": {
+        "rollbackClean": true,
+        "zeroOrphanRows": true
+      }
+    },
+    {
+      "scenarioId": "CH-07",
+      "title": "Docker Container Restart with EBS/Volume Persistence",
+      "passed": true,
+      "faultDetectionTimeMs": 1052,
+      "faultRecoveryTimeMs": 182,
+      "dataLossCount": 0,
+      "duplicateEffects": 0,
+      "details": {
+        "container": "proctornet-postgres",
+        "dataIntact": true,
+        "invariantsPassed": true
+      }
+    },
+    {
+      "scenarioId": "CH-08",
+      "title": "Candidate WebSocket Abrupt Severance & Resumption",
+      "passed": true,
+      "faultDetectionTimeMs": 45,
+      "faultRecoveryTimeMs": 120,
+      "dataLossCount": 0,
+      "duplicateEffects": 0,
+      "details": {
+        "heartbeatTimeoutEnforced": true,
+        "presenceRestored": true
+      }
+    },
+    {
+      "scenarioId": "CH-09",
+      "title": "Network Latency Jitter & Idempotent Submission Replay",
+      "passed": true,
+      "faultDetectionTimeMs": 15,
+      "faultRecoveryTimeMs": 8,
+      "dataLossCount": 0,
+      "duplicateEffects": 0,
+      "details": {
+        "cachedResponseReplayed": true,
+        "zeroDuplicateRows": true
+      }
+    },
+    {
+      "scenarioId": "CH-10",
+      "title": "Staggered Dependency Boot Order Independence",
+      "passed": true,
+      "faultDetectionTimeMs": 18,
+      "faultRecoveryTimeMs": 45,
+      "dataLossCount": 0,
+      "duplicateEffects": 0,
+      "details": {
+        "nonFatalBoot": true,
+        "autoReconnectOperational": true
+      }
+    },
+    {
+      "scenarioId": "CH-L5-COMPOUND",
+      "title": "Compound Multi-Fault: Simultaneous Redis + RabbitMQ Outage",
+      "passed": true,
+      "faultDetectionTimeMs": 331,
+      "faultRecoveryTimeMs": 317,
+      "dataLossCount": 0,
+      "duplicateEffects": 0,
+      "details": {
+        "dualOutage": true,
+        "answerDurable": true,
+        "outboxBuffered": true,
+        "dataLossCount": 0
+      }
+    }
+  ]
+}
