@@ -1,4 +1,31 @@
 /**
+ * Sanitizes URL query parameters by redacting credentials and tokens.
+ * @param {string} rawUrl
+ * @returns {string}
+ */
+export function sanitizeUrl(rawUrl) {
+  if (!rawUrl || typeof rawUrl !== 'string') return rawUrl;
+  try {
+    const qIndex = rawUrl.indexOf('?');
+    if (qIndex === -1) return rawUrl;
+    const path = rawUrl.slice(0, qIndex);
+    const query = rawUrl.slice(qIndex + 1);
+    const params = new URLSearchParams(query);
+    const sensitiveKeys = ['token', 'access_token', 'password', 'secret', 'key', 'api_key'];
+    let modified = false;
+    for (const key of sensitiveKeys) {
+      if (params.has(key)) {
+        params.set(key, '[REDACTED]');
+        modified = true;
+      }
+    }
+    return modified ? `${path}?${params.toString()}` : rawUrl;
+  } catch {
+    return rawUrl;
+  }
+}
+
+/**
  * Express middleware to log HTTP request completion with duration and status code.
  */
 export function requestLogger(req, res, next) {
@@ -13,7 +40,7 @@ export function requestLogger(req, res, next) {
       traceId: req.traceId,
       spanId: req.spanId,
       method: req.method,
-      url: req.originalUrl || req.url,
+      url: sanitizeUrl(req.originalUrl || req.url),
       statusCode: res.statusCode,
       durationMs: Number(durationMs.toFixed(2)),
       ip: req.ip || req.socket?.remoteAddress,

@@ -6,6 +6,20 @@ import { ExamTakingPage } from '../../src/pages/candidate/ExamTakingPage.jsx';
 import * as attemptsApi from '../../src/api/attemptsApi.js';
 import * as answersApi from '../../src/api/answersApi.js';
 
+// Phase 16: ExamTakingPage uses useRealtime for candidate heartbeat pulses and
+// invigilator warning/session-concluded events. Mock the hook to expose the
+// exact interface the component consumes without requiring a RealtimeProvider.
+vi.mock('../../src/hooks/useRealtime.js', () => ({
+  useRealtime: () => ({
+    sendHeartbeat: vi.fn(),
+    status: 'CONNECTED',
+    isDegraded: false,
+    isConnected: true,
+    subscribe: vi.fn(() => () => {}),
+    unsubscribe: vi.fn()
+  })
+}));
+
 vi.mock('../../src/api/attemptsApi.js');
 vi.mock('../../src/api/answersApi.js');
 

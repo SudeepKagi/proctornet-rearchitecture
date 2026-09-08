@@ -191,7 +191,70 @@ const envSchema = z.object({
     .string()
     .regex(/^\d+$/)
     .transform(Number)
-    .default('900')
+    .default('900'),
+
+  // WebSocket Realtime configuration (Phase 16)
+  WS_ENABLED: z
+    .union([z.boolean(), z.enum(['true', 'false', '1', '0'])])
+    .default('true')
+    .transform((val) => (typeof val === 'boolean' ? val : val === 'true' || val === '1')),
+  WS_PRE_AUTH_RATE_LIMIT_PER_MIN: z
+    .string()
+    .regex(/^\d+$/)
+    .transform(Number)
+    .default('30'),
+  WS_TRANSPORT_PING_INTERVAL_MS: z
+    .string()
+    .regex(/^\d+$/)
+    .transform(Number)
+    .default('30000'),
+  WS_PRESENCE_SWEEP_INTERVAL_MS: z
+    .string()
+    .regex(/^\d+$/)
+    .transform(Number)
+    .default('5000'),
+  WS_PRESENCE_LAPSE_THRESHOLD_MS: z
+    .string()
+    .regex(/^\d+$/)
+    .transform(Number)
+    .default('15000'),
+  WS_MAX_PAYLOAD_BYTES: z
+    .string()
+    .regex(/^\d+$/)
+    .transform(Number)
+    .default('16384'),
+  WS_MAX_CONNECTIONS_PER_USER: z
+    .string()
+    .regex(/^\d+$/)
+    .transform(Number)
+    .default('3'),
+
+  // Number of trusted reverse proxy hops in front of the server.
+  // Used to safely extract the real client IP from X-Forwarded-For without
+  // trusting attacker-supplied header values. Set to 0 when no proxy is used.
+  WS_TRUSTED_PROXY_COUNT: z
+    .string()
+    .regex(/^\d+$/)
+    .transform(Number)
+    .default('1'),
+
+  // Tier-4 per-connected-socket inbound application message rate limit (msgs/min).
+  // Connections sending more than this many application messages per minute are
+  // terminated with close code 1008 (Policy Violation).
+  WS_INBOUND_RATE_LIMIT_PER_MIN: z
+    .string()
+    .regex(/^\d+$/)
+    .transform(Number)
+    .default('60'),
+
+  // Interval (ms) between periodic server-side authorization revocation sweeps.
+  // Each sweep re-checks the Redis session blacklist for all active connections
+  // and terminates any whose session has been revoked since initial handshake.
+  WS_REVOCATION_SWEEP_INTERVAL_MS: z
+    .string()
+    .regex(/^\d+$/)
+    .transform(Number)
+    .default('60000')
 });
 
 /**
