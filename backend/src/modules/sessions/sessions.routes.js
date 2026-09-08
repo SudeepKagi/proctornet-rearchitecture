@@ -16,7 +16,8 @@ import {
   handleAssignInvigilator,
   handleRemoveInvigilator,
   handleCreateRoom,
-  handleListRooms
+  handleListRooms,
+  handleGetIceServers
 } from './sessions.controller.js';
 import { startAttempt, getMyAttempt } from '../attempts/attempts.controller.js';
 import { handleGetSessionSummary } from '../proctoring/proctoring.routes.js';
@@ -37,6 +38,10 @@ sessionsRouter.put('/:id', authenticate, requireRole('FACULTY', 'ADMIN'), handle
 // Phase 14: Session Proctoring Summary (Invigilator Console)
 sessionsRouter.get('/:id/proctoring/summary', authenticate, handleGetSessionSummary);
 sessionsRouter.get('/:sessionId/proctoring/summary', authenticate, handleGetSessionSummary);
+
+// Phase 17: WebRTC STUN/TURN ICE Servers Endpoint
+sessionsRouter.get('/:id/ice-servers', authenticate, handleGetIceServers);
+sessionsRouter.get('/:sessionId/ice-servers', authenticate, handleGetIceServers);
 
 
 // Session student roster routes

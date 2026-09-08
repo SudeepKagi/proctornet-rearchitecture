@@ -22,6 +22,7 @@ import {
   wsMessagesReceivedTotal,
   wsHeartbeatTimeoutsTotal
 } from '../metrics/registry.js';
+import { defaultSfuManager, handleMediaSignaling } from '../media/index.js';
 
 // Pre-upgrade IP rate limiting state
 const upgradeAttempts = new Map(); // ip -> [timestamp]
@@ -190,13 +191,17 @@ export class ProctorNetWebSocketServer {
 
     this.wss = new WebSocketServer({
       noServer: true,
-      maxPayload: config.WS_MAX_PAYLOAD_BYTES,
+      maxPayload: config.WS_MEDIA_MAX_PAYLOAD_BYTES,
       handleProtocols: (protocols) => {
         if (protocols.has('proctornet')) {
           return 'proctornet';
         }
         return false;
       }
+    });
+
+    defaultSfuManager.setSessionResetBroadcaster((sessionId, payload) => {
+      return this.broadcaster.broadcastToSession(sessionId, 'media:session_reset', payload);
     });
 
     this.transportPingTimer = null;
@@ -471,40 +476,105 @@ export class ProctorNetWebSocketServer {
       context.isAlive = true;
     });
 
-    // Tier-4 per-socket inbound message rate limiting state.
-    // Tracks the number of application messages received in the current 60-second
-    // window. Sockets exceeding WS_INBOUND_RATE_LIMIT_PER_MIN are terminated
-    // with close code 1008 (Policy Violation). The window resets every 60 seconds.
-    // Protocol-level pings/pongs are not counted (handled by the ws library itself).
+    // Tier-4 per-socket inbound message rate limiting state (generic control).
     context._inboundMsgCount = 0;
     context._inboundWindowStart = Date.now();
 
+    // Dedicated media signaling token bucket (Phase 17)
+    context._mediaTokenBucket = {
+      tokens: config.WS_MEDIA_BURST_CAPACITY,
+      capacity: config.WS_MEDIA_BURST_CAPACITY,
+      refillRatePerSec: config.WS_MEDIA_RATE_LIMIT_PER_MIN / 60,
+      lastRefillAt: Date.now(),
+      excessViolationCount: 0,
+      excessWindowStart: Date.now()
+    };
+
     // Client message handler
     ws.on('message', async (rawMessage) => {
-      wsMessagesReceivedTotal.inc({ type: 'inbound' });
-
-      // --- Tier-4 inbound rate limit enforcement ---
-      const now = Date.now();
-      if (now - context._inboundWindowStart >= 60000) {
-        // New 60-second window: reset counter
-        context._inboundWindowStart = now;
-        context._inboundMsgCount = 0;
-      }
-      context._inboundMsgCount += 1;
-
-      if (context._inboundMsgCount > config.WS_INBOUND_RATE_LIMIT_PER_MIN) {
-        logger.warn(
-          { connectionId: context.connectionId, userId: context.userId, count: context._inboundMsgCount },
-          'Per-socket inbound message rate limit exceeded (Tier-4); terminating connection'
-        );
+      // 1. Frame size validation
+      const byteLength = Buffer.isBuffer(rawMessage) ? rawMessage.length : Buffer.byteLength(rawMessage);
+      if (byteLength > config.WS_MEDIA_MAX_PAYLOAD_BYTES) {
         try {
-          ws.close(1008, 'Message Rate Limit Exceeded');
+          ws.close(1009, 'Message Too Big');
         } catch {
           ws.terminate();
         }
         return;
       }
-      // --- End Tier-4 rate limiting ---
+
+      const rawStr = typeof rawMessage === 'string' ? rawMessage : rawMessage.toString('utf8');
+      const isMediaCommand = rawStr.includes('"media:');
+
+      if (byteLength > config.WS_MAX_PAYLOAD_BYTES && !isMediaCommand) {
+        try {
+          ws.close(1009, 'Message Too Big');
+        } catch {
+          ws.terminate();
+        }
+        return;
+      }
+
+      wsMessagesReceivedTotal.inc({ type: 'inbound' });
+
+      // 2. Two-Tier Rate Limiting
+      if (isMediaCommand) {
+        const bucket = context._mediaTokenBucket;
+        const now = Date.now();
+        const elapsedSec = (now - bucket.lastRefillAt) / 1000;
+        bucket.tokens = Math.min(bucket.capacity, bucket.tokens + elapsedSec * bucket.refillRatePerSec);
+        bucket.lastRefillAt = now;
+
+        if (bucket.tokens < 1) {
+          if (now - bucket.excessWindowStart > 10000) {
+            bucket.excessWindowStart = now;
+            bucket.excessViolationCount = 0;
+          }
+          bucket.excessViolationCount += 1;
+
+          if (bucket.excessViolationCount > 120) {
+            logger.warn(
+              { connectionId: context.connectionId, userId: context.userId },
+              'Excessive media signaling flooding (>120 over limit); terminating connection'
+            );
+            try {
+              ws.close(1008, 'Excessive Media Flooding');
+            } catch {
+              ws.terminate();
+            }
+            return;
+          }
+
+          this.broadcaster.sendDirect(ws, 'error', {
+            code: 'MEDIA_RATE_LIMIT_EXCEEDED',
+            message: 'Media signaling rate limit exceeded. Please throttle requests.'
+          });
+          return;
+        }
+
+        bucket.tokens -= 1;
+      } else {
+        // Tier-4 inbound rate limit enforcement for generic control messages
+        const now = Date.now();
+        if (now - context._inboundWindowStart >= 60000) {
+          context._inboundWindowStart = now;
+          context._inboundMsgCount = 0;
+        }
+        context._inboundMsgCount += 1;
+
+        if (context._inboundMsgCount > config.WS_INBOUND_RATE_LIMIT_PER_MIN) {
+          logger.warn(
+            { connectionId: context.connectionId, userId: context.userId, count: context._inboundMsgCount },
+            'Per-socket inbound message rate limit exceeded (Tier-4); terminating connection'
+          );
+          try {
+            ws.close(1008, 'Message Rate Limit Exceeded');
+          } catch {
+            ws.terminate();
+          }
+          return;
+        }
+      }
 
       await this._handleClientMessage(ws, context, rawMessage);
     });
@@ -526,6 +596,11 @@ export class ProctorNetWebSocketServer {
           })
           .catch(() => {});
       }
+
+      // Deterministic SFU teardown: release all send/recv transports, producers, and consumers
+      defaultSfuManager.closeTransportsForConnection(context.connectionId).catch((err) => {
+        logger.warn({ err: err.message, connectionId: context.connectionId }, 'Error in SFU disconnect teardown');
+      });
 
       this.channelManager.unregisterConnection(ws);
       logger.debug(
@@ -557,6 +632,12 @@ export class ProctorNetWebSocketServer {
     }
 
     const command = parseResult.data;
+
+    // Handle WebRTC / SFU media signaling
+    if (command.type.startsWith('media:')) {
+      await handleMediaSignaling(ws, context, command, this.broadcaster);
+      return;
+    }
 
     switch (command.type) {
       case 'heartbeat': {

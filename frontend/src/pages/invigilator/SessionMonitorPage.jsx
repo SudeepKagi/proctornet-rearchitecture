@@ -14,6 +14,7 @@ import { Button } from '../../components/common/Button.jsx';
 import { Badge, getStatusBadgeVariant } from '../../components/common/Badge.jsx';
 import { Spinner } from '../../components/common/Spinner.jsx';
 import { useRealtime } from '../../hooks/useRealtime.js';
+import { CandidateMediaGrid } from '../../components/media/CandidateMediaGrid.jsx';
 
 function getRiskBadgeVariant(score) {
   if (score >= 80) return 'danger';
@@ -32,6 +33,7 @@ export function SessionMonitorPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+  const [activeTab, setActiveTab] = useState('media');
 
   const loadData = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -295,17 +297,42 @@ export function SessionMonitorPage() {
         </div>
       )}
 
-      {/* Candidate Status & Proctoring Roster Grid */}
-      <Card padding="normal" style={{ marginBottom: '1.5rem' }}>
-        <h3 style={{ fontSize: '1.125rem', marginBottom: '1rem' }}>
-          Enrolled Candidates & Proctoring Status ({students.length})
-        </h3>
+      {/* Navigation Tabs */}
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--color-border-subtle)', paddingBottom: '0.5rem' }}>
+        <Button
+          variant={activeTab === 'media' ? 'primary' : 'secondary'}
+          size="sm"
+          onClick={() => setActiveTab('media')}
+        >
+          Live Media Monitor (SFU)
+        </Button>
+        <Button
+          variant={activeTab === 'roster' ? 'primary' : 'secondary'}
+          size="sm"
+          onClick={() => setActiveTab('roster')}
+        >
+          Candidate Roster & Status ({students.length})
+        </Button>
+      </div>
 
-        {students.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '2rem 0', color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>
-            No candidates are currently assigned to this proctoring session.
-          </div>
-        ) : (
+      {activeTab === 'media' && (
+        <Card padding="normal" style={{ marginBottom: '1.5rem' }}>
+          <CandidateMediaGrid sessionId={sessionId} />
+        </Card>
+      )}
+
+      {activeTab === 'roster' && (
+        /* Candidate Status & Proctoring Roster Grid */
+        <Card padding="normal" style={{ marginBottom: '1.5rem' }}>
+          <h3 style={{ fontSize: '1.125rem', marginBottom: '1rem' }}>
+            Enrolled Candidates & Proctoring Status ({students.length})
+          </h3>
+
+          {students.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '2rem 0', color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>
+              No candidates are currently assigned to this proctoring session.
+            </div>
+          ) : (
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
               <thead>
@@ -383,6 +410,7 @@ export function SessionMonitorPage() {
           </div>
         )}
       </Card>
+      )}
 
       {/* Session-Scoped Results (Inspection Only) */}
       {results.length > 0 && (

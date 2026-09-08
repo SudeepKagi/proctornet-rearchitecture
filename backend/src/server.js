@@ -14,6 +14,7 @@ import { assertTopology } from './infrastructure/rabbitmq/topology.js';
 import { startOutboxPoller, stopOutboxPoller } from './modules/outbox/outbox.service.js';
 import { startEvaluationConsumer, stopEvaluationConsumer } from './modules/evaluation/evaluation.consumer.js';
 import { defaultWebSocketServer, defaultBroadcaster } from './infrastructure/realtime/index.js';
+import { defaultSfuManager } from './infrastructure/media/index.js';
 
 const server = http.createServer(app);
 
@@ -47,6 +48,16 @@ async function gracefulShutdown(signal) {
         logger.info('WebSocket server connections drained and closed');
       } catch (wsErr) {
         logger.error({ err: wsErr }, 'Error closing WebSocket server');
+      }
+    }
+
+    // 0b. Close SFU media worker pool
+    if (config.MEDIA_ENABLED) {
+      try {
+        await defaultSfuManager.close();
+        logger.info('SFU media worker pool closed');
+      } catch (sfuErr) {
+        logger.error({ err: sfuErr }, 'Error closing SFU media manager');
       }
     }
 
@@ -129,6 +140,16 @@ server.listen(config.PORT, async () => {
       logger.info('WebSocket server and realtime broadcaster initialized');
     } catch (wsBootErr) {
       logger.error({ err: wsBootErr }, 'Failed to initialize WebSocket realtime broadcaster');
+    }
+  }
+
+  // Initialize SFU media manager if enabled
+  if (config.MEDIA_ENABLED) {
+    try {
+      await defaultSfuManager.init();
+      logger.info('SFU media worker pool initialized');
+    } catch (sfuBootErr) {
+      logger.error({ err: sfuBootErr }, 'Failed to initialize SFU media manager');
     }
   }
 
