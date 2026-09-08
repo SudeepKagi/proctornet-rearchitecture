@@ -1,76 +1,15 @@
 /**
  * @file RegisterPage.jsx
- * @description Candidate registration page for ProctorNet.
+ * @description Public self-registration notice. Under Phase 23, public self-registration is strictly disabled.
  */
 
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../../hooks/useAuth.js';
-import { Input } from '../../components/common/Input.jsx';
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '../../components/common/Button.jsx';
 import { Card } from '../../components/common/Card.jsx';
 
 export function RegisterPage() {
   const navigate = useNavigate();
-  const { register } = useAuth();
-
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [phone, setPhone] = useState('');
-  const [enrollmentNumber, setEnrollmentNumber] = useState('');
-  const [department, setDepartment] = useState('');
-  const [semester, setSemester] = useState('1');
-
-  const [error, setError] = useState('');
-  const [successMsg, setSuccessMsg] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  async function handleSubmit(e) {
-    e.preventDefault();
-    setError('');
-    setSuccessMsg('');
-
-    if (password !== confirmPassword) {
-      setError('Passwords do not match.');
-      return;
-    }
-
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters long.');
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const payload = {
-        name,
-        email,
-        password,
-        phone: phone || undefined,
-      };
-
-      if (enrollmentNumber && department) {
-        payload.student_profile = {
-          enrollment_number: enrollmentNumber,
-          department,
-          semester: parseInt(semester, 10) || 1,
-        };
-      }
-
-      await register(payload);
-      setSuccessMsg('Registration successful! Redirecting to login...');
-      setTimeout(() => {
-        navigate('/login', { replace: true });
-      }, 1500);
-    } catch (err) {
-      setError(err.message || 'Registration failed. Please review your input.');
-    } finally {
-      setLoading(false);
-    }
-  }
 
   return (
     <div
@@ -79,169 +18,52 @@ export function RegisterPage() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '1.5rem',
-        backgroundColor: 'var(--color-canvas)',
+        backgroundColor: 'var(--color-bg-base)',
+        padding: '1rem',
       }}
     >
-      <div style={{ width: '100%', maxWidth: '480px' }}>
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+      <div style={{ width: '100%', maxWidth: '440px' }}>
+        <Card padding="spacious" style={{ textAlign: 'center' }}>
           <div
             style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '50%',
+              backgroundColor: 'var(--color-primary-subtle)',
+              color: 'var(--color-primary)',
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              width: '48px',
-              height: '48px',
-              borderRadius: 'var(--radius-md)',
-              backgroundColor: 'var(--color-primary-light)',
-              color: 'var(--color-primary)',
-              fontWeight: 700,
-              fontSize: '1.25rem',
-              marginBottom: '0.75rem',
+              marginBottom: '1rem',
             }}
           >
-            PN
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
           </div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>
-            Create an Account
-          </h1>
-          <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem', marginTop: '0.25rem' }}>
-            Register as a Candidate on ProctorNet
+
+          <h2 style={{ fontSize: '1.375rem', fontWeight: 700, margin: '0 0 0.5rem 0', color: 'var(--color-text-primary)' }}>
+            Self-Registration Disabled
+          </h2>
+
+          <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem', lineHeight: 1.5, margin: '0 0 1.5rem 0' }}>
+            In accordance with university examination security policy, Student and Faculty accounts must be provisioned directly by your institutional administrator or academic department.
           </p>
-        </div>
 
-        <Card padding="spacious">
-          {error && (
-            <div
-              role="alert"
-              style={{
-                marginBottom: '1.25rem',
-                padding: '0.75rem 1rem',
-                borderRadius: 'var(--radius-sm)',
-                backgroundColor: 'var(--color-danger-light)',
-                border: '1px solid var(--color-danger-border)',
-                color: 'var(--color-danger)',
-                fontSize: '0.875rem',
-              }}
-            >
-              {error}
-            </div>
-          )}
+          <p style={{ color: 'var(--color-text-muted)', fontSize: '0.8125rem', lineHeight: 1.5, margin: '0 0 1.5rem 0' }}>
+            If your account has already been created, please sign in using your institutional email and temporary password to complete your onboarding setup.
+          </p>
 
-          {successMsg && (
-            <div
-              role="status"
-              style={{
-                marginBottom: '1.25rem',
-                padding: '0.75rem 1rem',
-                borderRadius: 'var(--radius-sm)',
-                backgroundColor: 'var(--color-success-light)',
-                border: '1px solid var(--color-success-border)',
-                color: 'var(--color-success)',
-                fontSize: '0.875rem',
-              }}
-            >
-              {successMsg}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} noValidate>
-            <Input
-              id="name"
-              label="Full Name"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Jane Doe"
-              required
-            />
-
-            <Input
-              id="email"
-              label="Email Address"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="jane.doe@university.edu"
-              autoComplete="email"
-              required
-            />
-
-            <Input
-              id="password"
-              label="Password (min 8 characters)"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              autoComplete="new-password"
-              required
-            />
-
-            <Input
-              id="confirmPassword"
-              label="Confirm Password"
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="••••••••"
-              autoComplete="new-password"
-              required
-            />
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-              <Input
-                id="enrollmentNumber"
-                label="Enrollment ID"
-                type="text"
-                value={enrollmentNumber}
-                onChange={(e) => setEnrollmentNumber(e.target.value)}
-                placeholder="ENR-2026-001"
-              />
-
-              <Input
-                id="department"
-                label="Department"
-                type="text"
-                value={department}
-                onChange={(e) => setDepartment(e.target.value)}
-                placeholder="Computer Science"
-              />
-            </div>
-
-            <Button
-              type="submit"
-              variant="primary"
-              size="lg"
-              loading={loading}
-              style={{ width: '100%', marginTop: '0.5rem' }}
-            >
-              Register Account
-            </Button>
-          </form>
-
-          <div
-            style={{
-              marginTop: '1.5rem',
-              paddingTop: '1.25rem',
-              borderTop: '1px solid var(--color-border-subtle)',
-              textAlign: 'center',
-              fontSize: '0.875rem',
-              color: 'var(--color-text-muted)',
-            }}
+          <Button
+            type="button"
+            variant="primary"
+            size="lg"
+            style={{ width: '100%' }}
+            onClick={() => navigate('/login')}
           >
-            Already have an account?{' '}
-            <Link
-              to="/login"
-              style={{
-                color: 'var(--color-primary)',
-                fontWeight: 500,
-                textDecoration: 'none',
-              }}
-            >
-              Sign in
-            </Link>
-          </div>
+            Go to Sign In
+          </Button>
         </Card>
       </div>
     </div>

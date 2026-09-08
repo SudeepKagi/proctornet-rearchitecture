@@ -5,6 +5,9 @@ import { examsRouter } from '../modules/exams/exams.routes.js';
 import { sessionsRouter } from '../modules/sessions/sessions.routes.js';
 import { attemptsRouter } from '../modules/attempts/attempts.routes.js';
 import { auditRouter } from '../modules/audit/audit.routes.js';
+import { adminRouter, userSelfRouter } from '../modules/users/user.routes.js';
+import { authenticate } from '../middleware/authenticate.js';
+import { requireVerifiedActiveUser } from '../middleware/verificationGate.js';
 
 export const rootRouter = Router();
 
@@ -25,14 +28,18 @@ v1Router.get('/', (_req, res) => {
 // Authentication & Session endpoints
 v1Router.use('/auth', authRouter);
 
-// Phase 5: Exam Authoring, Topic Rules & Publishing
-v1Router.use('/exams', examsRouter);
+// Phase 23: User Administration & Institutional Configuration
+v1Router.use('/admin', adminRouter);
+v1Router.use('/users/me', userSelfRouter);
 
-// Phase 5: Sessions, Scheduling, Rosters & Invigilation
-v1Router.use('/sessions', sessionsRouter);
+// Phase 5: Exam Authoring, Topic Rules & Publishing (Gated for verified active users)
+v1Router.use('/exams', authenticate, requireVerifiedActiveUser, examsRouter);
 
-// Phase 6: Attempts, Question Mapping & Resumption
-v1Router.use('/attempts', attemptsRouter);
+// Phase 5: Sessions, Scheduling, Rosters & Invigilation (Gated for verified active users)
+v1Router.use('/sessions', authenticate, requireVerifiedActiveUser, sessionsRouter);
+
+// Phase 6: Attempts, Question Mapping & Resumption (Gated for verified active users)
+v1Router.use('/attempts', authenticate, requireVerifiedActiveUser, attemptsRouter);
 
 // Phase 13: Centralized Audit Logs
 v1Router.use('/audit-logs', auditRouter);

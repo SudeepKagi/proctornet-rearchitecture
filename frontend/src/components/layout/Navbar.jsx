@@ -127,17 +127,63 @@ export function Navbar() {
               )}
 
               {user?.roles?.includes('ADMIN') && (
-                <Link
-                  to="/admin"
-                  style={{
-                    color: 'var(--color-text-body)',
-                    textDecoration: 'none',
-                    fontSize: '0.875rem',
-                    fontWeight: 500,
-                  }}
-                >
-                  Admin
-                </Link>
+                <>
+                  <Link
+                    to="/admin"
+                    style={{
+                      color: 'var(--color-text-body)',
+                      textDecoration: 'none',
+                      fontSize: '0.875rem',
+                      fontWeight: 500,
+                    }}
+                  >
+                    Overview
+                  </Link>
+                  <Link
+                    to="/admin/users"
+                    style={{
+                      color: 'var(--color-text-body)',
+                      textDecoration: 'none',
+                      fontSize: '0.875rem',
+                      fontWeight: 500,
+                    }}
+                  >
+                    Users
+                  </Link>
+                  <Link
+                    to="/admin/verifications"
+                    style={{
+                      color: 'var(--color-text-body)',
+                      textDecoration: 'none',
+                      fontSize: '0.875rem',
+                      fontWeight: 500,
+                    }}
+                  >
+                    Verifications
+                  </Link>
+                  <Link
+                    to="/admin/settings"
+                    style={{
+                      color: 'var(--color-text-body)',
+                      textDecoration: 'none',
+                      fontSize: '0.875rem',
+                      fontWeight: 500,
+                    }}
+                  >
+                    Settings
+                  </Link>
+                  <Link
+                    to="/admin/audit"
+                    style={{
+                      color: 'var(--color-text-body)',
+                      textDecoration: 'none',
+                      fontSize: '0.875rem',
+                      fontWeight: 500,
+                    }}
+                  >
+                    Audit
+                  </Link>
+                </>
               )}
             </nav>
           )}
@@ -160,11 +206,8 @@ export function Navbar() {
             </>
           ) : (
             <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <Button variant="secondary" size="sm" onClick={() => navigate('/login')}>
+              <Button variant="primary" size="sm" onClick={() => navigate('/login')}>
                 Sign In
-              </Button>
-              <Button variant="primary" size="sm" onClick={() => navigate('/register')}>
-                Register
               </Button>
             </div>
           )}

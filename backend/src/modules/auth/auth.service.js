@@ -5,7 +5,7 @@
 
 import crypto from 'crypto';
 import { config } from '../../config/env.js';
-import { UnauthorizedError, ConflictError, NotFoundError } from '../../utils/errors.js';
+import { UnauthorizedError, ConflictError, NotFoundError, ForbiddenError } from '../../utils/errors.js';
 import { logger } from '../../utils/logger.js';
 import { hashPassword, verifyPassword } from './password.service.js';
 import {
@@ -22,8 +22,8 @@ import { recordAuditEvent } from '../audit/audit.service.js';
 const INVALID_CREDENTIALS_MSG = 'Invalid email or password';
 
 /**
- * Registers a new user with default STUDENT role and optional profile.
- * Ignores any client-supplied role parameters to prevent privilege escalation.
+ * Registers a new user for internal test fixture setup.
+ * Public HTTP registration is blocked at the router/controller level.
  * @param {object} payload
  * @returns {Promise<object>} Created user summary
  */
@@ -34,8 +34,6 @@ export async function register(payload) {
   }
 
   const passwordHash = await hashPassword(payload.password);
-
-  // Enforce default STUDENT role for public self-registration
   const assignedRole = 'STUDENT';
 
   const user = await authRepo.createUser({
@@ -45,10 +43,10 @@ export async function register(payload) {
     passwordHash,
     role: assignedRole,
     studentProfile: payload.student_profile,
-    facultyProfile: null // Public registration cannot create faculty profiles
+    facultyProfile: null
   });
 
-  logger.info({ userId: user.user_id, role: assignedRole }, 'User registered successfully');
+  logger.info({ userId: user.user_id, role: assignedRole }, 'User registered via internal/fixture setup');
 
   return {
     userId: user.user_id,
@@ -108,6 +106,24 @@ export async function login({ email, password, userAgent, ipAddress }) {
       }
     }).catch(() => {});
     throw new UnauthorizedError(INVALID_CREDENTIALS_MSG);
+  }
+
+  // 1b. Check if account is SUSPENDED
+  if (user.status === 'SUSPENDED') {
+    logger.warn({ userId: user.user_id }, 'Login attempt on suspended account');
+    await recordAuditEvent({
+      actorUserId: user.user_id,
+      action: 'AUTH_LOGIN_FAILURE',
+      resourceType: 'USER',
+      resourceId: user.user_id,
+      metadata: {
+        email: normalizedEmail,
+        ip: ipAddress,
+        userAgent,
+        reason: 'ACCOUNT_SUSPENDED'
+      }
+    }).catch(() => {});
+    throw new UnauthorizedError('Account is currently suspended by an administrator. Please contact support.');
   }
 
   // 2. Check if account is locked (either status LOCKED or locked_until in the future)
@@ -237,6 +253,8 @@ export async function login({ email, password, userAgent, ipAddress }) {
       name: user.name,
       email: user.email,
       status: user.status,
+      mustChangePassword: user.must_change_password || false,
+      verificationStatus: user.verification_status || 'UNVERIFIED',
       roles
     },
     accessToken,
@@ -423,6 +441,8 @@ export async function getCurrentUser(userId) {
     email: user.email,
     phone: user.phone,
     status: user.status,
+    mustChangePassword: user.must_change_password,
+    verificationStatus: user.verification_status,
     roles,
     createdAt: user.created_at,
     updatedAt: user.updated_at

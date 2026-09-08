@@ -8,6 +8,7 @@ import assert from 'node:assert/strict';
 import request from 'supertest';
 
 import { app } from '../../src/app.js';
+import * as authService from '../../src/modules/auth/auth.service.js';
 import { query, closePool } from '../../src/infrastructure/postgres/pool.js';
 import { getRedisClient, closeRedis } from '../../src/infrastructure/redis/client.js';
 import { resetRateLimits } from '../../src/middleware/authRateLimiter.js';
@@ -37,7 +38,7 @@ describe('Auth REST API Endpoints (Integration)', () => {
     }
   });
 
-  it('POST /api/v1/auth/register — should register a new student user and return 201', async () => {
+  it('POST /api/v1/auth/register — should reject public self-registration with 403 Forbidden', async () => {
     const res = await request(app)
       .post('/api/v1/auth/register')
       .send({
@@ -51,46 +52,22 @@ describe('Auth REST API Endpoints (Integration)', () => {
         }
       });
 
-    assert.equal(res.status, 201);
-    assert.equal(res.body.status, 'success');
-    assert.ok(res.body.data.user.userId);
-    assert.equal(res.body.data.user.email, testEmail.toLowerCase());
-    assert.deepEqual(res.body.data.user.roles, ['STUDENT']);
-    assert.equal(res.body.data.user.password_hash, undefined);
+    assert.equal(res.status, 403);
+    assert.equal(res.body.error.code, 'SELF_REGISTRATION_DISABLED');
 
-    userId = res.body.data.user.userId;
-  });
-
-  it('POST /api/v1/auth/register — should strip malicious role: ADMIN payload and register as STUDENT', async () => {
-    const maliciousEmail = `api_malicious_${Date.now()}@example.com`;
-    const res = await request(app)
-      .post('/api/v1/auth/register')
-      .send({
-        name: 'Privilege Escalation Attacker',
-        email: maliciousEmail,
-        password: 'Password123!',
-        role: 'ADMIN',
-        roles: ['ADMIN'],
-        status: 'ACTIVE'
-      });
-
-    assert.equal(res.status, 201);
-    assert.deepEqual(res.body.data.user.roles, ['STUDENT']);
-
-    // Cleanup
-    await query('DELETE FROM users WHERE user_id = $1', [res.body.data.user.userId]);
-  });
-
-  it('POST /api/v1/auth/register — should reject malformed payload with 400', async () => {
-    const res = await request(app)
-      .post('/api/v1/auth/register')
-      .send({
-        email: 'invalid-email',
-        password: 'short'
-      });
-
-    assert.equal(res.status, 400);
-    assert.equal(res.body.error.code, 'BAD_REQUEST');
+    // Provision test user directly via internal service for login/session tests
+    const created = await authService.register({
+      name: 'API Test Student',
+      email: testEmail,
+      password: testPassword,
+      phone: '+1234567890',
+      student_profile: {
+        enrollment_number: `API_ENR_${Date.now()}`,
+        department: 'Information Science',
+        semester: 6
+      }
+    });
+    userId = created.userId;
   });
 
   it('POST /api/v1/auth/login — should log in user, return access token and set HttpOnly refresh cookie', async () => {
