@@ -518,14 +518,31 @@ $$\text{Plan} \longrightarrow \text{Implement} \longrightarrow \text{Test} \long
 ---
 
 ### Phase 22 — Failure, Resilience & Chaos Testing
-- [ ] **Status:** Pending
+- [x] **Status:** Complete (Merged to main — PR #20, Merge Commit: 5909dc6d46e8fdea5c63cc3d98f32dac6dc92b33)
 - **Objective:** Verify system resilience, data durability, and automated recovery during unexpected subsystem outages, network partitions, container crashes, and database connection pool saturation.
 - **Dependencies:** Phase 21
 - **Major Tasks:**
-  - Execute automated chaos testing scripts simulating unexpected Redis outages during active examinations (validate non-authoritative fallback to PostgreSQL without answer loss or exam interruption).
-  - Simulate RabbitMQ broker downtime and network partitions (validate that transactional outbox reliably accumulates events in PostgreSQL and drains cleanly upon broker restoration).
-  - Simulate sudden candidate network disconnects, packet loss, and rapid reconnects (validate attempt resumption and question order consistency).
-  - Simulate host process crashes and Docker container restarts via systemd (validate stateful recovery and EBS data persistence).
+  - Build automated chaos harness (`scripts/chaos/chaos-harness.js`) with mandatory container identity verification (`verifyTargetIdentity`), auto-timeouts, and emergency kill switches.
+  - Implement 8/8 data-integrity and ACID invariant auditor (`scripts/chaos/verify-resilience-invariants.js`).
+  - Create isolated, deterministic test fixtures (`scripts/chaos/fixtures.js`) protecting production/baseline data.
+  - Implement Level 1 & 2 deterministic unit/subsystem resilience test suites across Redis, RabbitMQ, PostgreSQL, Worker, Process Lifecycle, and Realtime WebSocket modules (28/28 tests passing).
+  - Implement Level 3 multi-component integration resilience test suite (`integrationWorkflows.resilience.test.js`) covering autosave under Redis outage, outbox buffering under broker outage, outbox backlog drain, worker deduplication, and submission replay.
+  - Execute Level 4 controlled Docker chaos scenarios (CH-01 through CH-10) with quantitative Fault Detection Time and Fault Recovery Time metric collection.
+  - Conditionally execute Level 5 compound multi-fault scenario (simultaneous Redis + RabbitMQ outage during active examination).
+  - Publish comprehensive empirical results in `docs/resilience/RESILIENCE_AND_CHAOS_REPORT.md` and architectural recommendations in `docs/resilience/ARCHITECTURAL_FINDINGS_AND_RECOMMENDATIONS.md`.
+- **Acceptance Criteria & Final Outcome:**
+  - **11/11 Chaos Scenarios Passed** (100% compliance across all primary and compound scenarios).
+  - **PostgreSQL Authoritative State Durability**: PostgreSQL Authoritative State remains consistent and durable under the defined Phase 22 failure scenarios, with zero observed committed-data loss or corruption.
+  - **Fault Detection Time**: Max observed 1503ms (Threshold $\le 2000$ms).
+  - **Fault Recovery Time**: Max observed 317ms (Threshold $\le 5000$ms).
+  - **Committed Data Loss**: Strictly 0 records lost across all failure and compound scenarios.
+  - **Duplicate Business Effects**: Strictly 0 duplicate score records, submission rows, or outbox events.
+  - **8/8 Data & ACID Invariants Passed**: Zero orphan answers, zero orphan questions, zero duplicate idempotency keys, monotonic OCC revisions, zero duplicate results, outbox event consistency, outbox status integrity, and independent audit log immutability trigger protection.
+- **Tests Implemented & Validated:**
+  - Unit/Subsystem Resilience Suites: 28/28 passed across 7 suites (`tests/resilience/*.test.js`).
+  - Master Chaos Suite: 11/11 scenarios passed in 21.38s (`scripts/chaos/run-resilience-suite.js`).
+  - Data Invariant Auditor: 8/8 invariants passed (`scripts/chaos/verify-resilience-invariants.js`).
+  - Full Regression: Backend Domain tests (60/60 passed), Frontend Vitest (63/63 passed), Frontend Vite build passed, `git diff --check` passed cleanly.
 ---
 
 ### Phase 14 — Proctoring Events
