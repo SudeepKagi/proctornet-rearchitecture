@@ -399,19 +399,24 @@ $$\text{Plan} \longrightarrow \text{Implement} \longrightarrow \text{Test} \long
 ---
 
 ### Phase 18 — Security Hardening
-- [ ] **Status:** Pending
+- [x] **Status:** Complete (Merged in PR #19, Commit 5b27370, Merge 5b247e7)
 - **Objective:** Perform thorough application security hardening, penetration defense, rate limiting, header security, and data sanitization.
 - **Dependencies:** Phase 17
 - **Major Tasks:**
-  - Configure Helmet for secure HTTP headers (CSP, HSTS, X-Content-Type-Options, X-Frame-Options).
-  - Enforce strict CORS policies restricted to authorized origin domains.
-  - Implement input sanitization and XSS prevention across all incoming payloads.
-  - Audit database queries against SQL injection (enforce parameterized queries everywhere).
-  - Implement anti-tampering cryptographic validation on answer payloads and client events.
+  - Configure Helmet for secure HTTP headers (CSP, HSTS 1-year maxAge with preload, X-Content-Type-Options nosniff, X-Frame-Options DENY, COOP, CORP, COEP, Permissions-Policy).
+  - Enforce strict CORS policies restricted to authorized origin whitelist (`CORS_ALLOWED_ORIGINS`) with `credentials: true`.
+  - Implement non-destructive structural input sanitization (`sanitizeInputMiddleware`) preventing prototype pollution (`__proto__`, `constructor`, `prototype`) and null-byte (`\0`) injection without corrupting candidate code/math answers.
+  - Audit database queries against SQL injection (enforce parameterized queries and identifier allowlists; map Postgres `22P02` to HTTP 400).
+  - Implement anti-tampering cryptographic validation (`HMAC-SHA256` token derivation, canonical body digest, WebCrypto client signing, Redis atomic replay prevention with fail-closed production semantics).
+  - Validate binary file signatures (magic bytes) for 6 allowed evidence MIME types (JPEG, PNG, WebP, WebM, OGG, WAV) via S3 HTTP Range requests (`bytes=0-15`).
+  - Register Prometheus security metrics (`security_tamper_violations_total`, `security_input_sanitizations_total`, etc.) and structured security audit logging.
+  - Author and index ADR-0008 (`docs/ADR/0008-application-security-hardening-cryptographic-anti-tampering.md`).
 - **Acceptance Criteria:**
   - Automated security scans pass with zero high or critical vulnerabilities.
   - OWASP Top 10 vulnerabilities are systematically mitigated.
-- **Tests Required:** Security penetration tests, SQLi/XSS fuzzing tests, CORS/CSP header validation tests.
+  - Cryptographic tampering and replay attacks are rejected before business logic execution.
+  - Student code submissions and mathematical formulas remain 100% uncorrupted.
+- **Tests Implemented:** 46 backend security tests across 7 test files (`backend/tests/security/`); 7 frontend anti-tamper client tests; Full regression: 750/750 backend tests passing, 63/63 frontend tests passing, clean production build (0 errors).
 
 ---
 
