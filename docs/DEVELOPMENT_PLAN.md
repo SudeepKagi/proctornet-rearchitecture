@@ -6,9 +6,9 @@
 +-------------------------------------------------------------------------+
 | Current Phase:     Phase 21                                             |
 | Current Milestone: Load Testing & Concurrency Benchmarking              |
-| Status:            In Progress (Stages 21A & 21B Complete / Passed)     |
+| Status:            Complete (Merged in PR #19, Merge 32e07a7)           |
 | Master Plan:       Reconstructed & Expanded (Phases 0–34)               |
-| Next Milestone:    Stage 21C — Official Load Testing (AWS c6i.xlarge)   |
+| Next Milestone:    Phase 22 — Failure, Resilience & Chaos Testing       |
 +-------------------------------------------------------------------------+
 ```
 
@@ -490,21 +490,30 @@ $$\text{Plan} \longrightarrow \text{Implement} \longrightarrow \text{Test} \long
 ---
 
 ### Phase 21 — Load Testing & Concurrency Benchmarking
-- [ ] **Status:** In Progress (Limited Local Benchmark Finalized)
-- **Objective:** Validate single-host EC2 (`c6i.xlarge`) capacity, answer autosave throughput, submission burst handling, connection pool saturation limits, and Redis/RabbitMQ resource headroom under target concurrent workloads.
+- [x] **Status:** Complete (Merged in PR #19, Implementation Commit e657876, Merge 32e07a7, Completion Date 2026-09-08)
+- **Objective:** Validate answer autosave throughput, submission burst handling, connection pool saturation limits, and Redis/RabbitMQ resource headroom under staged concurrent workloads.
 - **Dependencies:** Phase 20
 - **Major Tasks:**
-  - Author k6 and Artillery load testing suites simulating 500 to 2,500 concurrent candidates taking exams simultaneously.
-  - Benchmark periodic answer autosave throughput at 1 save every 5–10 seconds per candidate with optimistic concurrency control (OCC).
-  - Simulate synchronized end-of-exam submission spike (burst submissions across a 30-second window).
-  - Measure p50, p95, and p99 latencies, HTTP error rates, PostgreSQL connection pool utilization, CPU/memory saturation, and EBS disk I/O metrics.
-  - Profile outbox event generation rate and evaluation worker consumption latency under maximum concurrent load.
-  - Document empirical capacity ceiling, identify primary architectural bottlenecks, and establish data-driven thresholds for horizontal scaling decisions.
-- **Acceptance Criteria:**
-  - p95 latency for answer autosaves remains under 200ms at peak target concurrency.
-  - Zero answer data loss, zero unhandled OCC rollback failures, and zero PostgreSQL deadlocks during burst submissions.
-  - Asynchronous evaluation worker drains the evaluation queue without message drops or unroutable returns.
-- **Tests Required:** k6 load test scenarios, burst submission stress tests, PostgreSQL connection pool exhaustion benchmarks.
+  - Author k6 load testing suite simulating candidate login bursts, periodic autosave contention, synchronized submission surges, connection pool saturation, and complete candidate lifecycles (`scripts/load/k6/`).
+  - Implement isolated benchmark data fixtures and deterministic teardown scripts (`scripts/load/seed-benchmark-data.js`, `scripts/load/cleanup-benchmark-data.js`).
+  - Implement dynamic candidate authentication, anti-tamper signing, and metrics collection harnesses (`scripts/load/k6/k6-helpers.js`, `scripts/load/collect-metrics.js`, `scripts/load/run-official-tier.js`).
+  - Implement post-benchmark ACID data integrity validation (`scripts/load/verify-data-integrity.js`).
+  - Execute staged local benchmarks across 25, 50, 100, 150, and 250 VU tiers on the local development environment.
+  - Profile and document system performance, concurrency bottlenecks (telemetry pool contention), and capacity constraints in `docs/benchmarks/CAPACITY_AND_SCALING_REPORT.md`.
+  - Abandon AWS Phase 21 execution to protect AWS credits, remove temporary AWS benchmark credentials/resources, and mark AWS execution guides as superseded.
+- **Acceptance Criteria & Final Outcome:**
+  - **Limited Local Benchmark Only**: Results are environment-specific to the local development machine and do not establish AWS `c6i.xlarge` capacity, production capacity, or a Safe Operating Capacity (SOC). Phase 21 did not execute the original 500–2,500 VU AWS tiers.
+  - **25 VUs**: **SUSTAINABLE** (zero errors, p95 autosave 31.8ms, pool utilization 30%).
+  - **50 VUs**: **DEGRADED** (p95 autosave 114.7ms, p95 submission 845.5ms).
+  - **100 VUs**: **DEGRADED** (p95 autosave 197.6ms, p95 submission 1,518.7ms).
+  - **150 VUs**: **SATURATION** / maximum successfully completed local tier (p95 autosave 277.1ms, p95 submission 2,238.9ms; not sustainable for production).
+  - **250 VUs**: **ABORTED** due to local workstation / Docker named-pipe socket exhaustion (`//./pipe/dockerDesktopLinuxEngine`).
+  - **Data Integrity**: 7/7 ACID/concurrency invariants passed across completed tiers (zero orphan records, zero duplicate submission idempotency keys, zero deadlocks, monotonic OCC revisions).
+- **Tests Implemented & Validated:**
+  - k6 benchmark scenarios: `login-burst.js`, `autosave-contention.js`, `submission-surge.js`, `pool-saturation.js`, `full-exam-lifecycle.js`, `proctoring-telemetry.js`, `smoke-test.js`.
+  - Integrity audit script: `node scripts/load/verify-data-integrity.js` (7/7 invariants passed).
+  - Syntax validation: `node --check` passed across all 14 benchmark scripts.
+  - Regression validation: Frontend Vitest (63/63 passed), Backend Domain tests (69/69 passed), Frontend Vite build passed.
 
 ---
 
