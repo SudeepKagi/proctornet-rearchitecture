@@ -36,14 +36,15 @@ describe('Database Migrations & Schema Integrity', () => {
     'results',
     'audit_logs',
     'outbox_events',
-    'submission_idempotency'
+    'submission_idempotency',
+    'evidence_records'
   ];
 
   describe('Static Migration File Contract & Sequence', () => {
     it('should contain all expected migration files in sequence', () => {
       const files = fs.readdirSync(migrationsDir).filter((f) => f.endsWith('.js')).sort();
 
-      assert.equal(files.length, 16, 'Expected exactly 16 migration files');
+      assert.equal(files.length, 17, 'Expected exactly 17 migration files');
       assert.match(files[0], /001_extensions\.js$/);
       assert.match(files[1], /002_users_and_roles\.js$/);
       assert.match(files[2], /003_subjects_and_topics\.js$/);
@@ -60,6 +61,7 @@ describe('Database Migrations & Schema Integrity', () => {
       assert.match(files[13], /014_results_publication_and_visibility\.js$/);
       assert.match(files[14], /015_audit_immutability\.js$/);
       assert.match(files[15], /016_proctoring_events_and_flags\.js$/);
+      assert.match(files[16], /017_evidence_storage\.js$/);
     });
 
 

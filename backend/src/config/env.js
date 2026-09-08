@@ -160,7 +160,38 @@ const envSchema = z.object({
   METRICS_AUTH_TOKEN: z
     .string()
     .optional()
-    .transform((val) => (val && val.trim() !== '' ? val : undefined))
+    .transform((val) => (val && val.trim() !== '' ? val : undefined)),
+
+  // Evidence Storage & AWS S3 configuration (Phase 15)
+  AWS_REGION: z
+    .string()
+    .default('ap-south-1'),
+  S3_BUCKET_NAME: z
+    .string()
+    .default('proctornet-evidence-dev-01'),
+  S3_ENDPOINT: z
+    .string()
+    .optional()
+    .transform((val) => (val && val.trim() !== '' ? val : undefined)),
+  S3_FORCE_PATH_STYLE: z
+    .union([z.boolean(), z.enum(['true', 'false', '1', '0'])])
+    .default('false')
+    .transform((val) => (typeof val === 'boolean' ? val : val === 'true' || val === '1')),
+  EVIDENCE_RETENTION_DAYS: z
+    .string()
+    .regex(/^\d+$/)
+    .transform(Number)
+    .default('90'),
+  EVIDENCE_UPLOAD_TTL_SECONDS: z
+    .string()
+    .regex(/^\d+$/)
+    .transform(Number)
+    .default('300'),
+  EVIDENCE_PLAYBACK_TTL_SECONDS: z
+    .string()
+    .regex(/^\d+$/)
+    .transform(Number)
+    .default('900')
 });
 
 /**

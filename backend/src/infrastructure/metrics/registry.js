@@ -173,6 +173,45 @@ export const proctoringFlagsTotal = new promClient.Counter({
   registers: [register]
 });
 
+// ============================================================================
+// 6. Evidence Storage Metrics (Phase 15 - Bounded Labels, Zero UUIDs)
+// ============================================================================
+
+export const evidenceUploadsInitiatedTotal = new promClient.Counter({
+  name: 'proctornet_evidence_uploads_initiated_total',
+  help: 'Total presigned evidence upload URLs minted',
+  labelNames: ['evidence_type'],
+  registers: [register]
+});
+
+export const evidenceUploadsConfirmedTotal = new promClient.Counter({
+  name: 'proctornet_evidence_uploads_confirmed_total',
+  help: 'Total evidence uploads confirmed',
+  labelNames: ['evidence_type', 'status'],
+  registers: [register]
+});
+
+export const evidenceDownloadsTotal = new promClient.Counter({
+  name: 'proctornet_evidence_downloads_total',
+  help: 'Total presigned download playback URLs minted',
+  labelNames: ['evidence_type'],
+  registers: [register]
+});
+
+export const evidenceBytesTotal = new promClient.Counter({
+  name: 'proctornet_evidence_bytes_total',
+  help: 'Cumulative bytes of confirmed evidence stored',
+  labelNames: ['evidence_type'],
+  registers: [register]
+});
+
+export const evidenceStorageLatencySeconds = new promClient.Histogram({
+  name: 'proctornet_evidence_storage_latency_seconds',
+  help: 'Latency of S3 client operations in seconds',
+  labelNames: ['operation'],
+  buckets: [0.01, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10],
+  registers: [register]
+});
 
 // ============================================================================
 // Helper Exports
