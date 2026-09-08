@@ -1,0 +1,128 @@
+{
+  "tier_vus": 100,
+  "benchmark_run_id": "run_100_1788881252261",
+  "started_at": "2026-09-08T15:27:32.261Z",
+  "git_commit": "a614f80",
+  "scenarios": {
+    "login_burst": {
+      "passed": true,
+      "exitCode": 0,
+      "elapsedSec": 35.62,
+      "metrics": {
+        "total_requests": 1628,
+        "throughput_rps": 52.81,
+        "error_rate_pct": 0,
+        "latency_p50_ms": 498.27,
+        "latency_p95_ms": 663.96,
+        "latency_p99_ms": 0,
+        "latency_avg_ms": 415.86,
+        "latency_max_ms": 4109.51
+      }
+    },
+    "autosave_contention": {
+      "passed": true,
+      "exitCode": 0,
+      "elapsedSec": 24.33,
+      "metrics": {
+        "total_requests": 2104,
+        "throughput_rps": 101.05,
+        "error_rate_pct": 0,
+        "latency_p50_ms": 18.73,
+        "latency_p95_ms": 153.12,
+        "latency_p99_ms": 0,
+        "latency_avg_ms": 66.88,
+        "latency_max_ms": 1683.35
+      }
+    },
+    "pool_saturation": {
+      "passed": true,
+      "exitCode": 0,
+      "elapsedSec": 18.76,
+      "metrics": {
+        "total_requests": 6734,
+        "throughput_rps": 441.78,
+        "error_rate_pct": 0,
+        "latency_p50_ms": 9.24,
+        "latency_p95_ms": 46.56,
+        "latency_p99_ms": 0,
+        "latency_avg_ms": 27.95,
+        "latency_max_ms": 1853.74
+      }
+    },
+    "submission_surge": {
+      "passed": true,
+      "exitCode": 0,
+      "elapsedSec": 5.79,
+      "metrics": {
+        "total_requests": 300,
+        "throughput_rps": 127.37,
+        "error_rate_pct": 0,
+        "latency_p50_ms": 13.19,
+        "latency_p95_ms": 1566.64,
+        "latency_p99_ms": 0,
+        "latency_avg_ms": 324.76,
+        "latency_max_ms": 1784.41
+      }
+    },
+    "full_candidate_lifecycle": {
+      "passed": true,
+      "exitCode": 0,
+      "elapsedSec": 6.13,
+      "metrics": {
+        "total_requests": 1000,
+        "throughput_rps": 181.8,
+        "error_rate_pct": 0,
+        "latency_p50_ms": 17.12,
+        "latency_p95_ms": 936.54,
+        "latency_p99_ms": 0,
+        "latency_avg_ms": 111.17,
+        "latency_max_ms": 1826.56
+      }
+    }
+  },
+  "system_metrics": {
+    "sample_count": 92,
+    "duration_sec": 92,
+    "postgres": {
+      "active_connections": {
+        "min": 1,
+        "max": 5,
+        "avg": 1.26,
+        "p95": 3
+      },
+      "waiting_locks": {
+        "min": 2,
+        "max": 10,
+        "avg": 7.24,
+        "p95": 10
+      },
+      "total_deadlocks": 0
+    },
+    "redis": {
+      "connected_clients": {
+        "min": 4,
+        "max": 4,
+        "avg": 4,
+        "p95": 4
+      },
+      "used_memory_mb": {
+        "min": 4.97,
+        "max": 8.46,
+        "avg": 5.33,
+        "p95": 8.46
+      },
+      "ops_per_sec": {
+        "min": 1,
+        "max": 487,
+        "avg": 127.98,
+        "p95": 476
+      }
+    }
+  },
+  "integrity_audit": {
+    "prepared_mode_audit": "PASSED",
+    "lifecycle_mode_audit": "PASSED"
+  },
+  "verdict": "DEGRADED",
+  "completed_at": "2026-09-08T15:29:07.786Z"
+}

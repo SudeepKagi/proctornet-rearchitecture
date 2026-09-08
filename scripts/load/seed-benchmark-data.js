@@ -19,7 +19,6 @@ const require = createRequire(new URL('../../backend/package.json', import.meta.
 
 const pg = require('pg');
 const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
 
 // 1. Environment Safeguards
 const NODE_ENV = process.env.NODE_ENV || 'development';
@@ -32,6 +31,7 @@ if (NODE_ENV === 'production' && process.env.ALLOW_PRODUCTION_BENCHMARK !== 'tru
 const args = process.argv.slice(2);
 let candidateCount = 25;
 let prefix = 'bench_';
+let mode = 'prepared'; // 'prepared' (Mode A) or 'lifecycle' (Mode B)
 
 for (const arg of args) {
   if (arg.startsWith('--count=')) {
@@ -39,6 +39,9 @@ for (const arg of args) {
     if (!isNaN(val) && val > 0) candidateCount = val;
   } else if (arg.startsWith('--prefix=')) {
     prefix = arg.split('=')[1] || prefix;
+  } else if (arg.startsWith('--mode=')) {
+    const m = arg.split('=')[1].toLowerCase();
+    if (m === 'prepared' || m === 'lifecycle') mode = m;
   }
 }
 
@@ -54,15 +57,8 @@ const dbConfig = {
 
 const pool = new pg.Pool(dbConfig);
 
-// 4. Crypto secrets (derived from env or standard defaults)
-const JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || 'proctornet-dev-jwt-access-secret-32-chars-long';
-const ANTI_TAMPER_SECRET = process.env.ANTI_TAMPER_SECRET || JWT_ACCESS_SECRET;
-
-function deriveAttemptSigningKey(rootSecret, attemptId, studentId, startedAt) {
-  const startedAtMs = new Date(startedAt).getTime();
-  const message = `${attemptId}:${studentId}:${startedAtMs}`;
-  return createHmac('sha256', rootSecret).update(message).digest('hex');
-}
+// Benchmark password (configurable via env, never uses production credentials)
+const BENCHMARK_PASSWORD = process.env.BENCHMARK_PASSWORD || 'BenchPass#123!';
 
 async function run() {
   const client = await pool.connect();
@@ -150,7 +146,7 @@ async function run() {
     console.log(`[Seed] Created 50 questions across MCQ, TRUE_FALSE, and NUMERIC types`);
 
     // Step C: Create Faculty & Exam
-    const facultyPasswordHash = await bcrypt.hash('Password123!', 10);
+    const facultyPasswordHash = await bcrypt.hash(BENCHMARK_PASSWORD, 10);
     const facultyEmail = `${prefix}faculty_${runId}@example.com`;
     const facultyRes = await client.query(
       `INSERT INTO users (name, email, password_hash, status)
@@ -247,76 +243,67 @@ async function run() {
         [sessionId, studentId]
       );
 
-      // Create Active Attempt
-      const attemptRes = await client.query(
-        `INSERT INTO exam_attempts (session_id, student_id, status, started_at, expires_at)
-         VALUES ($1, $2, 'ACTIVE', $3, $4)
-         RETURNING attempt_id, started_at;`,
-        [sessionId, studentId, now.toISOString(), expiresAt.toISOString()]
-      );
-      const attemptId = attemptRes.rows[0].attempt_id;
-      const startedAt = attemptRes.rows[0].started_at;
+      let attemptId = null;
+      let attemptQuestions = [];
 
-      // Create Attempt Questions (50 questions mapped with stable display_order)
-      const attemptQuestions = [];
-      for (let d = 0; d < createdQuestions.length; d++) {
-        const q = createdQuestions[d];
+      if (mode === 'prepared') {
+        // Mode A: PREPARED ACTIVE-ATTEMPT BENCHMARK
+        // Create Active Attempt for high-volume autosave & OCC testing
+        const attemptRes = await client.query(
+          `INSERT INTO exam_attempts (session_id, student_id, status, started_at, expires_at)
+           VALUES ($1, $2, 'ACTIVE', $3, $4)
+           RETURNING attempt_id, started_at;`,
+          [sessionId, studentId, now.toISOString(), expiresAt.toISOString()]
+        );
+        attemptId = attemptRes.rows[0].attempt_id;
+
+        // Create Attempt Questions (50 questions mapped with stable display_order in single batch insert)
+        const aqPlaceholders = [];
+        const aqParams = [attemptId];
+        for (let d = 0; d < createdQuestions.length; d++) {
+          aqParams.push(createdQuestions[d].questionId);
+          aqPlaceholders.push(`($1, $${aqParams.length}, ${d + 1})`);
+        }
         const aqRes = await client.query(
           `INSERT INTO attempt_questions (attempt_id, question_id, display_order)
-           VALUES ($1, $2, $3)
-           RETURNING attempt_question_id, display_order;`,
-          [attemptId, q.questionId, d + 1]
+           VALUES ${aqPlaceholders.join(', ')}
+           RETURNING attempt_question_id, question_id, display_order;`,
+          aqParams
         );
-        attemptQuestions.push({
-          attemptQuestionId: aqRes.rows[0].attempt_question_id,
-          questionId: q.questionId,
-          displayOrder: aqRes.rows[0].display_order,
-          questionType: q.questionType,
-          options: q.options
-        });
+        for (const row of aqRes.rows) {
+          const q = createdQuestions.find(cq => cq.questionId === row.question_id);
+          attemptQuestions.push({
+            attemptQuestionId: row.attempt_question_id,
+            questionId: row.question_id,
+            displayOrder: row.display_order,
+            questionType: q.questionType,
+            options: q.options
+          });
+        }
       }
 
-      // Generate JWT Access Token
-      const token = jwt.sign(
-        {
-          userId: studentId,
-          roles: ['STUDENT'],
-          sessionId: authSessionId,
-          tokenType: 'access'
-        },
-        JWT_ACCESS_SECRET,
-        {
-          subject: studentId,
-          expiresIn: '8h',
-          issuer: 'proctornet-auth'
-        }
-      );
-
-      // Derive Candidate Signing Key
-      const signingKey = deriveAttemptSigningKey(ANTI_TAMPER_SECRET, attemptId, studentId, startedAt);
-
+      // SECRECY ENFORCEMENT: Never persist reusable JWTs or HMAC signing keys in fixture artifacts.
+      // All authentication tokens and anti-tamper tokens are obtained at runtime via API endpoints.
       candidateFixtures.push({
         index: i,
         userId: studentId,
         email: studentEmail,
-        token,
         attemptId,
-        signingKey,
-        startedAt: startedAt.toISOString(),
         attemptQuestions
       });
 
       if (i % 250 === 0 || i === candidateCount) {
-        console.log(`[Seed] Seeded ${i}/${candidateCount} candidates...`);
+        console.log(`[Seed] Seeded ${i}/${candidateCount} candidates (${mode === 'prepared' ? 'Mode A: Prepared Attempts' : 'Mode B: Real Lifecycle'})...`);
       }
     }
 
     await client.query('COMMIT');
     console.log(`[Seed] Successfully committed all database transactions.`);
 
-    // Step F: Write fixture JSON to scripts/load/fixtures/benchmark-fixtures.json
+    // Step F: Write fixture JSON to scripts/load/fixtures/benchmark-fixtures.json (METADATA ONLY - ZERO SECRETS)
     const fixturePayload = {
       runId,
+      benchmarkMode: mode === 'prepared' ? 'PREPARED_ACTIVE_ATTEMPTS' : 'REAL_LIFECYCLE',
       createdAt: new Date().toISOString(),
       candidateCount,
       examId,
@@ -335,7 +322,7 @@ async function run() {
     const fixturePath = path.join(fixtureDir, 'benchmark-fixtures.json');
     fs.writeFileSync(fixturePath, JSON.stringify(fixturePayload, null, 2), 'utf8');
     console.log(`[Seed] Fixtures written successfully to: ${fixturePath}`);
-    console.log(`[Seed] Candidate Count: ${candidateCount}, Exam ID: ${examId}, Session ID: ${sessionId}`);
+    console.log(`[Seed] Candidate Count: ${candidateCount}, Mode: ${mode}, Exam ID: ${examId}, Session ID: ${sessionId}`);
 
   } catch (err) {
     await client.query('ROLLBACK');

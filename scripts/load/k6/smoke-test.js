@@ -15,7 +15,9 @@ import {
   BASE_URL,
   generateAntiTamperHeader,
   generateUUID,
-  getCandidateForVU
+  getCandidateForVU,
+  loginCandidate,
+  getAttemptContext
 } from './k6-helpers.js';
 
 const fixturesRaw = open('../fixtures/benchmark-fixtures.json');
@@ -43,15 +45,31 @@ export const options = {
 const smokeSuccessRate = new Rate('smoke_success_rate');
 const autosaveDuration = new Trend('smoke_autosave_duration_ms', true);
 
-export default function () {
-  const candidate = getCandidateForVU(fixtures.candidates, __VU);
+export function setup() {
+  const authCandidates = [];
+  const count = Math.min(targetVUs, fixtures.candidates.length);
+  for (let i = 0; i < count; i++) {
+    const c = fixtures.candidates[i];
+    const { token } = loginCandidate(c.email, null, BASE_URL);
+    const attemptCtx = getAttemptContext(token, c.attemptId, BASE_URL);
+    authCandidates.push({
+      ...c,
+      token,
+      signingKey: attemptCtx.antiTamperToken
+    });
+  }
+  return { candidates: authCandidates };
+}
+
+export default function (data) {
+  const candidate = getCandidateForVU(data.candidates, __VU);
   const aq = candidate.attemptQuestions[0];
   const qId = aq.attemptQuestionId;
 
   // 1. Autosave Answering Step with Anti-Tamper Signature
   const savePath = `/api/v1/attempts/${candidate.attemptId}/answers/${qId}`;
   const payloadObj = {
-    answer_value: { option_id: aq.options[0]?.option_id || '00000000-0000-0000-0000-000000000001' },
+    answer_value: { selected_option_id: aq.options[0]?.option_id || '00000000-0000-0000-0000-000000000001' },
     expected_revision: 0
   };
 

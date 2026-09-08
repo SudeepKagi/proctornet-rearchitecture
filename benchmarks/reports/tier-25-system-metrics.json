@@ -1,0 +1,1584 @@
+{
+  "generated_at": "2026-09-08T15:24:49.717Z",
+  "summary": {
+    "sample_count": 77,
+    "duration_sec": 77,
+    "postgres": {
+      "active_connections": {
+        "min": 1,
+        "max": 4,
+        "avg": 1.18,
+        "p95": 2
+      },
+      "waiting_locks": {
+        "min": 2,
+        "max": 11,
+        "avg": 7.79,
+        "p95": 10
+      },
+      "total_deadlocks": 0
+    },
+    "redis": {
+      "connected_clients": {
+        "min": 4,
+        "max": 4,
+        "avg": 4,
+        "p95": 4
+      },
+      "used_memory_mb": {
+        "min": 2.36,
+        "max": 3.26,
+        "avg": 2.47,
+        "p95": 3.26
+      },
+      "ops_per_sec": {
+        "min": 1,
+        "max": 125,
+        "avg": 37.65,
+        "p95": 125
+      }
+    }
+  },
+  "samples": [
+    {
+      "timestamp": "2026-09-08T15:23:31.290Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1614,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 2,
+        "waiting_locks": 2,
+        "deadlocks": 0,
+        "commits": 8988,
+        "rollbacks": 163
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.4,
+        "ops_per_sec": 1
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:23:32.325Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1430,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 2,
+        "deadlocks": 0,
+        "commits": 9001,
+        "rollbacks": 163
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.38,
+        "ops_per_sec": 4
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:23:33.351Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1438,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 2,
+        "deadlocks": 0,
+        "commits": 9006,
+        "rollbacks": 164
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.39,
+        "ops_per_sec": 2
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:23:34.375Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1439,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 2,
+        "deadlocks": 0,
+        "commits": 9021,
+        "rollbacks": 164
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.39,
+        "ops_per_sec": 1
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:23:35.398Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1429,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 2,
+        "deadlocks": 0,
+        "commits": 9044,
+        "rollbacks": 164
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.37,
+        "ops_per_sec": 1
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:23:36.421Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1431,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 2,
+        "deadlocks": 0,
+        "commits": 9079,
+        "rollbacks": 164
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.37,
+        "ops_per_sec": 2
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:23:37.433Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1443,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 2,
+        "deadlocks": 0,
+        "commits": 9125,
+        "rollbacks": 164
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.37,
+        "ops_per_sec": 1
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:23:38.443Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1438,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 2,
+        "deadlocks": 0,
+        "commits": 9180,
+        "rollbacks": 165
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.37,
+        "ops_per_sec": 1
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:23:39.456Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1447,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 6,
+        "deadlocks": 0,
+        "commits": 9220,
+        "rollbacks": 165
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.37,
+        "ops_per_sec": 1
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:23:40.465Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1448,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 6,
+        "deadlocks": 0,
+        "commits": 9294,
+        "rollbacks": 165
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.37,
+        "ops_per_sec": 1
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:23:41.473Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1440,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 2,
+        "waiting_locks": 6,
+        "deadlocks": 0,
+        "commits": 9385,
+        "rollbacks": 165
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.37,
+        "ops_per_sec": 2
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:23:42.487Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1442,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 6,
+        "deadlocks": 0,
+        "commits": 9511,
+        "rollbacks": 166
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.37,
+        "ops_per_sec": 1
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:23:43.498Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1446,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 6,
+        "deadlocks": 0,
+        "commits": 9605,
+        "rollbacks": 166
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.39,
+        "ops_per_sec": 2
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:23:44.507Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1405,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 6,
+        "deadlocks": 0,
+        "commits": 9712,
+        "rollbacks": 166
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.39,
+        "ops_per_sec": 1
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:23:45.521Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1407,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 6,
+        "deadlocks": 0,
+        "commits": 9820,
+        "rollbacks": 166
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.37,
+        "ops_per_sec": 1
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:23:46.550Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1410,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 6,
+        "deadlocks": 0,
+        "commits": 9914,
+        "rollbacks": 166
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.37,
+        "ops_per_sec": 2
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:23:47.563Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1434,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 4,
+        "waiting_locks": 5,
+        "deadlocks": 0,
+        "commits": 10023,
+        "rollbacks": 167
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.37,
+        "ops_per_sec": 1
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:23:48.576Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1431,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 6,
+        "deadlocks": 0,
+        "commits": 10113,
+        "rollbacks": 167
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.37,
+        "ops_per_sec": 1
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:23:49.592Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1432,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 6,
+        "deadlocks": 0,
+        "commits": 10216,
+        "rollbacks": 167
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.37,
+        "ops_per_sec": 1
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:23:50.622Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1424,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 6,
+        "deadlocks": 0,
+        "commits": 10242,
+        "rollbacks": 167
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.37,
+        "ops_per_sec": 1
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:23:51.649Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1366,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 6,
+        "deadlocks": 0,
+        "commits": 10341,
+        "rollbacks": 167
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.36,
+        "ops_per_sec": 2
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:23:52.680Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1334,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 6,
+        "deadlocks": 0,
+        "commits": 10443,
+        "rollbacks": 167
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.37,
+        "ops_per_sec": 1
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:23:53.706Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1332,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 6,
+        "deadlocks": 0,
+        "commits": 10551,
+        "rollbacks": 168
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.39,
+        "ops_per_sec": 2
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:23:54.733Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1314,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 6,
+        "deadlocks": 0,
+        "commits": 10649,
+        "rollbacks": 168
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.39,
+        "ops_per_sec": 1
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:23:55.745Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1320,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 2,
+        "waiting_locks": 5,
+        "deadlocks": 0,
+        "commits": 10757,
+        "rollbacks": 168
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.37,
+        "ops_per_sec": 1
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:23:56.752Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1353,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 7,
+        "deadlocks": 0,
+        "commits": 10868,
+        "rollbacks": 168
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.36,
+        "ops_per_sec": 2
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:23:57.762Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1344,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 7,
+        "deadlocks": 0,
+        "commits": 10959,
+        "rollbacks": 169
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.37,
+        "ops_per_sec": 1
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:23:58.801Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1341,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 7,
+        "deadlocks": 0,
+        "commits": 11051,
+        "rollbacks": 169
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.37,
+        "ops_per_sec": 1
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:23:59.813Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1342,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 7,
+        "deadlocks": 0,
+        "commits": 11101,
+        "rollbacks": 169
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.37,
+        "ops_per_sec": 1
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:24:00.825Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1347,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 7,
+        "deadlocks": 0,
+        "commits": 11156,
+        "rollbacks": 169
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.37,
+        "ops_per_sec": 1
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:24:01.836Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1353,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 7,
+        "deadlocks": 0,
+        "commits": 11178,
+        "rollbacks": 169
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.36,
+        "ops_per_sec": 2
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:24:02.849Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1352,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 7,
+        "deadlocks": 0,
+        "commits": 11180,
+        "rollbacks": 169
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.37,
+        "ops_per_sec": 1
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:24:03.863Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1375,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 7,
+        "deadlocks": 0,
+        "commits": 11205,
+        "rollbacks": 170
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.39,
+        "ops_per_sec": 2
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:24:04.873Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1333,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 2,
+        "waiting_locks": 6,
+        "deadlocks": 0,
+        "commits": 11430,
+        "rollbacks": 170
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.39,
+        "ops_per_sec": 48
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:24:05.920Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1343,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 7,
+        "deadlocks": 0,
+        "commits": 11467,
+        "rollbacks": 170
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.39,
+        "ops_per_sec": 38
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:24:06.948Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1361,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 8,
+        "deadlocks": 0,
+        "commits": 11511,
+        "rollbacks": 170
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.4,
+        "ops_per_sec": 33
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:24:07.978Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1360,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 10,
+        "deadlocks": 0,
+        "commits": 11598,
+        "rollbacks": 171
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.4,
+        "ops_per_sec": 32
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:24:09.010Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1355,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 10,
+        "deadlocks": 0,
+        "commits": 11677,
+        "rollbacks": 171
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.41,
+        "ops_per_sec": 32
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:24:10.040Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1358,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 10,
+        "deadlocks": 0,
+        "commits": 11754,
+        "rollbacks": 171
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.41,
+        "ops_per_sec": 32
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:24:11.070Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1354,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 10,
+        "deadlocks": 0,
+        "commits": 11831,
+        "rollbacks": 171
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.41,
+        "ops_per_sec": 32
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:24:12.089Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1360,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 10,
+        "deadlocks": 0,
+        "commits": 11909,
+        "rollbacks": 171
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.42,
+        "ops_per_sec": 33
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:24:13.114Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1361,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 10,
+        "deadlocks": 0,
+        "commits": 11987,
+        "rollbacks": 172
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.43,
+        "ops_per_sec": 32
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:24:14.143Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1367,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 10,
+        "deadlocks": 0,
+        "commits": 12070,
+        "rollbacks": 172
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.43,
+        "ops_per_sec": 33
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:24:15.168Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1341,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 10,
+        "deadlocks": 0,
+        "commits": 12151,
+        "rollbacks": 172
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.43,
+        "ops_per_sec": 32
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:24:16.194Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1344,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 10,
+        "deadlocks": 0,
+        "commits": 12233,
+        "rollbacks": 172
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.44,
+        "ops_per_sec": 32
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:24:17.209Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1349,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 10,
+        "deadlocks": 0,
+        "commits": 12320,
+        "rollbacks": 172
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.44,
+        "ops_per_sec": 32
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:24:18.218Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1468,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 10,
+        "deadlocks": 0,
+        "commits": 12387,
+        "rollbacks": 173
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.45,
+        "ops_per_sec": 32
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:24:19.248Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1473,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 10,
+        "deadlocks": 0,
+        "commits": 12452,
+        "rollbacks": 173
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.45,
+        "ops_per_sec": 32
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:24:20.260Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1467,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 10,
+        "deadlocks": 0,
+        "commits": 12529,
+        "rollbacks": 173
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.45,
+        "ops_per_sec": 31
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:24:21.273Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1462,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 10,
+        "deadlocks": 0,
+        "commits": 12606,
+        "rollbacks": 173
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.46,
+        "ops_per_sec": 31
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:24:22.288Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1466,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 10,
+        "deadlocks": 0,
+        "commits": 12676,
+        "rollbacks": 173
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.46,
+        "ops_per_sec": 32
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:24:23.309Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1466,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 10,
+        "deadlocks": 0,
+        "commits": 12762,
+        "rollbacks": 174
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.47,
+        "ops_per_sec": 50
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:24:24.332Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1461,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 10,
+        "deadlocks": 0,
+        "commits": 12840,
+        "rollbacks": 174
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.48,
+        "ops_per_sec": 63
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:24:25.362Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1659,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 10,
+        "deadlocks": 0,
+        "commits": 12842,
+        "rollbacks": 174
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.48,
+        "ops_per_sec": 32
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:24:26.372Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1455,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 10,
+        "deadlocks": 0,
+        "commits": 12903,
+        "rollbacks": 174
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.48,
+        "ops_per_sec": 49
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:24:27.378Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1430,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 10,
+        "deadlocks": 0,
+        "commits": 13138,
+        "rollbacks": 174
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.48,
+        "ops_per_sec": 120
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:24:28.385Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1485,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 10,
+        "deadlocks": 0,
+        "commits": 13395,
+        "rollbacks": 175
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.48,
+        "ops_per_sec": 122
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:24:29.393Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1510,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 3,
+        "waiting_locks": 8,
+        "deadlocks": 0,
+        "commits": 13689,
+        "rollbacks": 175
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.48,
+        "ops_per_sec": 120
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:24:30.412Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1489,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 10,
+        "deadlocks": 0,
+        "commits": 14053,
+        "rollbacks": 175
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.48,
+        "ops_per_sec": 125
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:24:31.419Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1515,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 2,
+        "waiting_locks": 9,
+        "deadlocks": 0,
+        "commits": 14205,
+        "rollbacks": 175
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.48,
+        "ops_per_sec": 125
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:24:32.444Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1482,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 10,
+        "deadlocks": 0,
+        "commits": 14474,
+        "rollbacks": 176
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.48,
+        "ops_per_sec": 123
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:24:33.469Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1463,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 10,
+        "deadlocks": 0,
+        "commits": 14732,
+        "rollbacks": 176
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.48,
+        "ops_per_sec": 123
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:24:34.491Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1475,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 10,
+        "deadlocks": 0,
+        "commits": 15007,
+        "rollbacks": 176
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.48,
+        "ops_per_sec": 125
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:24:35.499Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1471,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 2,
+        "waiting_locks": 9,
+        "deadlocks": 0,
+        "commits": 15230,
+        "rollbacks": 176
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.48,
+        "ops_per_sec": 114
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:24:36.506Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1453,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 10,
+        "deadlocks": 0,
+        "commits": 15494,
+        "rollbacks": 176
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.48,
+        "ops_per_sec": 109
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:24:37.517Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1512,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 10,
+        "deadlocks": 0,
+        "commits": 15744,
+        "rollbacks": 176
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.48,
+        "ops_per_sec": 125
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:24:38.525Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1489,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 10,
+        "deadlocks": 0,
+        "commits": 15951,
+        "rollbacks": 177
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.48,
+        "ops_per_sec": 115
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:24:39.552Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1477,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 10,
+        "deadlocks": 0,
+        "commits": 16167,
+        "rollbacks": 177
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.48,
+        "ops_per_sec": 108
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:24:40.578Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1512,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 10,
+        "deadlocks": 0,
+        "commits": 16418,
+        "rollbacks": 177
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.48,
+        "ops_per_sec": 121
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:24:41.592Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1536,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 3,
+        "waiting_locks": 10,
+        "deadlocks": 0,
+        "commits": 16476,
+        "rollbacks": 177
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.48,
+        "ops_per_sec": 47
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:24:42.614Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1527,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 10,
+        "deadlocks": 0,
+        "commits": 16543,
+        "rollbacks": 177
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.48,
+        "ops_per_sec": 33
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:24:43.627Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1693,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 2,
+        "waiting_locks": 11,
+        "deadlocks": 0,
+        "commits": 16557,
+        "rollbacks": 177
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 2.48,
+        "ops_per_sec": 17
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:24:44.636Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1680,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 10,
+        "deadlocks": 0,
+        "commits": 16935,
+        "rollbacks": 202
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 3.24,
+        "ops_per_sec": 64
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:24:45.659Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1663,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 10,
+        "deadlocks": 0,
+        "commits": 17134,
+        "rollbacks": 202
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 3.26,
+        "ops_per_sec": 81
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:24:46.670Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1670,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 10,
+        "deadlocks": 0,
+        "commits": 17240,
+        "rollbacks": 202
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 3.26,
+        "ops_per_sec": 47
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:24:47.683Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1646,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 10,
+        "deadlocks": 0,
+        "commits": 17333,
+        "rollbacks": 202
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 3.26,
+        "ops_per_sec": 48
+      }
+    },
+    {
+      "timestamp": "2026-09-08T15:24:48.698Z",
+      "system": {
+        "cpu_count": 12,
+        "free_mem_mb": 1687,
+        "total_mem_mb": 16089
+      },
+      "postgres": {
+        "active_connections": 1,
+        "waiting_locks": 10,
+        "deadlocks": 0,
+        "commits": 17402,
+        "rollbacks": 203
+      },
+      "redis": {
+        "connected_clients": 4,
+        "used_memory_mb": 3.26,
+        "ops_per_sec": 48
+      }
+    }
+  ]
+}

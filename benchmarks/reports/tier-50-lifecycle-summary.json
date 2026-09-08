@@ -1,0 +1,201 @@
+{
+    "metrics": {
+        "http_reqs": {
+            "count": 500,
+            "rate": 104.69016766905061
+        },
+        "http_req_connecting": {
+            "p(90)": 0,
+            "p(95)": 1.1595999999999995,
+            "avg": 0.10636879999999994,
+            "min": 0,
+            "med": 0,
+            "max": 2.2101
+        },
+        "group_duration": {
+            "avg": 797.1444710000001,
+            "min": 15.6129,
+            "med": 84.527,
+            "max": 2830.6216,
+            "p(90)": 2588.1053,
+            "p(95)": 2706.246255
+        },
+        "http_req_receiving": {
+            "max": 1.0078,
+            "p(90)": 0.53259,
+            "p(95)": 0.5610199999999999,
+            "avg": 0.08462440000000002,
+            "min": 0,
+            "med": 0
+        },
+        "http_req_tls_handshaking": {
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0,
+            "min": 0,
+            "med": 0,
+            "max": 0
+        },
+        "http_req_sending": {
+            "min": 0,
+            "med": 0,
+            "max": 0.748,
+            "p(90)": 0,
+            "p(95)": 0.5044249999999999,
+            "avg": 0.0306086
+        },
+        "http_req_duration{expected_response:true}": {
+            "min": 4.5197,
+            "med": 12.92265,
+            "max": 885.0348,
+            "p(90)": 209.63424000000003,
+            "p(95)": 481.28219499999994,
+            "avg": 67.31063139999995
+        },
+        "data_sent": {
+            "count": 365210,
+            "rate": 76467.79226882794
+        },
+        "checks": {
+            "passes": 350,
+            "fails": 0,
+            "value": 1
+        },
+        "vus_max": {
+            "value": 50,
+            "min": 50,
+            "max": 50
+        },
+        "iterations": {
+            "count": 50,
+            "rate": 10.46901676690506
+        },
+        "http_req_waiting": {
+            "p(95)": 480.79893,
+            "avg": 67.19539839999996,
+            "min": 4.5197,
+            "med": 12.747599999999998,
+            "max": 884.4682,
+            "p(90)": 209.63424000000003
+        },
+        "lifecycle_total_duration_ms": {
+            "p(90)": 4432.5,
+            "p(95)": 4452.55,
+            "avg": 4188.9,
+            "min": 3741,
+            "med": 4301.5,
+            "max": 4775
+        },
+        "http_req_failed": {
+            "passes": 0,
+            "fails": 500,
+            "thresholds": {
+                "rate<0.02": false
+            },
+            "value": 0
+        },
+        "lifecycle_success_rate": {
+            "passes": 50,
+            "fails": 0,
+            "thresholds": {
+                "rate>0.98": false
+            },
+            "value": 1
+        },
+        "iteration_duration": {
+            "med": 4301.8439,
+            "max": 4774.9418,
+            "p(90)": 4432.85656,
+            "p(95)": 4453.116620000001,
+            "avg": 4189.075357999999,
+            "min": 3740.9555
+        },
+        "http_req_blocked": {
+            "min": 0,
+            "med": 0,
+            "max": 11.5742,
+            "p(90)": 1.4093400000001968,
+            "p(95)": 10.4754,
+            "avg": 1.0648457999999998
+        },
+        "data_received": {
+            "count": 2512266,
+            "rate": 526019.0975385102
+        },
+        "http_req_duration": {
+            "avg": 67.31063139999995,
+            "min": 4.5197,
+            "med": 12.92265,
+            "max": 885.0348,
+            "p(90)": 209.63424000000003,
+            "p(95)": 481.28219499999994,
+            "thresholds": {
+                "p(95)<1000": false
+            }
+        },
+        "vus": {
+            "value": 34,
+            "min": 34,
+            "max": 50
+        }
+    },
+    "root_group": {
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {
+            "1. Authentication Verification": {
+                "name": "1. Authentication Verification",
+                "path": "::1. Authentication Verification",
+                "id": "dc53c3e545f530fe370d762b3dfa34ba",
+                "groups": {},
+                "checks": {}
+            },
+            "2. Attempt Start or Retrieve": {
+                "path": "::2. Attempt Start or Retrieve",
+                "id": "ec93574ba4191e93f1e9b2faf34184b7",
+                "groups": {},
+                "checks": {},
+                "name": "2. Attempt Start or Retrieve"
+            },
+            "3. Question Answering & Autosave Stream": {
+                "checks": {
+                    "autosave ok (200)": {
+                        "passes": 250,
+                        "fails": 0,
+                        "name": "autosave ok (200)",
+                        "path": "::3. Question Answering & Autosave Stream::autosave ok (200)",
+                        "id": "990e7151f5a11086b0cecd413be796df"
+                    }
+                },
+                "name": "3. Question Answering & Autosave Stream",
+                "path": "::3. Question Answering & Autosave Stream",
+                "id": "f13a3ca6248e06b9ee78ba4c4cac7732",
+                "groups": {}
+            },
+            "4. Final Submission & Idempotency Replay": {
+                "name": "4. Final Submission & Idempotency Replay",
+                "path": "::4. Final Submission & Idempotency Replay",
+                "id": "71862ed96af4f2ee745bab14f5612c24",
+                "groups": {},
+                "checks": {
+                        "submit ok (200)": {
+                            "fails": 0,
+                            "name": "submit ok (200)",
+                            "path": "::4. Final Submission & Idempotency Replay::submit ok (200)",
+                            "id": "00a220c403b1b388c034d1f5b41da543",
+                            "passes": 50
+                        },
+                        "replay ok (200)": {
+                            "name": "replay ok (200)",
+                            "path": "::4. Final Submission & Idempotency Replay::replay ok (200)",
+                            "id": "d1ee8dcb0f237c4082bf6ec2bf6a2338",
+                            "passes": 50,
+                            "fails": 0
+                        }
+                    }
+            }
+        },
+        "checks": {}
+    }
+}

@@ -215,6 +215,7 @@ async function main() {
   }
 
   console.log(`[Collector] Commencing collection every ${intervalMs}ms for ${durationSec}s...`);
+  const endTime = Date.now() + durationSec * 1000;
 
   process.on('SIGINT', async () => {
     await stopAndSave();
@@ -225,15 +226,24 @@ async function main() {
     process.exit(0);
   });
 
-  const startTime = Date.now();
-  const endTime = startTime + (durationSec * 1000);
+  const stopFilePath = path.resolve(path.dirname(outputPath), '.stop_collector');
+  if (fs.existsSync(stopFilePath)) {
+    try { fs.unlinkSync(stopFilePath); } catch {}
+  }
 
   while (Date.now() < endTime && !isStopping) {
+    if (fs.existsSync(stopFilePath)) {
+      console.log('[Collector] Stop signal detected via .stop_collector');
+      break;
+    }
     await sampleSnapshot();
     await new Promise(r => setTimeout(r, intervalMs));
   }
 
   await stopAndSave();
+  if (fs.existsSync(stopFilePath)) {
+    try { fs.unlinkSync(stopFilePath); } catch {}
+  }
 }
 
 main().catch(err => {

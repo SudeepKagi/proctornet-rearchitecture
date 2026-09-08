@@ -14,11 +14,15 @@ import { check, group, sleep } from 'k6';
 import { Counter, Rate, Trend } from 'k6/metrics';
 import {
   BASE_URL,
+  BENCHMARK_PASSWORD,
   generateAntiTamperHeader,
   generateUUID,
   getCandidateForVU,
   randomChoice,
-  randomInt
+  randomInt,
+  loginCandidate,
+  getAttemptContext,
+  startAttempt
 } from './k6-helpers.js';
 
 // Load fixture data at initialization stage
@@ -50,52 +54,76 @@ const lifecycleDuration = new Trend('lifecycle_total_duration_ms', true);
 export default function () {
   const startLifecycle = Date.now();
   const candidate = getCandidateForVU(fixtures.candidates, __VU);
-  let userToken = candidate.token;
+  let userToken = null;
+  let attemptId = candidate.attemptId;
+  let signingKey = null;
+  let questions = candidate.attemptQuestions || [];
   let allStepsPassed = true;
 
   // Step 1: Authentication / Session Check
   group('1. Authentication Verification', () => {
-    const loginRes = http.post(
-      `${BASE_URL}/api/v1/auth/login`,
-      JSON.stringify({ email: candidate.email, password: 'Password123!' }),
-      {
-        headers: { 'Content-Type': 'application/json' },
-        tags: { name: 'POST /api/v1/auth/login' }
-      }
-    );
+    try {
+      const auth = loginCandidate(candidate.email, BENCHMARK_PASSWORD, BASE_URL);
+      userToken = auth.token;
+    } catch (err) {
+      allStepsPassed = false;
+      return;
+    }
+  });
 
-    const ok = check(loginRes, {
-      'login ok': (r) => r.status === 200,
-      'token returned': (r) => {
-        try {
-          const body = r.json();
-          const t = body?.data?.accessToken || body?.data?.tokens?.accessToken;
-          if (t) {
-            userToken = t;
-            return true;
-          }
-          return false;
-        } catch {
-          return false;
+  if (!userToken) {
+    lifecycleSuccessRate.add(false);
+    return;
+  }
+
+  // Step 2: Attempt Initialization (Start Attempt if not pre-seeded)
+  group('2. Attempt Start or Retrieve', () => {
+    try {
+      if (!attemptId) {
+        // Mode B: Real Lifecycle startup
+        const started = startAttempt(userToken, fixtures.sessionId, BASE_URL);
+        attemptId = started.attemptId;
+        signingKey = started.antiTamperToken;
+        const qRes = http.get(`${BASE_URL}/api/v1/attempts/${attemptId}/questions`, {
+          headers: { Authorization: `Bearer ${userToken}` }
+        });
+        if (qRes.status === 200) {
+          questions = qRes.json('data.questions') || [];
+        }
+      } else {
+        // Mode A: Prepared Attempt retrieval
+        const ctx = getAttemptContext(userToken, attemptId, BASE_URL);
+        signingKey = ctx.antiTamperToken;
+        if (ctx.questions && ctx.questions.length > 0) {
+          questions = ctx.questions;
         }
       }
-    });
-    if (!ok) allStepsPassed = false;
+    } catch (err) {
+      console.log(`[start or retrieve error] ${err.message}`);
+      allStepsPassed = false;
+      return;
+    }
   });
+
+  if (!attemptId || !signingKey) {
+    lifecycleSuccessRate.add(false);
+    return;
+  }
 
   sleep(1);
 
-  // Step 2: Answer Multiple Questions with Anti-Tamper Signatures
-  group('2. Question Answering & Autosave Stream', () => {
-    const questionsToAnswer = candidate.attemptQuestions.slice(0, 5); // Answer up to 5 questions in lifecycle test
+  // Step 3: Answer Questions with Anti-Tamper Signatures
+  group('3. Question Answering & Autosave Stream', () => {
+    const questionsToAnswer = questions.slice(0, 5); // Answer up to 5 questions in lifecycle test
     let revMap = {};
 
     for (const q of questionsToAnswer) {
-      const qId = q.attemptQuestionId;
+      const qId = q.attempt_question_id || q.attemptQuestionId;
+      const qType = q.question_type || q.questionType;
       const expectedRev = revMap[qId] || 0;
 
       let answerVal = {};
-      if (q.questionType === 'NUMERIC') {
+      if (qType === 'NUMERIC') {
         answerVal = { numeric_value: 42.5 };
       } else if (q.options && q.options.length > 0) {
         answerVal = { selected_option_id: q.options[0].option_id };
@@ -103,14 +131,14 @@ export default function () {
         answerVal = { text_value: 'Candidate answer' };
       }
 
-      const path = `/api/v1/attempts/${candidate.attemptId}/answers/${qId}`;
+      const path = `/api/v1/attempts/${attemptId}/answers/${qId}`;
       const payloadObj = {
         answer_value: answerVal,
         expected_revision: expectedRev
       };
 
       const { header: antiTamperHeader, bodyStr } = generateAntiTamperHeader(
-        candidate.signingKey,
+        signingKey,
         'PUT',
         path,
         payloadObj
@@ -120,7 +148,7 @@ export default function () {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${userToken}`,
-          'X-Payload-Signature': antiTamperHeader
+          'X-Anti-Tamper': antiTamperHeader
         },
         tags: { name: 'PUT /api/v1/attempts/:id/answers/:qid' }
       });
@@ -143,37 +171,10 @@ export default function () {
     }
   });
 
-  // Step 3: Telemetry Ping
-  group('3. Telemetry Ping', () => {
-    const eventPayload = JSON.stringify({
-      event_type: 'HEARTBEAT',
-      severity: 'LOW',
-      metadata: { tab_focus: true, battery_level: 0.95 }
-    });
-
-    const eventRes = http.post(
-      `${BASE_URL}/api/v1/attempts/${candidate.attemptId}/events`,
-      eventPayload,
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${userToken}`
-        },
-        tags: { name: 'POST /api/v1/attempts/:id/events' }
-      }
-    );
-
-    check(eventRes, {
-      'telemetry accepted': (r) => r.status === 200 || r.status === 201
-    });
-  });
-
-  sleep(0.5);
-
   // Step 4: Final Submission & Idempotent Replay
   group('4. Final Submission & Idempotency Replay', () => {
-    const idempotencyKey = `lifecycle_${candidate.attemptId}_${generateUUID()}`;
-    const submitPath = `/api/v1/attempts/${candidate.attemptId}/submit`;
+    const idempotencyKey = `lifecycle_${attemptId}_${generateUUID()}`;
+    const submitPath = `/api/v1/attempts/${attemptId}/submit`;
     const submitPayload = JSON.stringify({ answers: [] });
     const submitHeaders = {
       'Content-Type': 'application/json',

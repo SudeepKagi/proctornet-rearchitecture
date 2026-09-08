@@ -10,7 +10,7 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { Counter, Rate, Trend } from 'k6/metrics';
-import { BASE_URL, getCandidateForVU } from './k6-helpers.js';
+import { BASE_URL, BENCHMARK_PASSWORD, getCandidateForVU } from './k6-helpers.js';
 
 // Load fixture data at initialization stage
 const fixturesRaw = open('../fixtures/benchmark-fixtures.json');
@@ -19,6 +19,7 @@ const fixtures = JSON.parse(fixturesRaw);
 const targetVUs = parseInt(__ENV.VUS || '2500', 10);
 const rampDuration = __ENV.RAMP || '2m';
 const holdDuration = __ENV.HOLD || '1m';
+const downDuration = __ENV.DOWN || '5s';
 
 export const options = {
   scenarios: {
@@ -28,9 +29,9 @@ export const options = {
       stages: [
         { duration: rampDuration, target: targetVUs },
         { duration: holdDuration, target: targetVUs },
-        { duration: '30s', target: 0 }
+        { duration: downDuration, target: 0 }
       ],
-      gracefulRampDown: '10s'
+      gracefulRampDown: '5s'
     }
   },
   thresholds: {
@@ -48,7 +49,7 @@ export default function () {
 
   const payload = JSON.stringify({
     email: candidate.email,
-    password: 'Password123!'
+    password: BENCHMARK_PASSWORD
   });
 
   const params = {

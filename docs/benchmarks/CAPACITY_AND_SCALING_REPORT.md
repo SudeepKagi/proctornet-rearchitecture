@@ -1,111 +1,102 @@
 # ProctorNet — Capacity & Scaling Assessment Report
 ## Phase 21: Empirical Benchmarking, Concurrency Profiling & Scaling Decision Matrix
 
-> **Governance Status:** RATIFIED CAPACITY BASELINE  
-> **Evaluation Date:** September 2026  
-> **Baseline System Configuration:** Single-Host Modular Monolith (`c6i.xlarge` baseline: 4 vCPUs, 8 GiB RAM, encrypted gp3 EBS)  
-> **Database:** PostgreSQL 16 (`DB_POOL_MIN=2`, `DB_POOL_MAX=10`)  
-> **Cache / Ephemeral:** Redis 7.4-alpine (sliding-window rate limiter & non-authoritative cache)  
-> **Message Transport:** RabbitMQ 3.13.7-management-alpine (Quorum Queues, transactional outbox)  
+> **Governance Status:** LIMITED LOCAL BENCHMARK COMPLETED (ABORTED AT 250 VUs DUE TO LOCAL HOST BOTTLENECK) — ZERO AWS OPERATIONS. RESULTS DO NOT ESTABLISH AWS c6i.xlarge CAPACITY.
+> **Evaluation Date:** September 2026
+> **Test Environment Baseline:** Local Development Machine (12th Gen Intel Core i5-12450H, 12 logical cores, 16 GiB RAM, Docker Desktop / WSL2)
+> **Database:** PostgreSQL 16.4-alpine (`DB_POOL_MIN=2`, `DB_POOL_MAX=10`)
+> **Cache / Ephemeral Store:** Redis 7.4-alpine
+> **Message Transport:** RabbitMQ 3.13.7-management-alpine (Quorum Queues, transactional outbox)
 
 ---
 
-## 1. Executive Summary
+## 1. Test Environment & Governance Safeguards
 
-Phase 21 executed empirical load testing and capacity benchmarking on the ProctorNet single-host modular monolith architecture. Testing evaluated system performance under realistic candidate workloads ranging from smoke validation up to peak concurrency loads.
+### Explicit Scope & Target Environment Boundary
+> [!IMPORTANT]
+> **Limited local 250-VU benchmark. Results are environment-specific and are not a capacity determination for the AWS c6i.xlarge deployment target. This local benchmark does not establish AWS c6i.xlarge capacity.**
 
-### Key Empirical Takeaways:
-1. **Sustainable Baseline:** The single-host modular monolith sustainably supports up to **1,200 concurrent candidates** in full examination workflows (autosaving answers every 5–10s with HMAC anti-tamper signing, telemetry heartbeats, and submission surges) while maintaining:
-   - Autosave $p(95)$ latency $< 65\text{ ms}$
-   - Autosave $p(99)$ latency $< 120\text{ ms}$
-   - Submission $p(95)$ latency $< 70\text{ ms}$
-   - Error rate $= 0.00\%$
-   - Database deadlocks $= 0$
-2. **Degraded Operational Zone:** Concurrency between **1,200 and 1,800 VUs** enters the degraded state, characterized by Node.js event-loop lag rising to $35\text{ ms}$ during login bursts and database connection pool queue times briefly exceeding $50\text{ ms}$.
-3. **Saturation Point:** Above **1,800 concurrent VUs**, the system reaches saturation due to PostgreSQL pool contention (`DB_POOL_MAX=10`) and Node.js single-thread CPU utilization driven by JSON serialization and HMAC anti-tamper computation.
-4. **Safe Operating Capacity:** Applying the governance formula:
-   $$\text{Safe Operating Capacity} = \min\left(1200, \, 0.80 \times 1800\right) = \mathbf{1,200 \text{ concurrent examinees}}$$
-5. **Phase 32 Activation Requirement:** Any institutional deployment requiring $> 1,200$ concurrent examinees must activate Phase 32 managed services (AWS RDS PostgreSQL, AWS ElastiCache Redis, and AWS Application Load Balancer with multi-instance Node.js containers).
+All AWS operations for Phase 21 were abandoned. The AWS credentials profile (`proctornet-antigravity`) was revoked and removed from this development machine. All temporary AWS resources (security groups `sg-068f4aef5586b015f`, `sg-007ec66285b90ba6f`, IAM role `ProctorNetBenchmarkSSMRole`, instance profile `ProctorNetBenchmarkSSMProfile`) were verified and completely deleted. Zero EC2 instances and zero EBS volumes remain. Total AWS spend incurred for Phase 21 remains **$0.00**.
+
+### Machine Characteristics (Local Development Workstation)
+- **Processor:** 12th Gen Intel(R) Core(TM) i5-12450H (8 physical cores, 12 logical processors)
+- **Host Memory:** 15.71 GiB Physical RAM (Baseline free RAM: 1.50–1.81 GiB; peak free RAM: 6.60 GiB after system memory reclamation)
+- **Storage:** 72.21 GiB available SSD storage on `C:\`
+- **Operating System / Container Runtime:** Windows 11 64-bit with Docker Desktop v4.x (WSL2 Linux VM container runtime)
+- **Host CPU Baseline:** ~23%–32% idle/development load
 
 ---
 
-## 2. Comprehensive Concurrency Tier Evaluation
+## 2. Limited Local Staged Benchmark (25 to 250 VUs)
 
-```
-+---------------------------------------------------------------------------------------------------+
-| TIER       | CONCURRENCY | AUTOSAVE p95 | SUBMISSION p95 | ERROR RATE | POOL STATUS | STATE       |
-+---------------------------------------------------------------------------------------------------+
-| Smoke      | 10–25 VUs   | 61.5 ms      | 54.6 ms        | 0.00%      | 0ms wait    | Sustainable |
-| Tier 1     | 500 VUs     | 85.2 ms      | 92.4 ms        | 0.00%      | 0ms wait    | Sustainable |
-| Tier 2     | 1,000 VUs   | 142.1 ms     | 168.5 ms       | 0.01%      | <15ms wait  | Sustainable |
-| Tier 3     | 1,500 VUs   | 310.8 ms     | 385.2 ms       | 0.08%      | 65ms wait   | Degraded    |
-| Tier 4     | 2,000 VUs   | 780.4 ms     | 920.1 ms       | 0.85%      | 240ms wait  | Saturation  |
-| Tier 5     | 2,500 VUs   | 1,850.0 ms   | 2,100.0 ms     | 2.40%      | Pool Timeout| Failure     |
-+---------------------------------------------------------------------------------------------------+
-```
+In accordance with strict workstation safety directives, load was applied sequentially in a staged ramp: **25 VUs $\to$ 50 VUs $\to$ 100 VUs $\to$ 150 VUs $\to$ 250 VUs**.
 
----
+### Staged Concurrency Execution Matrix
 
-## 3. Workload Benchmark Findings
-
-### A. Authentication Burst (`login-burst.js`)
-- **Profile:** 0 to 2,500 examinees logging in over 2 minutes.
-- **Observations:** Bcrypt password hashing (`rounds=10`) is computationally intensive. When concurrency exceeds 500 simultaneous logins, CPU utilization on the Node.js event-loop peaks. 
-- **Mitigation:** Candidate JWT tokens are pre-generated during exam session enrollment, allowing candidate clients to resume authenticated active attempts without bottlenecking the auth endpoint at exam start.
-
-### B. Autosave Contention & Optimistic Concurrency Control (`autosave-contention.js`)
-- **Profile:** Continuous autosave requests with Poisson arrival distribution (5–10s intervals).
-- **Verification of OCC:**
-  - Revision sequence strictly validated ($K \to K+1$).
-  - Simultaneous identical replays return 200 with idempotent confirmation.
-  - Zero lost updates detected across all tests.
-- **Anti-Tamper HMAC Overhead:** Computing HMAC-SHA256 headers client-side and validating in `antiTamperMiddleware` adds $< 1.2\text{ ms}$ overhead per request, proving highly efficient and computationally safe for sustained loads.
-
-### C. Synchronized End-of-Exam Submission Surge (`submission-surge.js`)
-- **Profile:** Candidates completing exam within a 30-second window, submitting dirty answers.
-- **Idempotency Fingerprint:** Every submission recorded in `submission_idempotency` table.
-- **Replay Assertions:** 100% of replayed requests returned status 200 with `replay: true`.
-- **Zero Orphan Answers:** 0 orphan answer rows created across all tests.
-- **Zero Database Deadlocks:** 0 deadlocks recorded in PostgreSQL engine stats.
-
-### D. Transactional Outbox & Background Evaluation Pipeline
-- **Outbox Enqueue:** 100% of submitted attempts successfully emitted `ATTEMPT_SUBMITTED` outbox events.
-- **Dispatcher Throughput:** Batch claiming (`batchSize = 20`, `SKIP LOCKED`) drained 2,500 events to RabbitMQ within 64 seconds.
-- **Worker Scoring:** Background evaluation consumer scored submissions asynchronously, ensuring zero impact on candidate-facing HTTP latency.
+| Stage | Target VUs | Actual Completed VUs | Throughput (Lifecycle) | Lifecycle p50 | Lifecycle p95 | Autosave p95 | Submission p95 | HTTP Error Rate | ACID Invariant Audit | Local Health / Classification |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Stage 1** | **25 VUs** | **25 VUs** | 61.93 req/s | 13.98 ms | 210.89 ms | 70.74 ms | 436.53 ms | **0.00%** | **7/7 PASSED** (0 deadlocks) | **SUSTAINABLE** |
+| **Stage 2** | **50 VUs** | **50 VUs** | 104.69 req/s | 12.92 ms | 481.28 ms | 159.93 ms | 913.64 ms | **0.00%** | **7/7 PASSED** (0 deadlocks) | **DEGRADED** (Submit p95 > 500ms) |
+| **Stage 3** | **100 VUs** | **100 VUs** | 181.80 req/s | 17.12 ms | 936.54 ms | 153.12 ms | 1,566.64 ms | **0.00%** | **7/7 PASSED** (0 deadlocks) | **DEGRADED** (Submit p95 > 1.5s) |
+| **Stage 4** | **150 VUs** | **150 VUs** | 230.11 req/s | 15.43 ms | 1,404.52 ms | 277.07 ms | 2,238.90 ms | **0.00%** (0.19% login) | **7/7 PASSED** (0 deadlocks) | **SATURATION** (p95 > 1.0s) |
+| **Stage 5** | **250 VUs** | **Aborted** | — | — | — | — | — | Socket Error | N/A (Load aborted) | **LOCAL BOTTLENECK** (Docker/Host freeze) |
 
 ---
 
-## 4. Bottleneck Identification & Resource Telemetry
+## 3. Workload Details & Stage Execution Summaries
 
-### 1. PostgreSQL Connection Pool (`DB_POOL_MAX`)
-- **Current Configuration:** `DB_POOL_MAX = 10`.
-- **Analysis:** Under 1,000+ concurrent VUs with sub-second request pacing, 10 connections creates a queue depth of up to 45 waiting requests.
-- **Single-Host Tuning Recommendation:** Increase `DB_POOL_MAX` from 10 to 25–30 on hosts with $\ge 8\text{ GB}$ RAM, with `max_connections = 100` in PostgreSQL config.
+### A. Stage 1 — 25 VUs (SUSTAINABLE Baseline)
+- **Login Burst:** 529 requests, 17.22 rps, 0% errors, $p50 = 75.79\text{ ms}$, $p95 = 114.70\text{ ms}$.
+- **Autosave Contention:** 550 requests, 26.16 rps, 0% errors, $p50 = 37.15\text{ ms}$, $p95 = 70.74\text{ ms}$.
+- **Pool Saturation:** 1,791 requests, 117.87 rps, 0% errors, $p50 = 6.74\text{ ms}$, $p95 = 31.89\text{ ms}$.
+- **Submission Surge:** 75 requests, 72.00 rps, 0% errors, $p50 = 15.81\text{ ms}$, $p95 = 436.53\text{ ms}$.
+- **Full Candidate Lifecycle:** 250 requests, 61.93 rps, 0% errors, $p50 = 13.98\text{ ms}$, $p95 = 210.89\text{ ms}$.
+- **ACID Invariant Audit:** 7/7 passed (0 orphan attempts, 0 orphan answers, 0 duplicate submissions, 0 engine deadlocks, monotonic OCC revisions).
 
-### 2. Node.js Single-Threaded Event Loop
-- **Analysis:** The Node.js application process handles HTTP parsing, JSON serialization, HMAC verification, and database query coordination on a single thread.
-- **Saturation Threshold:** Reaches 85% CPU core utilization at ~1,800 req/s.
-- **Phase 32 Recommendation:** Deploy multiple Node.js container instances behind an Application Load Balancer (ALB).
+### B. Stage 2 — 50 VUs (DEGRADED — Burst Submission Queueing)
+- **Login Burst:** 1,067 requests, 34.85 rps, 0% errors, $p50 = 69.57\text{ ms}$, $p95 = 110.17\text{ ms}$.
+- **Autosave Contention:** 1,059 requests, 50.90 rps, 0% errors, $p50 = 20.87\text{ ms}$, $p95 = 159.93\text{ ms}$.
+- **Pool Saturation:** 3,349 requests, 219.87 rps, 0% errors, $p50 = 15.81\text{ ms}$, $p95 = 57.52\text{ ms}$.
+- **Submission Surge:** 150 requests, 93.70 rps, 0% errors, $p50 = 21.44\text{ ms}$, $p95 = 913.64\text{ ms}$.
+- **Full Candidate Lifecycle:** 500 requests, 104.69 rps, 0% errors, $p50 = 12.92\text{ ms}$, $p95 = 481.28\text{ ms}$.
+- **ACID Invariant Audit:** 7/7 passed.
 
-### 3. Redis Ephemeral Operations
-- **Current Performance:** Lua sliding-window script execution latency $< 0.8\text{ ms}$ average.
-- **Resilience:** Redis utilized $< 80\text{ MB}$ memory throughout all benchmark tiers. Non-authoritative fallback to in-memory sliding window verified functional if Redis connection is interrupted.
+### C. Stage 3 — 100 VUs (DEGRADED — Elevated Latency Under Contention)
+- **Login Burst:** 1,628 requests, 52.81 rps, 0% errors, $p50 = 498.27\text{ ms}$, $p95 = 663.96\text{ ms}$.
+- **Autosave Contention:** 2,104 requests, 101.05 rps, 0% errors, $p50 = 18.73\text{ ms}$, $p95 = 153.12\text{ ms}$.
+- **Pool Saturation:** 6,734 requests, 441.78 rps, 0% errors, $p50 = 9.24\text{ ms}$, $p95 = 46.56\text{ ms}$.
+- **Submission Surge:** 300 requests, 127.37 rps, 0% errors, $p50 = 13.19\text{ ms}$, $p95 = 1,566.64\text{ ms}$.
+- **Full Candidate Lifecycle:** 1,000 requests, 181.80 rps, 0% errors, $p50 = 17.12\text{ ms}$, $p95 = 936.54\text{ ms}$.
+- **ACID Invariant Audit:** 7/7 passed.
+
+### D. Stage 4 — 150 VUs (SATURATION — Maximum Successfully Completed Local Tier)
+- **Login Burst:** 1,606 requests, 52.40 rps, 0.19% transient errors (3/1,606), $p50 = 1,484.03\text{ ms}$, $p95 = 1,608.93\text{ ms}$.
+- **Autosave Contention:** 3,016 requests, 144.72 rps, 0% errors, $p50 = 41.85\text{ ms}$, $p95 = 277.07\text{ ms}$.
+- **Pool Saturation:** 9,462 requests, 622.26 rps, 0% errors, $p50 = 10.93\text{ ms}$, $p95 = 73.33\text{ ms}$.
+- **Submission Surge:** 450 requests, 139.10 rps, 0% errors, $p50 = 13.08\text{ ms}$, $p95 = 2,238.90\text{ ms}$.
+- **Full Candidate Lifecycle:** 1,500 requests, 230.11 rps, 0% errors, $p50 = 15.43\text{ ms}$, $p95 = 1,404.52\text{ ms}$ (threshold crossed).
+- **ACID Invariant Audit:** 7/7 passed (zero data corruption across 150 concurrent lifecycle completions).
+
+### E. Stage 5 — 250 VUs (UNSUSTAINABLE — Aborted per Safety Limits)
+- **Outcome:** Aborted immediately pursuant to Hard Safety Limits (Section 5).
+- **Observed Behavior:** When attempting to initialize and stream 250 concurrent VUs on the local PC, the co-located load generator (k6 goroutines) combined with the Docker engine container stack saturated local network socket allocations and virtualization bridge capacity. The Windows Docker Desktop daemon pipe (`//./pipe/dockerDesktopLinuxEngine`) encountered socket exhaustion, resulting in connection resets and UI unresponsiveness.
+- **Action Taken:** The test task was killed immediately. No further load was applied to protect the workstation.
+- **Capacity Conclusion:** The local development workstation reaches SATURATION at 150 VUs (the maximum successfully completed local tier) and becomes unstable at 250 VUs (aborted due to local workstation/Docker socket exhaustion).
 
 ---
 
-## 5. Phase 32 Scaling Decision Matrix
+## 4. Local Machine Bottleneck Breakdown
 
-| Architectural Component | Bottleneck Threshold (Observed) | Phase 32 Migration Action | Recommended Target Architecture |
-|---|---|---|---|
-| **PostgreSQL Database** | Pool wait $> 100\text{ ms}$ at 1,800 VUs; disk IOPS spikes. | **Activate AWS RDS PostgreSQL** | AWS RDS Multi-AZ PostgreSQL 16 (`db.m6i.xlarge`) with Provisioned IOPS. |
-| **Backend Monolith** | CPU core saturation at $> 1,800\text{ req/s}$. | **Activate AWS ALB & Multi-Instance Monolith** | AWS Application Load Balancer distributing to 3–6 ECS Fargate or EC2 containers. |
-| **Redis Cache / Limiter** | Ephemeral memory limits on single host. | **Activate AWS ElastiCache Redis** | AWS ElastiCache Redis Cluster (Multi-AZ with automatic failover). |
-| **Evaluation Workers** | Drain time $> 120\text{ s}$ during submission bursts. | **Decouple Worker Services** | Standalone ECS worker service scaling horizontally based on RabbitMQ queue depth. |
+At 250 VUs, the local development environment reached saturation due to the following specific constraints:
+1. **Co-Located Workstation Resource Contention:** Running the load generator (k6 with 250 concurrent virtual users) on the exact same physical CPU cores and operating system as the application under test (Node.js monolith, PostgreSQL, Redis, RabbitMQ, LocalStack) induces severe context-switching overhead, CPU cache thrashing, and Windows thread scheduling contention.
+2. **Windows / WSL2 Named Pipe Socket Exhaustion:** Under heavy connection bursts across 250 virtual users, Windows named pipes communicating with the WSL2 Linux VM become saturated, leading to `open //./pipe/dockerDesktopLinuxEngine: The system cannot find the file specified`.
+3. **Database Connection Pool Bottleneck:** The local default pool size of `DB_POOL_MAX = 10` forces high-concurrency requests into a FIFO acquisition wait queue, inflating burst submission p95 latency to $2.2\text{s}$ at 150 VUs.
+4. **Proctoring Telemetry Nested Pool Acquisition:** In proctoring telemetry ingestion (`ingestCandidateEvents`), concurrent batch processing requires simultaneous attempt locking and violation flag querying, which starves the default 10-connection pool under burst conditions.
 
 ---
 
-## 6. Conclusion & Governance Sign-Off
+## 5. Explicit Limitations & Scope Declaration
 
-The Phase 21 benchmark framework confirms that the ProctorNet single-host modular monolith is robust, secure, and production-ready for institutional examinations up to **1,200 concurrent candidates**. 
-
-Data integrity invariants (zero orphan records, zero duplicate submissions, 100% outbox event emission, and 0 database deadlocks) are fully validated. Phase 21 execution is complete and fully satisfies all architectural requirements.
+1. **Not an AWS Determination:** This local benchmark was executed exclusively on a Windows development laptop. It does **not** establish or represent capacity for the production target (AWS EC2 `c6i.xlarge` with Nitro hypervisor, dedicated EBS gp3 IOPS, and separate network-isolated load generators).
+2. **No Claim of 250 VU Capacity:** The system completed official benchmark tiers up to **150 VUs (classified as SATURATION; the maximum successfully completed local tier)**. At 250 VUs, the local host machine became unresponsive and the test was safely aborted due to local workstation/Docker socket exhaustion. The system does **not** claim to support 250 VUs on this local development environment, does not claim that the system supports 150 VUs in production, and establishes no Safe Operating Capacity from these local results.
+3. **Product Code Integrity:** Zero architectural changes were made to backend logic, PostgreSQL schemas, Redis authority models, or RabbitMQ quorum queues during this benchmark.

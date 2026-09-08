@@ -1,0 +1,128 @@
+{
+  "tier_vus": 25,
+  "benchmark_run_id": "run_25_1788881010797",
+  "started_at": "2026-09-08T15:23:30.797Z",
+  "git_commit": "a614f80",
+  "scenarios": {
+    "login_burst": {
+      "passed": true,
+      "exitCode": 0,
+      "elapsedSec": 31.86,
+      "metrics": {
+        "total_requests": 529,
+        "throughput_rps": 17.22,
+        "error_rate_pct": 0,
+        "latency_p50_ms": 75.79,
+        "latency_p95_ms": 114.7,
+        "latency_p99_ms": 0,
+        "latency_avg_ms": 81.59,
+        "latency_max_ms": 314.22
+      }
+    },
+    "autosave_contention": {
+      "passed": true,
+      "exitCode": 0,
+      "elapsedSec": 21.83,
+      "metrics": {
+        "total_requests": 550,
+        "throughput_rps": 26.16,
+        "error_rate_pct": 0,
+        "latency_p50_ms": 37.15,
+        "latency_p95_ms": 70.74,
+        "latency_p99_ms": 0,
+        "latency_avg_ms": 43.92,
+        "latency_max_ms": 435.45
+      }
+    },
+    "pool_saturation": {
+      "passed": true,
+      "exitCode": 0,
+      "elapsedSec": 15.93,
+      "metrics": {
+        "total_requests": 1791,
+        "throughput_rps": 117.87,
+        "error_rate_pct": 0,
+        "latency_p50_ms": 6.74,
+        "latency_p95_ms": 31.89,
+        "latency_p99_ms": 0,
+        "latency_avg_ms": 13.8,
+        "latency_max_ms": 404.31
+      }
+    },
+    "submission_surge": {
+      "passed": true,
+      "exitCode": 0,
+      "elapsedSec": 1.81,
+      "metrics": {
+        "total_requests": 75,
+        "throughput_rps": 72,
+        "error_rate_pct": 0,
+        "latency_p50_ms": 15.81,
+        "latency_p95_ms": 436.53,
+        "latency_p99_ms": 0,
+        "latency_avg_ms": 100.55,
+        "latency_max_ms": 508.49
+      }
+    },
+    "full_candidate_lifecycle": {
+      "passed": true,
+      "exitCode": 0,
+      "elapsedSec": 4.93,
+      "metrics": {
+        "total_requests": 250,
+        "throughput_rps": 61.93,
+        "error_rate_pct": 0,
+        "latency_p50_ms": 13.98,
+        "latency_p95_ms": 210.89,
+        "latency_p99_ms": 0,
+        "latency_avg_ms": 35.48,
+        "latency_max_ms": 425.11
+      }
+    }
+  },
+  "system_metrics": {
+    "sample_count": 77,
+    "duration_sec": 77,
+    "postgres": {
+      "active_connections": {
+        "min": 1,
+        "max": 4,
+        "avg": 1.18,
+        "p95": 2
+      },
+      "waiting_locks": {
+        "min": 2,
+        "max": 11,
+        "avg": 7.79,
+        "p95": 10
+      },
+      "total_deadlocks": 0
+    },
+    "redis": {
+      "connected_clients": {
+        "min": 4,
+        "max": 4,
+        "avg": 4,
+        "p95": 4
+      },
+      "used_memory_mb": {
+        "min": 2.36,
+        "max": 3.26,
+        "avg": 2.47,
+        "p95": 3.26
+      },
+      "ops_per_sec": {
+        "min": 1,
+        "max": 125,
+        "avg": 37.65,
+        "p95": 125
+      }
+    }
+  },
+  "integrity_audit": {
+    "prepared_mode_audit": "PASSED",
+    "lifecycle_mode_audit": "PASSED"
+  },
+  "verdict": "SUSTAINABLE",
+  "completed_at": "2026-09-08T15:24:51.146Z"
+}

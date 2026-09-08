@@ -6,9 +6,9 @@
 +-------------------------------------------------------------------------+
 | Current Phase:     Phase 21                                             |
 | Current Milestone: Load Testing & Concurrency Benchmarking              |
-| Status:            Completed & Validated                                |
+| Status:            In Progress (Stages 21A & 21B Complete / Passed)     |
 | Master Plan:       Reconstructed & Expanded (Phases 0–34)               |
-| Next Phase:        Phase 22 — Failure, Resilience & Chaos Testing       |
+| Next Milestone:    Stage 21C — Official Load Testing (AWS c6i.xlarge)   |
 +-------------------------------------------------------------------------+
 ```
 
@@ -490,7 +490,7 @@ $$\text{Plan} \longrightarrow \text{Implement} \longrightarrow \text{Test} \long
 ---
 
 ### Phase 21 — Load Testing & Concurrency Benchmarking
-- [x] **Status:** Completed
+- [ ] **Status:** In Progress (Limited Local Benchmark Finalized)
 - **Objective:** Validate single-host EC2 (`c6i.xlarge`) capacity, answer autosave throughput, submission burst handling, connection pool saturation limits, and Redis/RabbitMQ resource headroom under target concurrent workloads.
 - **Dependencies:** Phase 20
 - **Major Tasks:**
@@ -684,25 +684,27 @@ $$\text{Plan} \longrightarrow \text{Implement} \longrightarrow \text{Test} \long
 ---
 
 ### Phase 21 — Load Testing & Concurrency Benchmarking
-- [x] **Status:** Completed
+- [ ] **Status:** In Progress (Stages 21A & 21B Complete / Passed; Stage 21C Pending AWS Staging Execution)
 - **Objective:** Validate single-host EC2 (`c6i.xlarge`) capacity, answer autosave throughput, submission burst handling, connection pool saturation limits, and Redis/RabbitMQ resource headroom under target concurrent workloads.
 - **Dependencies:** Phase 20
 - **Major Tasks:**
-  - Author k6 and Artillery load testing suites simulating 500 to 2,500 concurrent candidates taking exams simultaneously.
-  - Benchmark periodic answer autosave throughput at 1 save every 5–10 seconds per candidate with optimistic concurrency control (OCC).
-  - Simulate synchronized end-of-exam submission spike (burst submissions across a 30-second window).
-  - Measure p50, p95, and p99 latencies, HTTP error rates, PostgreSQL connection pool utilization, CPU/memory saturation, and EBS disk I/O metrics.
-  - Profile outbox event generation rate and evaluation worker consumption latency under maximum concurrent load.
-  - Document empirical capacity ceiling, identify primary architectural bottlenecks, and establish data-driven thresholds for horizontal scaling decisions.
+  - Establish automated repeatable load testing harness using k6 and Artillery with anti-tamper signing and dynamic auth. *(Stage 21A Complete)*
+  - Execute Stage 21B environment, security, regression, and harness readiness gate. *(Stage 21B Complete / Passed)*
+  - Execute official concurrency tiers (500, 1,000, 1,500, 2,000, 2,500 VUs) against the intended AWS `c6i.xlarge` staging/benchmark environment. *(Stage 21C Pending)*
+  - Derive empirical Safe Operating Capacity (SOC), saturation thresholds, and Phase 32 migration triggers. *(Stage 21D/21E Pending)*
 - **Acceptance Criteria:**
   - p95 latency for answer autosaves remains under 200ms at peak target concurrency.
   - Zero answer data loss, zero unhandled OCC rollback failures, and zero PostgreSQL deadlocks during burst submissions.
   - Asynchronous evaluation worker drains the evaluation queue without message drops or unroutable returns.
 - **Tests Implemented:**
   - k6 load test scenarios (`autosave-contention.js`, `submission-surge.js`, `login-burst.js`, `full-exam-lifecycle.js`, `pool-saturation.js`, `smoke-test.js`).
+  - Dynamic runtime authentication & secret-free fixture architecture (zero tokens/keys persisted in fixtures/artifacts).
+  - Explicit separation of benchmark modes: Mode A (Prepared Active-Attempt) vs Mode B (Real Candidate Lifecycle).
   - Artillery scenarios (`candidate-journey.yml`, `proctoring-telemetry.yml`).
   - Post-benchmark database integrity verification (`verify-data-integrity.js`): PASS (Zero data loss, Zero orphans, OCC monotonicity verified, Zero deadlocks, Outbox event completeness verified).
-  - Automated benchmark harness (`run-benchmarks.js`): PASS with exit code 0.
+  - Automated benchmark harness (`run-benchmarks.js`, `run-official-tier.js`): Configured with `--dry-run` and remote `BASE_URL` support.
+  - Stage 21B Readiness Gate: 8/8 readiness gates PASS.
+  - *Note:* Stage 21B readiness gate passed. Official concurrency capacity tiers (500–2,500 VUs) require execution against the intended AWS c6i.xlarge staging/benchmark environment (not local development machines). No capacity conclusion or Safe Operating Capacity has yet been established.
 
 ---
 

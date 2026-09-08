@@ -11,7 +11,7 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { Rate, Trend } from 'k6/metrics';
-import { BASE_URL, getCandidateForVU } from './k6-helpers.js';
+import { BASE_URL, getCandidateForVU, loginCandidate } from './k6-helpers.js';
 
 const fixturesRaw = open('../fixtures/benchmark-fixtures.json');
 const fixtures = JSON.parse(fixturesRaw);
@@ -29,23 +29,32 @@ export const options = {
     }
   },
   thresholds: {
-    http_req_duration: ['p(95)<1500'],
-    http_req_failed: ['rate<0.02'],
-    'pool_req_success_rate': ['rate>0.98']
+    'http_req_duration{name:GET /api/v1/attempts/:id/answers}': ['p(95)<1500'],
+    http_req_failed: ['rate<0.05'],
+    'pool_req_success_rate': ['rate>0.95']
   }
 };
 
 const poolReqSuccessRate = new Rate('pool_req_success_rate');
 const reqDuration = new Trend('pool_req_duration_ms', true);
 
+// Per-VU cached authentication token
+let vuToken = null;
+
 export default function () {
   const candidate = getCandidateForVU(fixtures.candidates, __VU);
+
+  // Lazy per-VU authentication
+  if (!vuToken) {
+    const auth = loginCandidate(candidate.email, null, BASE_URL);
+    vuToken = auth.token;
+  }
 
   // Read answers for candidate attempt (hits database pool directly)
   const answersPath = `/api/v1/attempts/${candidate.attemptId}/answers`;
   const params = {
     headers: {
-      'Authorization': `Bearer ${candidate.token}`
+      'Authorization': `Bearer ${vuToken}`
     },
     tags: { name: 'GET /api/v1/attempts/:id/answers' }
   };

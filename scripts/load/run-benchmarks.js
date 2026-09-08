@@ -22,7 +22,10 @@ const rootDir = path.resolve(__dirname, '../..');
 const args = process.argv.slice(2);
 const isFull = args.includes('--full');
 const isSmoke = args.includes('--smoke');
+const isDryRun = args.includes('--dry-run');
 const skipCleanup = args.includes('--skip-cleanup');
+const mode = args.find(a => a.startsWith('--mode='))?.split('=')[1] || 'prepared';
+let baseUrl = process.env.BASE_URL || 'http://localhost:4000';
 
 let vus = isFull ? 2500 : (isSmoke ? 10 : 25);
 let duration = isFull ? '5m' : (isSmoke ? '5s' : '15s');
@@ -32,6 +35,8 @@ for (const arg of args) {
     vus = parseInt(arg.split('=')[1], 10);
   } else if (arg.startsWith('--duration=')) {
     duration = arg.split('=')[1];
+  } else if (arg.startsWith('--base-url=')) {
+    baseUrl = arg.split('=')[1];
   }
 }
 
@@ -43,7 +48,11 @@ if (!fs.existsSync(reportsDir)) {
 console.log('===============================================================');
 console.log('       PROCTORNET PHASE 21 BENCHMARK ORCHESTRATOR             ');
 console.log('===============================================================');
-console.log(`Configuration: VUs=${vus}, Target Duration=${duration}, Mode=${isFull ? 'FULL BENCHMARK' : 'VALIDATION'}`);
+console.log(`Configuration: VUs=${vus}, Target Duration=${duration}, Mode=${isFull ? 'FULL BENCHMARK' : (isSmoke ? 'SMOKE' : 'VALIDATION')}`);
+console.log(`Target Host Base URL: ${baseUrl}`);
+if (isDryRun) {
+  console.log('Mode: DRY-RUN CONFIGURATION VALIDATION (NO LOAD WILL RUN)');
+}
 
 const executionReport = {
   started_at: new Date().toISOString(),
@@ -88,10 +97,44 @@ function runStep(name, command, argsArr, envVars = {}) {
 }
 
 async function main() {
+  if (isDryRun) {
+    console.log('\n[Dry-Run] Validating benchmark runner configuration and scenario readiness...');
+    console.log(`  - Target Concurrency: ${vus} VUs`);
+    console.log(`  - Target Base URL: ${baseUrl}`);
+    console.log(`  - Target Duration: ${duration}`);
+    console.log(`  - Mode: ${mode}`);
+    console.log(`  - Reports Directory: ${reportsDir}`);
+
+    const scenarioFiles = [
+      'scripts/load/k6/login-burst.js',
+      'scripts/load/k6/autosave-contention.js',
+      'scripts/load/k6/submission-surge.js',
+      'scripts/load/seed-benchmark-data.js',
+      'scripts/load/verify-data-integrity.js',
+      'scripts/load/cleanup-benchmark-data.js'
+    ];
+    let allFilesExist = true;
+    for (const rel of scenarioFiles) {
+      const p = path.resolve(rootDir, rel);
+      if (!fs.existsSync(p)) {
+        console.error(`  ✖ Missing scenario/script file: ${rel}`);
+        allFilesExist = false;
+      } else {
+        console.log(`  ✔ Verified script: ${rel}`);
+      }
+    }
+    if (!allFilesExist) {
+      process.exit(1);
+    }
+    console.log('\n✔ [Dry-Run] Configuration, scenario files, and runner options are VALID.');
+    console.log('No benchmark workload was executed (dry-run mode).');
+    return;
+  }
+
   let allPassed = true;
-  console.log('\n▶ [Pre-Flight] Checking backend readiness at http://localhost:4000/ready...');
+  console.log(`\n▶ [Pre-Flight] Checking backend readiness at ${baseUrl}/ready...`);
   try {
-    const res = await fetch('http://localhost:4000/ready');
+    const res = await fetch(`${baseUrl}/ready`);
     const data = await res.json();
     if (data.status !== 'READY') {
       console.error(`✖ Backend reported unready status: ${JSON.stringify(data)}`);
@@ -99,14 +142,15 @@ async function main() {
     }
     console.log(`✔ Backend is READY (DB: ${data.checks.database.status}, Redis: ${data.checks.redis.status}, RabbitMQ: ${data.checks.rabbitmq.status})`);
   } catch (err) {
-    console.error(`✖ Unable to connect to backend on http://localhost:4000: ${err.message}`);
+    console.error(`✖ Unable to connect to backend on ${baseUrl}: ${err.message}`);
     process.exit(1);
   }
 
   // 1. Seed Benchmark Data
   const seedPassed = runStep('1. Seed Benchmark Fixtures', 'node', [
     'scripts/load/seed-benchmark-data.js',
-    `--count=${vus}`
+    `--count=${vus}`,
+    `--mode=${mode}`
   ]);
   if (!seedPassed) allPassed = false;
 
@@ -114,6 +158,7 @@ async function main() {
   const loginPassed = runStep('2. Login Burst Scenario', 'k6', [
     'run',
     'scripts/load/k6/login-burst.js',
+    '-e', `BASE_URL=${baseUrl}`,
     '-e', `VUS=${vus}`,
     '-e', 'RAMP=5s',
     '-e', 'HOLD=10s'
@@ -124,6 +169,7 @@ async function main() {
   const autosavePassed = runStep('3. Autosave Contention Scenario', 'k6', [
     'run',
     'scripts/load/k6/autosave-contention.js',
+    '-e', `BASE_URL=${baseUrl}`,
     '-e', `VUS=${vus}`,
     '-e', `DURATION=${duration}`,
     '-e', 'PACING=0.5'
@@ -134,6 +180,7 @@ async function main() {
   const submitPassed = runStep('4. Submission Surge & Idempotency Replay', 'k6', [
     'run',
     'scripts/load/k6/submission-surge.js',
+    '-e', `BASE_URL=${baseUrl}`,
     '-e', `VUS=${vus}`,
     '-e', `DURATION=${duration}`
   ]);

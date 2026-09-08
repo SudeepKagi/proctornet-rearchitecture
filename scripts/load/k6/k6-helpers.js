@@ -6,8 +6,10 @@
  */
 
 import crypto from 'k6/crypto';
+import http from 'k6/http';
 
 export const BASE_URL = __ENV.BASE_URL || 'http://localhost:4000';
+export const BENCHMARK_PASSWORD = __ENV.BENCHMARK_PASSWORD || 'BenchPass#123!';
 
 /**
  * Generates an RFC4122 v4 compliant UUID in pure JavaScript for k6.
@@ -96,4 +98,80 @@ export function randomInt(min, max) {
  */
 export function randomChoice(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
+}
+
+/**
+ * Authenticates a benchmark candidate dynamically at runtime.
+ * Tokens are never persisted to disk or artifacts.
+ *
+ * @param {string} email
+ * @param {string} password
+ * @param {string} [baseUrl]
+ * @returns {{ token: string, userId: string }}
+ */
+export function loginCandidate(email, password, baseUrl) {
+  const url = `${baseUrl || BASE_URL}/api/v1/auth/login`;
+  const res = http.post(url, JSON.stringify({ email, password: password || BENCHMARK_PASSWORD }), {
+    headers: { 'Content-Type': 'application/json' }
+  });
+  if (res.status !== 200) {
+    throw new Error(`Login failed for candidate ${email}: ${res.status} ${res.body}`);
+  }
+  const body = res.json();
+  const token = body?.data?.accessToken || body?.data?.tokens?.accessToken;
+  const userId = body?.data?.user?.userId || body?.data?.user?.user_id;
+  if (!token) {
+    throw new Error(`Login response missing accessToken for ${email}: ${res.body}`);
+  }
+  return { token, userId };
+}
+
+/**
+ * Retrieves attempt context and runtime anti-tamper signing token.
+ *
+ * @param {string} token JWT access token
+ * @param {string} attemptId Attempt UUID
+ * @param {string} [baseUrl]
+ * @returns {{ antiTamperToken: string, questions: Array }}
+ */
+export function getAttemptContext(token, attemptId, baseUrl) {
+  const url = `${baseUrl || BASE_URL}/api/v1/attempts/${attemptId}`;
+  const res = http.get(url, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (res.status !== 200) {
+    throw new Error(`Get attempt failed for ${attemptId}: ${res.status} ${res.body}`);
+  }
+  const body = res.json();
+  return {
+    antiTamperToken: body.data.anti_tamper_token,
+    questions: body.data.questions || []
+  };
+}
+
+/**
+ * Starts an exam attempt for Mode B (Real Lifecycle Benchmark).
+ *
+ * @param {string} token JWT access token
+ * @param {string} sessionId Session UUID
+ * @param {string} [baseUrl]
+ * @returns {{ attemptId: string, antiTamperToken: string, totalQuestions: number }}
+ */
+export function startAttempt(token, sessionId, baseUrl) {
+  const url = `${baseUrl || BASE_URL}/api/v1/attempts/start`;
+  const res = http.post(url, JSON.stringify({ sessionId: sessionId }), {
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
+    }
+  });
+  if (res.status !== 200 && res.status !== 201) {
+    throw new Error(`Start attempt failed: ${res.status} ${res.body}`);
+  }
+  const body = res.json();
+  return {
+    attemptId: body.data.attempt_id,
+    antiTamperToken: body.data.anti_tamper_token,
+    totalQuestions: body.data.total_questions
+  };
 }
