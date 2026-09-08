@@ -17,10 +17,10 @@ export function normalizeHeader(rawHeader) {
   if (!rawHeader || typeof rawHeader !== 'string') return '';
   const cleaned = rawHeader.trim().toLowerCase().replace(/[\s_-]+/g, '');
 
-  if (['usn', 'enrollmentnumber', 'enrollmentno', 'registrationnumber'].includes(cleaned)) {
+  if (['usn', 'enrollmentnumber', 'enrollmentno', 'registrationnumber', 'identifier', 'studentid', 'rollnumber', 'rollno'].includes(cleaned)) {
     return 'identifier';
   }
-  if (['employeeid', 'employeeno', 'facultyid', 'facultyno', 'staffid'].includes(cleaned)) {
+  if (['employeeid', 'employeeno', 'facultyid', 'facultyno', 'staffid', 'empid'].includes(cleaned)) {
     return 'identifier';
   }
   if (['name', 'fullname', 'studentname', 'facultyname'].includes(cleaned)) {

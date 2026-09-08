@@ -103,7 +103,7 @@ export function CreateUserPage() {
           Provision User Account
         </h1>
         <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem', marginTop: '4px' }}>
-          Create a verified institutional account. The server will generate a temporary single-use password.
+          Create an institutional account. The user will complete onboarding and administrative verification after first login.
         </p>
       </div>
 

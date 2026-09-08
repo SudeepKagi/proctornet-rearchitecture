@@ -44,7 +44,7 @@ describe('User Service (Level 2 Integration Tests)', () => {
       assert.equal(result.user.verificationStatus, 'UNVERIFIED');
       assert.equal(result.user.mustChangePassword, true);
       assert.ok(result.temporaryPassword);
-      assert.equal(result.temporaryPassword.length >= 12, true);
+      assert.equal(result.temporaryPassword.length, 16);
 
       // Verify plaintext password is NOT in database
       const rawUser = await authRepo.findUserByEmail(email);

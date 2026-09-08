@@ -1,6 +1,7 @@
 /**
  * @file OrganizationSettingsPage.jsx
  * @description Institutional settings and security policy configuration dashboard.
+ * Conforms directly to the authoritative organization_settings backend schema.
  */
 
 import React, { useState, useEffect } from 'react';
@@ -18,14 +19,27 @@ export function OrganizationSettingsPage() {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
 
-  // Form fields
+  // Authoritative Backend Form Fields
   const [institutionName, setInstitutionName] = useState('');
-  const [contactEmail, setContactEmail] = useState('');
-  const [contactPhone, setContactPhone] = useState('');
-  const [timezone, setTimezone] = useState('UTC');
-  const [maxLoginAttempts, setMaxLoginAttempts] = useState('5');
+  const [supportEmail, setSupportEmail] = useState('');
+  const [allowedDomains, setAllowedDomains] = useState('');
+  const [minLength, setMinLength] = useState('8');
+  const [maxFailedAttempts, setMaxFailedAttempts] = useState('5');
   const [lockoutDurationMinutes, setLockoutDurationMinutes] = useState('15');
-  const [sessionTimeoutMinutes, setSessionTimeoutMinutes] = useState('60');
+  const [accessTokenTtlMinutes, setAccessTokenTtlMinutes] = useState('15');
+  const [refreshTokenTtlDays, setRefreshTokenTtlDays] = useState('7');
+
+  const populateFields = (data) => {
+    if (!data) return;
+    setInstitutionName(data.institutionName || '');
+    setSupportEmail(data.supportEmail || '');
+    setAllowedDomains(Array.isArray(data.allowedDomains) ? data.allowedDomains.join(', ') : '');
+    setMinLength(String(data.passwordPolicy?.minLength || 8));
+    setMaxFailedAttempts(String(data.passwordPolicy?.maxFailedAttempts || 5));
+    setLockoutDurationMinutes(String(data.passwordPolicy?.lockoutDurationMinutes || 15));
+    setAccessTokenTtlMinutes(String(data.sessionPolicy?.accessTokenTtlMinutes || 15));
+    setRefreshTokenTtlDays(String(data.sessionPolicy?.refreshTokenTtlDays || 7));
+  };
 
   useEffect(() => {
     async function loadSettings() {
@@ -34,15 +48,7 @@ export function OrganizationSettingsPage() {
       try {
         const data = await adminUsersApi.fetchOrganizationSettings();
         setSettings(data);
-        if (data) {
-          setInstitutionName(data.institutionName || '');
-          setContactEmail(data.contactEmail || '');
-          setContactPhone(data.contactPhone || '');
-          setTimezone(data.timezone || 'UTC');
-          setMaxLoginAttempts(String(data.securityPolicies?.maxLoginAttempts || 5));
-          setLockoutDurationMinutes(String(data.securityPolicies?.lockoutDurationMinutes || 15));
-          setSessionTimeoutMinutes(String(data.securityPolicies?.sessionTimeoutMinutes || 60));
-        }
+        populateFields(data);
       } catch (err) {
         setError(err?.message || 'Failed to load organization settings');
       } finally {
@@ -60,17 +66,28 @@ export function OrganizationSettingsPage() {
     try {
       const updated = await adminUsersApi.updateOrganizationSettings({
         institutionName: institutionName.trim(),
-        contactEmail: contactEmail.trim(),
-        contactPhone: contactPhone.trim(),
-        timezone,
-        allowSelfRegistration: false, // Authoritative invariant: Self-registration cannot be enabled
-        securityPolicies: {
-          maxLoginAttempts: parseInt(maxLoginAttempts, 10) || 5,
-          lockoutDurationMinutes: parseInt(lockoutDurationMinutes, 10) || 15,
-          sessionTimeoutMinutes: parseInt(sessionTimeoutMinutes, 10) || 60
+        supportEmail: supportEmail.trim(),
+        allowedDomains: allowedDomains
+          .split(',')
+          .map((d) => d.trim())
+          .filter(Boolean),
+        passwordPolicy: {
+          minLength: parseInt(minLength, 10) || 8,
+          maxFailedAttempts: parseInt(maxFailedAttempts, 10) || 5,
+          lockoutDurationMinutes: parseInt(lockoutDurationMinutes, 10) || 15
+        },
+        sessionPolicy: {
+          accessTokenTtlMinutes: parseInt(accessTokenTtlMinutes, 10) || 15,
+          refreshTokenTtlDays: parseInt(refreshTokenTtlDays, 10) || 7
+        },
+        featureFlags: {
+          allowSelfRegistration: false, // Authoritative invariant: Self-registration strictly forbidden
+          requireVerificationBeforeExam: true
         }
       });
+
       setSettings(updated);
+      populateFields(updated);
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
@@ -119,47 +136,47 @@ export function OrganizationSettingsPage() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)' }}>
               <Input
                 id="inst-email"
-                label="Registrar Contact Email"
+                label="Institutional Support Email"
                 type="email"
                 required
-                value={contactEmail}
-                onChange={(e) => setContactEmail(e.target.value)}
+                value={supportEmail}
+                onChange={(e) => setSupportEmail(e.target.value)}
               />
               <Input
-                id="inst-phone"
-                label="Registrar Contact Phone"
-                value={contactPhone}
-                onChange={(e) => setContactPhone(e.target.value)}
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '6px' }}>
-                Default Timezone
-              </label>
-              <Input
-                id="inst-timezone"
-                value={timezone}
-                onChange={(e) => setTimezone(e.target.value)}
+                id="inst-domains"
+                label="Allowed Email Domains (comma separated)"
+                placeholder="university.edu, college.edu"
+                value={allowedDomains}
+                onChange={(e) => setAllowedDomains(e.target.value)}
               />
             </div>
           </div>
         </Card>
 
-        {/* Security & Access Policies */}
+        {/* Security & Authentication Policies */}
         <Card style={{ padding: 'var(--space-xl)' }}>
           <h3 style={{ fontSize: '1.125rem', fontWeight: 600, margin: '0 0 var(--space-md) 0' }}>
-            Security & Authentication Policies
+            Password & Lockout Policy
           </h3>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--space-md)', marginBottom: 'var(--space-lg)' }}>
+            <Input
+              id="min-length"
+              label="Min Password Length"
+              type="number"
+              min="8"
+              max="64"
+              value={minLength}
+              onChange={(e) => setMinLength(e.target.value)}
+            />
             <Input
               id="max-login-attempts"
               label="Max Failed Attempts"
               type="number"
               min="3"
               max="20"
-              value={maxLoginAttempts}
-              onChange={(e) => setMaxLoginAttempts(e.target.value)}
+              value={maxFailedAttempts}
+              onChange={(e) => setMaxFailedAttempts(e.target.value)}
             />
             <Input
               id="lockout-duration"
@@ -170,14 +187,30 @@ export function OrganizationSettingsPage() {
               value={lockoutDurationMinutes}
               onChange={(e) => setLockoutDurationMinutes(e.target.value)}
             />
+          </div>
+
+          <h3 style={{ fontSize: '1.125rem', fontWeight: 600, margin: 'var(--space-md) 0' }}>
+            Session Policies
+          </h3>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)', marginBottom: 'var(--space-lg)' }}>
             <Input
-              id="session-timeout"
-              label="Session Timeout (mins)"
+              id="access-token-ttl"
+              label="Access Token TTL (mins)"
               type="number"
-              min="15"
-              max="10080"
-              value={sessionTimeoutMinutes}
-              onChange={(e) => setSessionTimeoutMinutes(e.target.value)}
+              min="5"
+              max="1440"
+              value={accessTokenTtlMinutes}
+              onChange={(e) => setAccessTokenTtlMinutes(e.target.value)}
+            />
+            <Input
+              id="refresh-token-ttl"
+              label="Refresh Token TTL (days)"
+              type="number"
+              min="1"
+              max="90"
+              value={refreshTokenTtlDays}
+              onChange={(e) => setRefreshTokenTtlDays(e.target.value)}
             />
           </div>
 

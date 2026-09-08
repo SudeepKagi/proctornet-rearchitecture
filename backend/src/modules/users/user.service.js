@@ -28,7 +28,7 @@ import { getPool } from '../../infrastructure/postgres/pool.js';
 const BCRYPT_SALT_ROUNDS = 10;
 
 /**
- * Generates a cryptographically secure random temporary password.
+ * Generates a cryptographically secure random 16-character temporary password.
  * Satisfies complexity requirements: upper, lower, digits, special characters.
  * @returns {string}
  */
@@ -45,7 +45,7 @@ export function generateTemporaryPassword() {
   password += specials[crypto.randomInt(specials.length)];
 
   const allChars = letters + uppers + numbers + specials;
-  for (let i = 4; i < 14; i++) {
+  for (let i = 4; i < 16; i++) {
     password += allChars[crypto.randomInt(allChars.length)];
   }
 

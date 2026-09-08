@@ -34,10 +34,10 @@ export async function createSingleUser(userData) {
 
 export async function previewBulkImport(file, defaultRole = 'STUDENT') {
   const formData = new FormData();
-  formData.append('roster', file);
+  formData.append('file', file);
   formData.append('defaultRole', defaultRole);
 
-  return await apiClient('/api/v1/admin/users/bulk/preview', {
+  return await apiClient('/api/v1/admin/users/bulk-import/preview', {
     method: 'POST',
     body: formData
   });
@@ -45,11 +45,11 @@ export async function previewBulkImport(file, defaultRole = 'STUDENT') {
 
 export async function commitBulkImport(file, defaultRole = 'STUDENT', atomic = false) {
   const formData = new FormData();
-  formData.append('roster', file);
+  formData.append('file', file);
   formData.append('defaultRole', defaultRole);
   formData.append('atomic', String(atomic));
 
-  return await apiClient('/api/v1/admin/users/bulk/commit', {
+  return await apiClient('/api/v1/admin/users/bulk-import', {
     method: 'POST',
     body: formData
   });
@@ -100,7 +100,7 @@ export async function fetchVerificationQueue(params = {}) {
 }
 
 export async function reviewVerification(userId, decision, reviewNotes = '') {
-  return await apiClient(`/api/v1/admin/verifications/${userId}`, {
+  return await apiClient(`/api/v1/admin/users/${userId}/verification`, {
     method: 'PATCH',
     body: {
       verificationStatus: decision,
@@ -110,12 +110,12 @@ export async function reviewVerification(userId, decision, reviewNotes = '') {
 }
 
 export async function fetchOrganizationSettings() {
-  const res = await apiClient('/api/v1/admin/settings');
+  const res = await apiClient('/api/v1/admin/organization');
   return res?.settings;
 }
 
 export async function updateOrganizationSettings(settings) {
-  const res = await apiClient('/api/v1/admin/settings', {
+  const res = await apiClient('/api/v1/admin/organization', {
     method: 'PUT',
     body: settings
   });
@@ -131,6 +131,6 @@ export async function fetchAuditLogs(params = {}) {
   if (params.resource_id) query.set('resource_id', params.resource_id);
 
   const qs = query.toString();
-  const res = await apiClient(`/api/v1/audit/logs${qs ? `?${qs}` : ''}`);
+  const res = await apiClient(`/api/v1/admin/audit${qs ? `?${qs}` : ''}`);
   return res?.data || res;
 }

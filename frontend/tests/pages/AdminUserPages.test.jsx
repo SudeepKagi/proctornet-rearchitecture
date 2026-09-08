@@ -13,6 +13,7 @@ import { UserManagementPage } from '../../src/pages/admin/UserManagementPage.jsx
 import { CreateUserPage } from '../../src/pages/admin/CreateUserPage.jsx';
 import { BulkImportPage } from '../../src/pages/admin/BulkImportPage.jsx';
 import { AdminVerificationPage } from '../../src/pages/admin/AdminVerificationPage.jsx';
+import { OrganizationSettingsPage } from '../../src/pages/admin/OrganizationSettingsPage.jsx';
 import { VerifiedRoute } from '../../src/routes/VerifiedRoute.jsx';
 import { AuthContext } from '../../src/context/AuthContext.jsx';
 import * as adminUsersApi from '../../src/api/adminUsersApi.js';
@@ -220,6 +221,80 @@ describe('Phase 23 Admin User Administration Pages (Frontend Tests)', () => {
 
       await waitFor(() => {
         expect(adminUsersApi.reviewVerification).toHaveBeenCalledWith('pending-1', 'VERIFIED', '');
+      });
+    });
+  });
+
+  describe('OrganizationSettingsPage', () => {
+    it('fetches authoritative organization settings, locks self-registration, and saves updates', async () => {
+      vi.mocked(adminUsersApi.fetchOrganizationSettings).mockResolvedValueOnce({
+        institutionName: 'Apex University',
+        supportEmail: 'support@apex.edu',
+        allowedDomains: ['apex.edu', 'students.apex.edu'],
+        passwordPolicy: {
+          minLength: 12,
+          maxFailedAttempts: 5,
+          lockoutDurationMinutes: 15
+        },
+        sessionPolicy: {
+          accessTokenTtlMinutes: 15,
+          refreshTokenTtlDays: 7
+        },
+        featureFlags: {
+          allowSelfRegistration: false,
+          requireVerificationBeforeExam: true
+        }
+      });
+
+      vi.mocked(adminUsersApi.updateOrganizationSettings).mockResolvedValueOnce({
+        institutionName: 'Updated Apex University',
+        supportEmail: 'support@apex.edu',
+        allowedDomains: ['apex.edu', 'students.apex.edu'],
+        passwordPolicy: {
+          minLength: 12,
+          maxFailedAttempts: 5,
+          lockoutDurationMinutes: 15
+        },
+        sessionPolicy: {
+          accessTokenTtlMinutes: 15,
+          refreshTokenTtlDays: 7
+        },
+        featureFlags: {
+          allowSelfRegistration: false,
+          requireVerificationBeforeExam: true
+        }
+      });
+
+      render(
+        <MemoryRouter>
+          <OrganizationSettingsPage />
+        </MemoryRouter>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByDisplayValue('Apex University')).toBeInTheDocument();
+        expect(screen.getByDisplayValue('support@apex.edu')).toBeInTheDocument();
+        expect(screen.getByText('DISABLED (LOCKED)')).toBeInTheDocument();
+      });
+
+      // Update institution name
+      fireEvent.change(screen.getByDisplayValue('Apex University'), {
+        target: { value: 'Updated Apex University' }
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /Save Configuration/i }));
+
+      await waitFor(() => {
+        expect(adminUsersApi.updateOrganizationSettings).toHaveBeenCalledWith(
+          expect.objectContaining({
+            institutionName: 'Updated Apex University',
+            supportEmail: 'support@apex.edu',
+            featureFlags: expect.objectContaining({
+              allowSelfRegistration: false
+            })
+          })
+        );
+        expect(screen.getByText('Settings saved successfully.')).toBeInTheDocument();
       });
     });
   });

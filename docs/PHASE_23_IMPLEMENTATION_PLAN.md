@@ -302,7 +302,7 @@ Admin chooses import mode:
   ▼
 [ BATCH EXECUTION (PostgreSQL Transaction) ]
 For each valid row:
-- Generate cryptographically secure 14-character temporary password
+- Generate cryptographically secure 16-character temporary password
 - Hash password using bcrypt (10 rounds)
 - Insert users: status = 'ACTIVE', verification_status = 'UNVERIFIED', must_change_password = TRUE
 - Insert user_roles: role = 'STUDENT' or 'FACULTY'
