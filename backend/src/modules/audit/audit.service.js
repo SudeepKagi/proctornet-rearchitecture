@@ -133,9 +133,10 @@ export async function recordAuditEvent(auditData, client = null) {
  * @returns {Promise<{ audit_logs: Array<object>, pagination: object }>}
  */
 export async function queryAuditLogs(filters = {}, user) {
-  const isAdmin = Array.isArray(user?.roles) && user.roles.includes('ADMIN');
-  if (!isAdmin) {
-    throw new ForbiddenError('Access denied: Audit log inspection requires ADMIN role');
+  const isAuthorized =
+    Array.isArray(user?.roles) && (user.roles.includes('ADMIN') || user.roles.includes('DEVELOPER'));
+  if (!isAuthorized) {
+    throw new ForbiddenError('Access denied: Audit log inspection requires ADMIN role or DEVELOPER role');
   }
 
   const rawPage = parseInt(filters.page, 10);

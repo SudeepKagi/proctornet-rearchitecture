@@ -12,7 +12,8 @@ import { query, getPool } from '../../infrastructure/postgres/pool.js';
  */
 export async function findUserByEmail(email) {
   const text = `
-    SELECT user_id, name, email, phone, password_hash, status, failed_login_attempts, locked_until, created_at, updated_at
+    SELECT user_id, name, email, phone, password_hash, status, must_change_password, verification_status,
+           failed_login_attempts, locked_until, created_at, updated_at
     FROM users
     WHERE email = $1;
   `;
@@ -27,7 +28,8 @@ export async function findUserByEmail(email) {
  */
 export async function findUserById(userId) {
   const text = `
-    SELECT user_id, name, email, phone, status, failed_login_attempts, locked_until, created_at, updated_at
+    SELECT user_id, name, email, phone, status, must_change_password, verification_status,
+           failed_login_attempts, locked_until, created_at, updated_at
     FROM users
     WHERE user_id = $1;
   `;
@@ -138,9 +140,9 @@ export async function createUser({
 
     // 1. Insert user
     const insertUserText = `
-      INSERT INTO users (name, email, phone, password_hash, status)
-      VALUES ($1, $2, $3, $4, 'ACTIVE')
-      RETURNING user_id, name, email, phone, status, created_at;
+      INSERT INTO users (name, email, phone, password_hash, status, verification_status)
+      VALUES ($1, $2, $3, $4, 'ACTIVE', 'VERIFIED')
+      RETURNING user_id, name, email, phone, status, verification_status, created_at;
     `;
     const userRes = await client.query(insertUserText, [
       name.trim(),

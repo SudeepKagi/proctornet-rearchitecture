@@ -147,21 +147,11 @@ export function LoginPage() {
               paddingTop: '1.25rem',
               borderTop: '1px solid var(--color-border-subtle)',
               textAlign: 'center',
-              fontSize: '0.875rem',
+              fontSize: '0.8125rem',
               color: 'var(--color-text-muted)',
             }}
           >
-            Don't have an account?{' '}
-            <Link
-              to="/register"
-              style={{
-                color: 'var(--color-primary)',
-                fontWeight: 500,
-                textDecoration: 'none',
-              }}
-            >
-              Register here
-            </Link>
+            Accounts are provisioned by institutional administrators. Please sign in with your temporary or permanent credentials.
           </div>
         </Card>
       </div>

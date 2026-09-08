@@ -15,6 +15,6 @@ export const auditRouter = Router();
 auditRouter.get(
   '/',
   authenticate,
-  requireRole('ADMIN'),
+  requireRole('ADMIN', 'DEVELOPER'),
   auditController.handleGetAuditLogs
 );
