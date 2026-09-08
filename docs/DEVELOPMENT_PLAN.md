@@ -324,23 +324,28 @@ $$\text{Plan} \longrightarrow \text{Implement} \longrightarrow \text{Test} \long
 ---
 
 ### Phase 14 — Proctoring Events
-- [ ] **Status:** Planned / Ready for Plan Review
+- [x] **Status:** Complete (Merged to main — PR #15)
 - **Objective:** Implement automated client-side violation detection (tab switch, window blur, keyboard shortcuts, multi-display) and server ingestion.
 - **Dependencies:** Phase 13
 - **Major Tasks:**
-  - Database migrations for `proctoring_events` and `violation_flags`.
-  - Implement frontend event listeners (visibility change, blur, copy/paste, fullscreen exit) with debouncing.
-  - Implement ingestion endpoint (`POST /api/attempts/:id/events`) with rate limiting and batching.
-  - Server-side anomaly scoring and real-time alert trigger for proctors.
+  - Database migration `016_proctoring_events_and_flags.js` for `exam_attempts.risk_score`, `violation_events` client correlation, and `violation_flags`.
+  - Server-authoritative event taxonomy and deterministic anomaly scoring (`anomalyScorer.js`).
+  - Strict tamper-proof validation and privacy boundaries (`proctoring.schemas.js`).
+  - Batch event ingestion endpoint (`POST /api/v1/attempts/:attemptId/events`) with Redis sliding-window rate limiter (60 req/min).
+  - Attempt violation timeline (`GET /api/v1/attempts/:attemptId/events`) and session proctoring summary (`GET /api/v1/sessions/:sessionId/proctoring/summary`).
+  - Manual flag creation and review lifecycle (`ACTIVE -> REVIEWED/DISMISSED`) with centralized transactional audit logging (`PROCTOR_FLAG_CREATED`, `PROCTOR_FLAG_REVIEWED`).
+  - Reused Phase 13 Prometheus metrics (`proctornet_proctoring_events_total`, `proctornet_proctoring_ingest_duration_seconds`, `proctornet_proctoring_flags_total`).
+  - Frontend telemetry hook (`useProctoringEvents.js`) and invigilator monitoring UI integration.
 - **Acceptance Criteria:**
-  - Client violations are captured, timestamped, and transmitted reliably without blocking the candidate's exam UI.
-  - Proctors receive real-time flags when suspicious activity thresholds are exceeded.
-- **Tests Required:** Event ingestion API tests, violation rate-limiting tests, anomaly scoring unit tests.
+  - Server-authoritative scoring strictly isolated from academic evaluation.
+  - Database-backed idempotency on `(attempt_id, client_event_id)` with row-level locking for concurrency safety.
+  - Zero raw clipboard, keystroke, video, or audio data captured.
+- **Tests Implemented:** 39 dedicated unit and integration tests across 8 suites (`anomalyScoring.test.js`, `proctoringValidation.test.js`, `proctoringIngestion.test.js`, `proctoringIdempotency.test.js`, `proctoringFlags.test.js`, `proctoringAtomicity.test.js`, `proctoringConcurrency.test.js`, `proctoringRbac.test.js`). 3 frontend hook tests. Full regression: 545/545 backend tests passing across 132 suites, 28/28 frontend tests passing across 11 suites. ADR-0004 approved.
 
 ---
 
 ### Phase 15 — Evidence Storage
-- [ ] **Status:** Pending
+- [ ] **Status:** In Planning
 - **Objective:** Implement secure, direct-to-S3 evidence uploads (webcam snapshots, screen captures, audio) with signed URLs and metadata verification.
 - **Dependencies:** Phase 14
 - **Major Tasks:**

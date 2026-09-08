@@ -66,3 +66,4 @@ How will this decision be enforced and validated in testing/CI?
 - [ADR-0002: RabbitMQ Asynchronous Transport, Quorum Queue Delayed Retries, and Worker Idempotency](0002-rabbitmq-asynchronous-transport-and-worker-idempotency.md) — *Accepted (Phase 12)*
 - [ADR-0003: In-Process Prometheus Metrics, Distributed Trace Context Propagation, and Database-Enforced Audit Immutability](0003-observability-metrics-and-audit.md) — *Accepted (Phase 13)*
 - [ADR-0004: Proctoring Event Ingestion, Server-Authoritative Anomaly Scoring, and Flag Lifecycle](0004-proctoring-event-ingestion-and-anomaly-scoring.md) — *Accepted (Phase 14)*
+- [ADR-0005: Private Object Storage Architecture, Direct Presigned Evidence Uploads, and Authoritative PostgreSQL Metadata Lifecycle](0005-private-object-storage-architecture-direct-presigned-evidence-uploads-and-authoritative-postgresql-metadata-lifecycle.md) — *Accepted (Phase 15)*

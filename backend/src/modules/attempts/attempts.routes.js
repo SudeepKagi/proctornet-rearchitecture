@@ -16,6 +16,7 @@ import { submitAttempt } from '../submissions/submissions.controller.js';
 import { candidateResultsRouter } from '../results/results.routes.js';
 import { createRateLimiter } from '../../middleware/rateLimiter.js';
 import { attemptEventsRouter, attemptProctoringFlagsRouter } from '../proctoring/proctoring.routes.js';
+import { evidenceRouter } from '../evidence/evidence.routes.js';
 
 export const attemptsRouter = Router();
 
@@ -49,6 +50,9 @@ attemptsRouter.use('/:attemptId/events', attemptEventsRouter);
 
 // Phase 14: Proctoring Flags (Manual Creation & Status Reviews)
 attemptsRouter.use('/:attemptId/proctoring/flags', attemptProctoringFlagsRouter);
+
+// Phase 15: Proctoring Evidence Storage & Direct-to-S3 Uploads
+attemptsRouter.use('/:attemptId/evidence', evidenceRouter);
 
 // Attempt inspection & question mapping endpoints
 attemptsRouter.get('/:attemptId', authenticate, getAttemptById);
