@@ -63,6 +63,7 @@ export function setupMockS3(handlerMap = {}) {
 
     if (name === 'GetObjectCommand') {
       const isPng = command.input.Key?.endsWith('.png');
+      const isPdf = command.input.Key?.endsWith('.pdf');
       const isWebp = command.input.Key?.endsWith('.webp');
       const isWebm = command.input.Key?.endsWith('.webm');
       const isOgg = command.input.Key?.endsWith('.ogg');
@@ -71,6 +72,8 @@ export function setupMockS3(handlerMap = {}) {
       let magicBytes;
       if (isPng) {
         magicBytes = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52]);
+      } else if (isPdf) {
+        magicBytes = Buffer.from('%PDF-1.7\n%mock pdf header\n');
       } else if (isWebp) {
         magicBytes = Buffer.concat([Buffer.from('RIFF'), Buffer.alloc(4), Buffer.from('WEBP')]);
       } else if (isWebm) {
@@ -90,7 +93,7 @@ export function setupMockS3(handlerMap = {}) {
       return {
         Body: generateStream(),
         ContentLength: magicBytes.length,
-        ContentType: isPng ? 'image/png' : 'image/jpeg'
+        ContentType: isPng ? 'image/png' : isPdf ? 'application/pdf' : 'image/jpeg'
       };
     }
 

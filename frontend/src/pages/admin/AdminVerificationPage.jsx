@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import * as adminUsersApi from '../../api/adminUsersApi.js';
 import { Button } from '../../components/common/Button.jsx';
 import { Card } from '../../components/common/Card.jsx';
@@ -11,8 +12,10 @@ import { Badge } from '../../components/common/Badge.jsx';
 import { Modal } from '../../components/common/Modal.jsx';
 import { Alert } from '../../components/common/Alert.jsx';
 import { Input } from '../../components/common/Input.jsx';
+import { StudentVerificationDetailModal } from '../../components/admin/StudentVerificationDetailModal.jsx';
 
 export function AdminVerificationPage() {
+  const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, totalPages: 1 });
   const [loading, setLoading] = useState(true);
@@ -22,7 +25,11 @@ export function AdminVerificationPage() {
   const [roleFilter, setRoleFilter] = useState('');
   const [search, setSearch] = useState('');
 
-  // Review modal
+  // Phase 24: Student Identity Dossier & Preview modal
+  const [dossierModalOpen, setDossierModalOpen] = useState(false);
+  const [selectedStudentIdForDossier, setSelectedStudentIdForDossier] = useState(null);
+
+  // General Review modal
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [reviewDecision, setReviewDecision] = useState('VERIFIED');
@@ -226,7 +233,28 @@ export function AdminVerificationPage() {
                       {getVerificationBadge(u.verificationStatus)}
                     </td>
                     <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                      <div style={{ display: 'inline-flex', gap: '6px' }}>
+                      <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}>
+                        {u.roles?.includes('STUDENT') && (
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedStudentIdForDossier(u.userId);
+                                setDossierModalOpen(true);
+                              }}
+                            >
+                              Review ID
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => navigate(`/admin/students/${u.userId}/configuration`)}
+                            >
+                              Accommodations
+                            </Button>
+                          </>
+                        )}
                         <Button
                           variant="primary"
                           size="sm"
@@ -396,6 +424,14 @@ export function AdminVerificationPage() {
           </div>
         </form>
       </Modal>
+
+      {/* Phase 24: Student Identity Verification Detail Modal */}
+      <StudentVerificationDetailModal
+        studentId={selectedStudentIdForDossier}
+        isOpen={dossierModalOpen}
+        onClose={() => setDossierModalOpen(false)}
+        onReviewSuccess={() => loadQueue(pagination.page)}
+      />
     </div>
   );
 }

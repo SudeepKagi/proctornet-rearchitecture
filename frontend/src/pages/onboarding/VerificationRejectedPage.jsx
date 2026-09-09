@@ -108,6 +108,17 @@ export function VerificationRejectedPage() {
             Update & Resubmit Profile
           </Button>
 
+          {user?.roles?.includes('STUDENT') && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => navigate('/onboarding/document-upload')}
+              style={{ width: '100%' }}
+            >
+              Upload Identity Document
+            </Button>
+          )}
+
           <Button
             type="button"
             variant="ghost"

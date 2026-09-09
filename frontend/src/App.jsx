@@ -19,6 +19,7 @@ import { RealtimeProvider } from './context/RealtimeContext.jsx';
 import { FirstLoginPasswordPage } from './pages/onboarding/FirstLoginPasswordPage.jsx';
 import { StudentOnboardingPage } from './pages/onboarding/StudentOnboardingPage.jsx';
 import { FacultyOnboardingPage } from './pages/onboarding/FacultyOnboardingPage.jsx';
+import { CandidateDocumentUploadPage } from './pages/onboarding/CandidateDocumentUploadPage.jsx';
 import { VerificationPendingPage } from './pages/onboarding/VerificationPendingPage.jsx';
 import { VerificationRejectedPage } from './pages/onboarding/VerificationRejectedPage.jsx';
 
@@ -44,6 +45,7 @@ import { UserManagementPage } from './pages/admin/UserManagementPage.jsx';
 import { CreateUserPage } from './pages/admin/CreateUserPage.jsx';
 import { BulkImportPage } from './pages/admin/BulkImportPage.jsx';
 import { AdminVerificationPage } from './pages/admin/AdminVerificationPage.jsx';
+import { StudentConfigurationPage } from './pages/admin/StudentConfigurationPage.jsx';
 import { UserDetailPage } from './pages/admin/UserDetailPage.jsx';
 import { OrganizationSettingsPage } from './pages/admin/OrganizationSettingsPage.jsx';
 import { AdminAuditPage } from './pages/admin/AdminAuditPage.jsx';
@@ -107,6 +109,16 @@ export function App() {
             <ProtectedRoute>
               <RoleRoute allowedRoles={['STUDENT', 'ADMIN']}>
                 <StudentOnboardingPage />
+              </RoleRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/onboarding/document-upload"
+          element={
+            <ProtectedRoute>
+              <RoleRoute allowedRoles={['STUDENT', 'ADMIN']}>
+                <CandidateDocumentUploadPage />
               </RoleRoute>
             </ProtectedRoute>
           }
@@ -298,6 +310,14 @@ export function App() {
             element={
               <RoleRoute allowedRoles={['ADMIN']}>
                 <AdminVerificationPage />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/admin/students/:id/configuration"
+            element={
+              <RoleRoute allowedRoles={['ADMIN']}>
+                <StudentConfigurationPage />
               </RoleRoute>
             }
           />
