@@ -95,6 +95,31 @@ export function evaluateQuestionAnswer(question, options = [], answer = null) {
       };
     }
 
+    case QuestionType.SHORT_ANSWER:
+    case QuestionType.ESSAY: {
+      const textVal = answer_value.text_value || answer_value.text || answer_value.response;
+      const isAnswered = typeof textVal === 'string' && textVal.trim().length > 0;
+      return {
+        is_correct: false,
+        is_answered: isAnswered,
+        points_awarded: 0,
+        is_subjective: true,
+        needs_manual_grading: true
+      };
+    }
+
+    case QuestionType.CODE: {
+      const codeVal = answer_value.code || answer_value.code_value || answer_value.response;
+      const isAnswered = typeof codeVal === 'string' && codeVal.trim().length > 0;
+      return {
+        is_correct: false,
+        is_answered: isAnswered,
+        points_awarded: 0,
+        is_subjective: true,
+        needs_manual_grading: true
+      };
+    }
+
     default:
       return {
         is_correct: false,

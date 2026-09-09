@@ -26,8 +26,11 @@ export function ExamEditorPage() {
   const [topic, setTopic] = useState('');
   const [questionCount, setQuestionCount] = useState('5');
   const [difficulty, setDifficulty] = useState('MEDIUM');
+  const [bloomLevel, setBloomLevel] = useState('APPLY');
   const [pointsPerQuestion, setPointsPerQuestion] = useState('2');
   const [addingRule, setAddingRule] = useState(false);
+  const [validating, setValidating] = useState(false);
+  const [validationResult, setValidationResult] = useState(null);
 
   const loadExam = useCallback(async () => {
     try {
@@ -45,6 +48,19 @@ export function ExamEditorPage() {
     loadExam();
   }, [loadExam]);
 
+  async function handleValidateBlueprint() {
+    setActionError('');
+    setValidating(true);
+    try {
+      const res = await examsApi.validateBlueprint(examId);
+      setValidationResult(res);
+    } catch (err) {
+      setActionError(err.message || 'Blueprint validation failed');
+    } finally {
+      setValidating(false);
+    }
+  }
+
   async function handleAddRule(e) {
     e.preventDefault();
     setActionError('');
@@ -55,6 +71,7 @@ export function ExamEditorPage() {
         topic,
         question_count: parseInt(questionCount, 10),
         difficulty,
+        bloom_level: bloomLevel,
         points_per_question: parseInt(pointsPerQuestion, 10),
       });
 
@@ -134,18 +151,64 @@ export function ExamEditorPage() {
             </Badge>
           </div>
 
-          {isDraft && (
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
             <Button
-              variant="success"
-              disabled={!isPointsBalanced || rules.length === 0 || publishing}
-              loading={publishing}
-              onClick={handlePublish}
+              variant="secondary"
+              size="sm"
+              loading={validating}
+              onClick={handleValidateBlueprint}
             >
-              Publish & Freeze Blueprint
+              🔍 Validate Blueprint Inventory
             </Button>
-          )}
+            {isDraft && (
+              <Button
+                variant="success"
+                disabled={!isPointsBalanced || rules.length === 0 || publishing}
+                loading={publishing}
+                onClick={handlePublish}
+              >
+                Publish & Freeze Blueprint
+              </Button>
+            )}
+          </div>
         </div>
       </div>
+
+      {validationResult && (
+        <Card padding="compact" style={{ marginBottom: '1.5rem', borderLeft: `4px solid ${validationResult.valid ? 'var(--color-success)' : 'var(--color-warning)'}` }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: '0.9375rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span>{validationResult.valid ? '✅ Blueprint Inventory Verified' : '⚠️ Blueprint Inventory Deficient'}</span>
+                <Badge variant={validationResult.valid ? 'success' : 'warning'}>
+                  {validationResult.valid ? 'ALL RULES SATISFIED' : 'DEFICIENCIES DETECTED'}
+                </Badge>
+              </div>
+              <div style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)', marginTop: '0.25rem' }}>
+                Required: {validationResult.summary?.total_required_questions || 0} questions • Pool Available: {validationResult.summary?.total_pool_questions || 0} questions
+              </div>
+            </div>
+            <button
+              onClick={() => setValidationResult(null)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)' }}
+            >
+              ✕
+            </button>
+          </div>
+          {!validationResult.valid && validationResult.deficiencies && validationResult.deficiencies.length > 0 && (
+            <div style={{ marginTop: '0.75rem', fontSize: '0.8125rem', color: 'var(--color-danger)' }}>
+              <strong>Deficiencies:</strong>
+              <ul style={{ margin: '0.25rem 0 0 1.25rem' }}>
+                {validationResult.deficiencies.map((d, i) => (
+                  <li key={i}>
+                    Topic &quot;{d.topic}&quot; ({d.difficulty}): requires {d.required_count}, but question pool only has {d.available_count} (shortfall of {d.shortfall}).
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </Card>
+      )}
 
       {actionError && (
         <div
@@ -252,7 +315,7 @@ export function ExamEditorPage() {
               paddingTop: '1.5rem',
               borderTop: '1px solid var(--color-border-subtle)',
               display: 'grid',
-              gridTemplateColumns: '2fr 1fr 1fr 1fr auto',
+              gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr auto',
               gap: '0.75rem',
               alignItems: 'end',
             }}
@@ -290,6 +353,36 @@ export function ExamEditorPage() {
                 <option value="EASY">EASY</option>
                 <option value="MEDIUM">MEDIUM</option>
                 <option value="HARD">HARD</option>
+              </select>
+            </div>
+
+            <div>
+              <label
+                htmlFor="rule-bloom"
+                style={{ display: 'block', marginBottom: '0.375rem', fontSize: '0.875rem', fontWeight: 500 }}
+              >
+                Bloom Level
+              </label>
+              <select
+                id="rule-bloom"
+                value={bloomLevel}
+                onChange={(e) => setBloomLevel(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.5rem 0.75rem',
+                  fontSize: '0.9375rem',
+                  border: '1px solid var(--color-border-subtle)',
+                  borderRadius: 'var(--radius-sm)',
+                  backgroundColor: 'var(--color-surface)',
+                  marginBottom: '1rem',
+                }}
+              >
+                <option value="REMEMBER">REMEMBER</option>
+                <option value="UNDERSTAND">UNDERSTAND</option>
+                <option value="APPLY">APPLY</option>
+                <option value="ANALYZE">ANALYZE</option>
+                <option value="EVALUATE">EVALUATE</option>
+                <option value="CREATE">CREATE</option>
               </select>
             </div>
 

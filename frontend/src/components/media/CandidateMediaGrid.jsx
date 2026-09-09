@@ -11,8 +11,9 @@ import { VideoPlayer } from './VideoPlayer.jsx';
 /**
  * @param {object} props
  * @param {string} props.sessionId - Active examination session UUID
+ * @param {function} [props.onSelectCandidate] - Callback when candidate tile details is clicked
  */
-export function CandidateMediaGrid({ sessionId }) {
+export function CandidateMediaGrid({ sessionId, onSelectCandidate }) {
   const { candidates, focusedCandidateId, focusCandidate, isReady, error } =
     useMediaSubscription(sessionId);
 
@@ -136,6 +137,15 @@ export function CandidateMediaGrid({ sessionId }) {
                     autoPlay
                     muted={isMuted}
                   />
+                )}
+                {onSelectCandidate && (
+                  <button
+                    type="button"
+                    onClick={() => onSelectCandidate(cand.userId)}
+                    className="mt-1 w-full py-1 text-[11px] font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 rounded border border-slate-700 transition"
+                  >
+                    🔍 Inspect & Intervene
+                  </button>
                 )}
               </div>
             );

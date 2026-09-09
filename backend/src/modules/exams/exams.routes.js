@@ -13,7 +13,9 @@ import {
   handleAddTopicRule,
   handleDeleteTopicRule,
   handlePublishExam,
-  handleListExams
+  handleListExams,
+  handleValidateBlueprint,
+  handleGetExamAnalytics
 } from './exams.controller.js';
 import { examResultsRouter } from '../results/results.routes.js';
 
@@ -30,4 +32,6 @@ examsRouter.get('/:id', authenticate, handleGetExam);
 examsRouter.put('/:id', authenticate, requireRole('FACULTY', 'ADMIN'), handleUpdateExam);
 examsRouter.post('/:id/rules', authenticate, requireRole('FACULTY', 'ADMIN'), handleAddTopicRule);
 examsRouter.delete('/:id/rules/:ruleId', authenticate, requireRole('FACULTY', 'ADMIN'), handleDeleteTopicRule);
+examsRouter.get('/:id/blueprint/validate', authenticate, requireRole('FACULTY', 'ADMIN'), handleValidateBlueprint);
+examsRouter.get('/:id/analytics', authenticate, requireRole('FACULTY', 'ADMIN'), handleGetExamAnalytics);
 examsRouter.post('/:id/publish', authenticate, requireRole('FACULTY', 'ADMIN'), handlePublishExam);

@@ -8,6 +8,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 export function useExamTimer({
   serverTime,
   expiresAt,
+  isPaused = false,
   onExpire,
 }) {
   const [remainingMs, setRemainingMs] = useState(0);
@@ -23,7 +24,7 @@ export function useExamTimer({
   }, [serverTime]);
 
   useEffect(() => {
-    if (!expiresAt) return;
+    if (!expiresAt || isPaused) return;
 
     const expiryTime = new Date(expiresAt).getTime();
 

@@ -64,7 +64,9 @@ export const examTopicRuleSchema = z.object({
     .min(1, 'Question count must be at least 1'),
   points_per_question: z
     .number({ required_error: 'Points per question is required' })
-    .min(0.01, 'Points per question must be greater than 0')
+    .min(0.01, 'Points per question must be greater than 0'),
+  difficulty: z.enum(['EASY', 'MEDIUM', 'HARD', 'ANY']).default('ANY'),
+  bloom_level: z.enum(['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE', 'ANY']).default('ANY')
 });
 
 export const examQuerySchema = z.object({

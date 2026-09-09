@@ -12,6 +12,7 @@
 export const AttemptStatus = Object.freeze({
   READY: 'READY',
   ACTIVE: 'ACTIVE',
+  PAUSED: 'PAUSED',
   SUBMITTED: 'SUBMITTED',
   TERMINATED: 'TERMINATED',
   EXPIRED: 'EXPIRED'
@@ -37,7 +38,8 @@ export const TERMINAL_ATTEMPT_STATES = Object.freeze([
  * Deterministic forward transition matrix for Exam Attempt lifecycle.
  * Invariants:
  * - READY can only transition to ACTIVE (student starts exam).
- * - ACTIVE can transition to SUBMITTED (student finishes), TERMINATED (proctor/system), or EXPIRED (timer).
+ * - ACTIVE can transition to PAUSED (invigilator pause), SUBMITTED (student finishes), TERMINATED (proctor/system), or EXPIRED (timer).
+ * - PAUSED can transition to ACTIVE (resume), TERMINATED (proctor/system), or EXPIRED (timer cutoff).
  * - SUBMITTED, TERMINATED, and EXPIRED are terminal.
  * - No backward transitions are permitted.
  * @type {Readonly<Record<string, readonly string[]>>}
@@ -45,7 +47,13 @@ export const TERMINAL_ATTEMPT_STATES = Object.freeze([
 export const ATTEMPT_TRANSITIONS = Object.freeze({
   [AttemptStatus.READY]: Object.freeze([AttemptStatus.ACTIVE]),
   [AttemptStatus.ACTIVE]: Object.freeze([
+    AttemptStatus.PAUSED,
     AttemptStatus.SUBMITTED,
+    AttemptStatus.TERMINATED,
+    AttemptStatus.EXPIRED
+  ]),
+  [AttemptStatus.PAUSED]: Object.freeze([
+    AttemptStatus.ACTIVE,
     AttemptStatus.TERMINATED,
     AttemptStatus.EXPIRED
   ]),

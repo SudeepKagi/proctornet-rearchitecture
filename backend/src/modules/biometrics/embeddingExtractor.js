@@ -54,7 +54,7 @@ export function loadAndVerifyModel() {
     throw new ModelIntegrityError(`Biometric model artifact not found at: ${modelPath}`);
   }
 
-  const rawJson = fs.readFileSync(modelPath, 'utf8');
+  const rawJson = fs.readFileSync(modelPath, 'utf8').replace(/\r\n/g, '\n');
   const computedHash = crypto.createHash('sha256').update(rawJson).digest('hex');
 
   if (computedHash !== PINNED_MODEL_SHA256) {

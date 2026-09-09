@@ -1,7 +1,9 @@
 /**
  * @file SessionMonitorPage.jsx
  * @description Invigilator monitor displaying real-time candidate roster attempt statuses,
- * risk scores, violation counts, active flags, and latest anomaly telemetry.
+ * 12-stream SFU video grid, candidate detail drawer, realtime intervention controls,
+ * incident reporting, and formal session sign-off.
+ * Conforms to Phase 26 Track 2 Workstreams E, F, and H.
  */
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
@@ -15,6 +17,16 @@ import { Badge, getStatusBadgeVariant } from '../../components/common/Badge.jsx'
 import { Spinner } from '../../components/common/Spinner.jsx';
 import { useRealtime } from '../../hooks/useRealtime.js';
 import { CandidateMediaGrid } from '../../components/media/CandidateMediaGrid.jsx';
+import CandidateDetailDrawer from '../../components/invigilator/CandidateDetailDrawer.jsx';
+import {
+  AnnouncementModal,
+  CandidateMessageModal,
+  PauseAttemptModal,
+  ResumeAttemptModal,
+  TerminateAttemptModal
+} from '../../components/invigilator/InterventionModals.jsx';
+import EvidenceModal from '../../components/invigilator/EvidenceModal.jsx';
+import { SessionSignOffModal, IncidentReportModal } from '../../components/invigilator/SessionSignOffModal.jsx';
 
 function getRiskBadgeVariant(score) {
   if (score >= 80) return 'danger';
@@ -34,6 +46,10 @@ export function SessionMonitorPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('media');
+
+  // Modal and Drawer States
+  const [selectedCandidateId, setSelectedCandidateId] = useState(null);
+  const [activeModal, setActiveModal] = useState(null); // 'announcement' | 'message' | 'pause' | 'resume' | 'terminate' | 'evidence' | 'incident' | 'signoff'
 
   const loadData = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -142,14 +158,23 @@ export function SessionMonitorPage() {
     }
   }, []);
 
+  const handleInterventionEvent = useCallback(() => {
+    loadData(true);
+  }, [loadData]);
+
   const realtimeHandlers = useMemo(
     () => ({
       'proctoring:risk_score_updated': handleRiskScoreUpdated,
       'proctoring:flag_raised': handleFlagRaised,
       'proctoring:flag_reviewed': handleFlagReviewed,
-      'candidate:presence_changed': handlePresenceChanged
+      'candidate:presence_changed': handlePresenceChanged,
+      'candidate:paused': handleInterventionEvent,
+      'candidate:resumed': handleInterventionEvent,
+      'candidate:terminated': handleInterventionEvent,
+      'invigilator:intervention_logged': handleInterventionEvent,
+      'session:concluded': handleInterventionEvent
     }),
-    [handleRiskScoreUpdated, handleFlagRaised, handleFlagReviewed, handlePresenceChanged]
+    [handleRiskScoreUpdated, handleFlagRaised, handleFlagReviewed, handlePresenceChanged, handleInterventionEvent]
   );
 
   const { status: wsStatus, isDegraded } = useRealtime(
@@ -176,6 +201,25 @@ export function SessionMonitorPage() {
     return map;
   }, [proctoringSummary]);
 
+  const students = session?.students || [];
+
+  const selectedCandidate = useMemo(() => {
+    if (!selectedCandidateId) return null;
+    const st = students.find((s) => (s.student_id || s.id) === selectedCandidateId) || {};
+    const pData = candidateProctorMap[selectedCandidateId] || {};
+    return {
+      ...st,
+      studentId: selectedCandidateId,
+      name: st.name || st.student_name || 'Candidate',
+      attemptId: pData.attemptId || st.attempt_id,
+      attemptStatus: pData.attemptStatus || st.attempt_status || 'READY',
+      riskScore: pData.riskScore ?? 0,
+      violationCount: pData.violationCount ?? 0,
+      activeFlags: pData.activeFlags || [],
+      latestViolation: pData.latestViolation
+    };
+  }, [selectedCandidateId, students, candidateProctorMap]);
+
   if (loading) {
     return (
       <div className="container" style={{ textAlign: 'center', padding: '4rem 0' }}>
@@ -184,8 +228,6 @@ export function SessionMonitorPage() {
     );
   }
 
-  const students = session?.students || [];
-
   return (
     <div className="container">
       <div style={{ marginBottom: '1.5rem' }}>
@@ -193,7 +235,7 @@ export function SessionMonitorPage() {
           &larr; Back to Invigilator Dashboard
         </Button>
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
               <h1 style={{ fontSize: '1.75rem', fontWeight: 700 }}>
@@ -213,9 +255,34 @@ export function SessionMonitorPage() {
             </p>
           </div>
 
-          <Button variant="secondary" size="sm" loading={refreshing} onClick={() => loadData(true)}>
-            Refresh Roster & Telemetry
-          </Button>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setActiveModal('announcement')}
+            >
+              📢 Room Announcement
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setActiveModal('incident')}
+            >
+              📝 File Incident
+            </Button>
+            {session?.status !== 'CONCLUDED' && (
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => setActiveModal('signoff')}
+              >
+                ✓ Sign-Off & Conclude
+              </Button>
+            )}
+            <Button variant="secondary" size="sm" loading={refreshing} onClick={() => loadData(true)}>
+              Refresh
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -304,7 +371,7 @@ export function SessionMonitorPage() {
           size="sm"
           onClick={() => setActiveTab('media')}
         >
-          Live Media Monitor (SFU)
+          Live Media Monitor (12-Stream SFU)
         </Button>
         <Button
           variant={activeTab === 'roster' ? 'primary' : 'secondary'}
@@ -317,12 +384,14 @@ export function SessionMonitorPage() {
 
       {activeTab === 'media' && (
         <Card padding="normal" style={{ marginBottom: '1.5rem' }}>
-          <CandidateMediaGrid sessionId={sessionId} />
+          <CandidateMediaGrid
+            sessionId={sessionId}
+            onSelectCandidate={(candidateId) => setSelectedCandidateId(candidateId)}
+          />
         </Card>
       )}
 
       {activeTab === 'roster' && (
-        /* Candidate Status & Proctoring Roster Grid */
         <Card padding="normal" style={{ marginBottom: '1.5rem' }}>
           <h3 style={{ fontSize: '1.125rem', marginBottom: '1rem' }}>
             Enrolled Candidates & Proctoring Status ({students.length})
@@ -344,22 +413,24 @@ export function SessionMonitorPage() {
                   <th style={{ padding: '0.75rem 0.5rem' }}>Violations</th>
                   <th style={{ padding: '0.75rem 0.5rem' }}>Active Flags</th>
                   <th style={{ padding: '0.75rem 0.5rem' }}>Latest Anomaly</th>
+                  <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {students.map((st) => {
-                  const pData = candidateProctorMap[st.student_id] || {};
+                  const candidateId = st.student_id || st.id;
+                  const pData = candidateProctorMap[candidateId] || {};
                   const riskScore = pData.riskScore ?? 0;
                   const violationCount = pData.violationCount ?? 0;
                   const activeFlags = pData.activeFlags || [];
                   const latestViolation = pData.latestViolation;
 
                   return (
-                    <tr key={st.student_id} style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
+                    <tr key={candidateId} style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
                       <td style={{ padding: '0.75rem 0.5rem', fontWeight: 500 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <span>{st.name || 'Candidate'}</span>
-                          {presenceMap[st.student_id] === 'OFFLINE' ? (
+                          <span>{st.name || st.student_name || 'Candidate'}</span>
+                          {presenceMap[candidateId] === 'OFFLINE' ? (
                             <Badge variant="danger" size="sm">OFFLINE</Badge>
                           ) : (
                             <Badge variant="success" size="sm">ONLINE</Badge>
@@ -401,6 +472,24 @@ export function SessionMonitorPage() {
                         ) : (
                           '—'
                         )}
+                      </td>
+                      <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedCandidateId(candidateId)}
+                          style={{
+                            padding: '0.35rem 0.65rem',
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            borderRadius: 'var(--radius-sm)',
+                            backgroundColor: 'var(--color-primary-light, rgba(59, 130, 246, 0.1))',
+                            border: '1px solid var(--color-primary)',
+                            color: 'var(--color-primary)',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Inspect & Intervene
+                        </button>
                       </td>
                     </tr>
                   );
@@ -446,6 +535,80 @@ export function SessionMonitorPage() {
           </table>
         </Card>
       )}
+
+      {/* Candidate Detail Drawer */}
+      <CandidateDetailDrawer
+        isOpen={Boolean(selectedCandidateId)}
+        onClose={() => setSelectedCandidateId(null)}
+        candidate={selectedCandidate}
+        onOpenMessage={() => setActiveModal('message')}
+        onOpenPause={() => setActiveModal('pause')}
+        onOpenResume={() => setActiveModal('resume')}
+        onOpenTerminate={() => setActiveModal('terminate')}
+        onOpenEvidence={() => setActiveModal('evidence')}
+        onOpenIncident={() => setActiveModal('incident')}
+      />
+
+      {/* Realtime Intervention Modals */}
+      <AnnouncementModal
+        isOpen={activeModal === 'announcement'}
+        onClose={() => setActiveModal(null)}
+        sessionId={sessionId}
+      />
+
+      {selectedCandidate && (
+        <>
+          <CandidateMessageModal
+            isOpen={activeModal === 'message'}
+            onClose={() => setActiveModal(null)}
+            attemptId={selectedCandidate.attemptId}
+            candidateName={selectedCandidate.name}
+          />
+          <PauseAttemptModal
+            isOpen={activeModal === 'pause'}
+            onClose={() => setActiveModal(null)}
+            attemptId={selectedCandidate.attemptId}
+            candidateName={selectedCandidate.name}
+            onSuccess={() => loadData(true)}
+          />
+          <ResumeAttemptModal
+            isOpen={activeModal === 'resume'}
+            onClose={() => setActiveModal(null)}
+            attemptId={selectedCandidate.attemptId}
+            candidateName={selectedCandidate.name}
+            onSuccess={() => loadData(true)}
+          />
+          <TerminateAttemptModal
+            isOpen={activeModal === 'terminate'}
+            onClose={() => setActiveModal(null)}
+            attemptId={selectedCandidate.attemptId}
+            candidateName={selectedCandidate.name}
+            onSuccess={() => loadData(true)}
+          />
+          <EvidenceModal
+            isOpen={activeModal === 'evidence'}
+            onClose={() => setActiveModal(null)}
+            attemptId={selectedCandidate.attemptId}
+            candidateName={selectedCandidate.name}
+          />
+        </>
+      )}
+
+      <SessionSignOffModal
+        isOpen={activeModal === 'signoff'}
+        onClose={() => setActiveModal(null)}
+        sessionId={sessionId}
+        onSignedOff={() => loadData(true)}
+      />
+
+      <IncidentReportModal
+        isOpen={activeModal === 'incident'}
+        onClose={() => setActiveModal(null)}
+        sessionId={sessionId}
+        candidates={students}
+        preselectedCandidateId={selectedCandidate?.studentId || null}
+        onReported={() => loadData(true)}
+      />
     </div>
   );
 }

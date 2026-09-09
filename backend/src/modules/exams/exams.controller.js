@@ -11,6 +11,7 @@ import {
   examQuerySchema
 } from './exams.schemas.js';
 import * as examsService from './exams.service.js';
+import { getExamAnalytics } from './examAnalytics.service.js';
 
 /**
  * Handles creating a new draft exam.
@@ -157,3 +158,37 @@ export async function handleListExams(req, res, next) {
     next(err);
   }
 }
+
+/**
+ * Handles inspecting blueprint validation details.
+ */
+export async function handleValidateBlueprint(req, res, next) {
+  try {
+    const { id } = req.params;
+    const validation = await examsService.getBlueprintValidation(id, req.user);
+    res.status(200).json({
+      status: 'success',
+      data: { validation }
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Handles fetching psychometric item difficulty, discrimination, histograms, and completion statistics.
+ */
+export async function handleGetExamAnalytics(req, res, next) {
+  try {
+    const { id } = req.params;
+    const forceRefresh = req.query.refresh === 'true';
+    const analytics = await getExamAnalytics(id, req.user, forceRefresh);
+    res.status(200).json({
+      status: 'success',
+      data: analytics
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
