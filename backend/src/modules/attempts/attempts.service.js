@@ -240,8 +240,57 @@ export async function startAttempt(sessionId, user, requestId = null) {
       );
     }
 
+    // 5a. [PHASE 25 INSERTION] Biometric Verification Gate & Medical Exemption Check
+    const isBiometricGateEnforced = process.env.BIOMETRIC_GATE_ENFORCED === 'true';
+    let medicalExemptionApplied = false;
+    let studentConf = null;
+
+    if (isBiometricGateEnforced) {
+      const configRes = await client.query(
+        'SELECT proctoring_strictness, created_by, updated_by FROM student_configurations WHERE student_id = $1 FOR SHARE;',
+        [user.userId]
+      );
+      studentConf = configRes.rows[0];
+      const strictness = studentConf ? studentConf.proctoring_strictness : 'STANDARD';
+
+      if (strictness === 'MEDICAL_EXEMPTION') {
+        medicalExemptionApplied = true;
+      } else {
+        const bioRes = await client.query(
+          `SELECT * FROM biometric_verifications
+           WHERE session_id = $1 AND user_id = $2
+           ORDER BY created_at DESC LIMIT 1
+           FOR SHARE;`,
+          [sessionId, user.userId]
+        );
+        const verification = bioRes.rows[0];
+
+        if (!verification) {
+          await client.query('ROLLBACK');
+          throw new ForbiddenError(
+            'BIOMETRIC_VERIFICATION_REQUIRED: Pre-exam facial biometric verification must be completed before starting this exam attempt.'
+          );
+        }
+
+        if (verification.final_status === 'LOCKED') {
+          await client.query('ROLLBACK');
+          throw new ForbiddenError(
+            'BIOMETRIC_VERIFICATION_LOCKED: Biometric verification is locked due to maximum failed attempts. Contact your exam administrator.'
+          );
+        }
+
+        if (verification.final_status !== 'VERIFIED' && verification.final_status !== 'OVERRIDDEN') {
+          await client.query('ROLLBACK');
+          throw new ForbiddenError(
+            'BIOMETRIC_VERIFICATION_REQUIRED: Biometric verification is not verified.'
+          );
+        }
+      }
+    }
+
     // 6. Fetch Topic Rules
     const topicRules = await attemptsRepo.getTopicRulesForExam(exam.exam_id, client);
+
     if (!topicRules || topicRules.length === 0) {
       throw new BadRequestError('Cannot start exam: Exam has no configured topic rules');
     }
@@ -343,7 +392,28 @@ export async function startAttempt(sessionId, user, requestId = null) {
       client
     );
 
+    if (medicalExemptionApplied) {
+      await attemptsRepo.createAuditLog(
+        {
+          actorUserId: user.userId,
+          action: 'BIOMETRIC_MEDICAL_EXEMPTION_APPLIED',
+          resourceType: 'ATTEMPT',
+          resourceId: attempt.attempt_id,
+          attemptId: attempt.attempt_id,
+          requestId,
+          metadata: {
+            adminGrantedBy: studentConf?.updated_by || studentConf?.created_by || null,
+            sessionId,
+            attemptId: attempt.attempt_id,
+            policyValue: 'MEDICAL_EXEMPTION'
+          }
+        },
+        client
+      );
+    }
+
     await client.query('COMMIT');
+
 
     logger.info(
       {

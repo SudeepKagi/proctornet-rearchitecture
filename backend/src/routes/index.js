@@ -7,6 +7,7 @@ import { attemptsRouter } from '../modules/attempts/attempts.routes.js';
 import { auditRouter } from '../modules/audit/audit.routes.js';
 import { adminRouter, userSelfRouter } from '../modules/users/user.routes.js';
 import { candidateRouter } from '../modules/candidate/candidateIdentity.routes.js';
+import { candidateBiometricsRouter, adminBiometricsRouter } from '../modules/biometrics/biometrics.routes.js';
 import { authenticate } from '../middleware/authenticate.js';
 import { requireVerifiedActiveUser } from '../middleware/verificationGate.js';
 
@@ -35,6 +36,11 @@ v1Router.use('/users/me', userSelfRouter);
 
 // Phase 24: Candidate Identity Onboarding & Document Verification
 v1Router.use('/candidate', candidateRouter);
+
+// Phase 25: Biometric Identity — Face Enrollment, Verification & Anti-Spoofing
+v1Router.use('/candidate/biometrics', candidateBiometricsRouter);
+v1Router.use('/admin/biometrics', adminBiometricsRouter);
+
 
 // Phase 5: Exam Authoring, Topic Rules & Publishing (Gated for verified active users)
 v1Router.use('/exams', authenticate, requireVerifiedActiveUser, examsRouter);
