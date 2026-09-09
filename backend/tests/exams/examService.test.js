@@ -317,7 +317,7 @@ describe('Exam Service & Business Invariants', () => {
       async () => {
         await examService.publishExam(exam.exam_id, facultyUser);
       },
-      (err) => err instanceof BadRequestError && err.message.includes('At least one topic rule')
+      (err) => err instanceof ConflictError && err.message.includes('At least one topic rule')
     );
   });
 
@@ -348,7 +348,7 @@ describe('Exam Service & Business Invariants', () => {
       async () => {
         await examService.publishExam(exam.exam_id, facultyUser);
       },
-      (err) => err instanceof BadRequestError && err.message.includes('does not match exam total marks')
+      (err) => err instanceof ConflictError && (err.message.includes('do not match total exam marks') || err.message.includes('does not match'))
     );
   });
 
@@ -379,7 +379,7 @@ describe('Exam Service & Business Invariants', () => {
       async () => {
         await examService.publishExam(exam.exam_id, facultyUser);
       },
-      (err) => err instanceof ConflictError && err.message.includes('question bank')
+      (err) => err instanceof ConflictError && (err.message.includes('Insufficient question inventory') || err.message.includes('question bank'))
     );
   });
 

@@ -18,6 +18,7 @@ admin_cidr = ""
 enable_rds         = false
 enable_elasticache = false
 enable_alb         = false
+certificate_arn    = "arn:aws:acm:ap-south-1:123456789012:certificate/example-uuid"
 
 # Evidence Retention: null = application sweeper manages retention per ADR-0005; noncurrent versions retained
 evidence_noncurrent_version_expiration_days = null

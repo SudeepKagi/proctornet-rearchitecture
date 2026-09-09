@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import pg from 'pg';
 import { config } from '../../config/env.js';
 import { logger } from '../../utils/logger.js';
@@ -8,18 +9,54 @@ const { Pool } = pg;
 let poolInstance = null;
 
 /**
+ * Resolves PostgreSQL SSL configuration based on environment settings.
+ * Supports CA bundle loading, strict validation, and local non-SSL dev bypass.
+ * @param {object} [overrideConfig=config] - Optional configuration override for testing.
+ * @returns {object | false}
+ */
+export function resolveSslConfig(overrideConfig = config) {
+  if (!overrideConfig.DB_SSL) {
+    return false;
+  }
+
+  let caContent = overrideConfig.DB_SSL_CA;
+  if (caContent && fs.existsSync(caContent)) {
+    try {
+      caContent = fs.readFileSync(caContent, 'utf8');
+    } catch (readErr) {
+      logger.error({ err: readErr, path: overrideConfig.DB_SSL_CA }, 'Failed to read DB_SSL_CA file');
+      throw readErr;
+    }
+  }
+
+  if (overrideConfig.NODE_ENV === 'production' && overrideConfig.DB_SSL_REJECT_UNAUTHORIZED && !caContent) {
+    const sslErr = new Error('FATAL: DB_SSL is enabled with rejectUnauthorized in production, but DB_SSL_CA is not configured.');
+    logger.fatal(sslErr.message);
+    throw sslErr;
+  }
+
+  return {
+    rejectUnauthorized: overrideConfig.DB_SSL_REJECT_UNAUTHORIZED,
+    ca: caContent || undefined
+  };
+}
+
+/**
  * Creates or retrieves the singleton PostgreSQL connection pool.
  * @returns {pg.Pool}
  */
 export function getPool() {
   if (!poolInstance) {
+    const sslConfig = resolveSslConfig();
+
     const poolConfig = config.DATABASE_URL
       ? {
         connectionString: config.DATABASE_URL,
         min: config.DB_POOL_MIN,
         max: config.DB_POOL_MAX,
         connectionTimeoutMillis: config.DB_CONNECTION_TIMEOUT_MS,
-        idleTimeoutMillis: config.DB_IDLE_TIMEOUT_MS
+        idleTimeoutMillis: config.DB_IDLE_TIMEOUT_MS,
+        ssl: sslConfig
       }
       : {
         host: config.DB_HOST,
@@ -30,7 +67,8 @@ export function getPool() {
         min: config.DB_POOL_MIN,
         max: config.DB_POOL_MAX,
         connectionTimeoutMillis: config.DB_CONNECTION_TIMEOUT_MS,
-        idleTimeoutMillis: config.DB_IDLE_TIMEOUT_MS
+        idleTimeoutMillis: config.DB_IDLE_TIMEOUT_MS,
+        ssl: sslConfig
       };
 
     poolInstance = new Pool(poolConfig);

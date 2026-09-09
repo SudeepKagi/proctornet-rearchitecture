@@ -55,12 +55,33 @@ export async function verifyModelIntegrity(assetData, expectedSha256) {
     throw new Error('Integrity verification failed: expectedSha256 is required');
   }
   const actualSha256 = await computeSha256(assetData);
-  if (actualSha256.toLowerCase() !== expectedSha256.toLowerCase()) {
-    throw new Error(
-      `MODEL_INTEGRITY_VERIFICATION_FAILED: expected ${expectedSha256} but got ${actualSha256}`
-    );
+  if (actualSha256.toLowerCase() === expectedSha256.toLowerCase()) {
+    return true;
   }
-  return true;
+
+  // Cross-platform fallback: normalize CRLF to LF in text/JSON assets
+  try {
+    let text = null;
+    if (typeof assetData === 'string') {
+      text = assetData;
+    } else if (assetData instanceof ArrayBuffer) {
+      text = new TextDecoder().decode(assetData);
+    } else if (typeof Buffer !== 'undefined' && Buffer.isBuffer(assetData)) {
+      text = assetData.toString('utf8');
+    }
+    if (text && text.includes('\r\n')) {
+      const normalizedSha256 = await computeSha256(text.replace(/\r\n/g, '\n'));
+      if (normalizedSha256.toLowerCase() === expectedSha256.toLowerCase()) {
+        return true;
+      }
+    }
+  } catch {
+    // Ignore normalization error and throw standard mismatch
+  }
+
+  throw new Error(
+    `MODEL_INTEGRITY_VERIFICATION_FAILED: expected ${expectedSha256} but got ${actualSha256}`
+  );
 }
 
 /**

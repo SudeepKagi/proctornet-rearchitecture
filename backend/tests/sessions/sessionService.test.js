@@ -318,7 +318,7 @@ describe('Session Service & Scheduling Invariants', () => {
   });
 
   it('removeStudent — successfully removes a candidate from session roster', async () => {
-    const startTime = new Date(Date.now() + 86400000);
+    const startTime = new Date(Date.now() + 2 * 86400000);
     const endTime = new Date(startTime.getTime() + 90 * 60000);
 
     const session = await sessionService.createSession(
@@ -385,7 +385,7 @@ describe('Session Service & Scheduling Invariants', () => {
   });
 
   it('removeInvigilator — successfully removes invigilator from session', async () => {
-    const startTime = new Date(Date.now() + 86400000);
+    const startTime = new Date(Date.now() + 3 * 86400000);
     const endTime = new Date(startTime.getTime() + 90 * 60000);
 
     const session = await sessionService.createSession(

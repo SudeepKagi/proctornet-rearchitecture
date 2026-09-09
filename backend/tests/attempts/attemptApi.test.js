@@ -149,8 +149,8 @@ describe('Attempts REST API Endpoints (Integration)', () => {
     await sessionService.assignInvigilator(activeSession.session_id, { userId: proctorUser.userId, role: 'PRIMARY' }, facultyUser);
 
     // 6. Future Session
-    const startFuture = new Date(now.getTime() + 60 * 60 * 1000);
-    const endFuture = new Date(now.getTime() + 120 * 60 * 1000);
+    const startFuture = new Date(now.getTime() + 100 * 60 * 1000);
+    const endFuture = new Date(now.getTime() + 160 * 60 * 1000);
     futureSession = await sessionService.createSession({
       exam_id: publishedExam.exam_id,
       scheduled_start_time: startFuture.toISOString(),
