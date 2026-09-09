@@ -85,9 +85,12 @@ export function CandidateDashboardPage() {
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1.5rem' }}>
           {sessions.map((session) => {
+            const sid = session.session_id || session.id || '';
+            const sStart = session.scheduled_start_time || session.start_time;
+            const sEnd = session.scheduled_end_time || session.end_time;
             const isLive = session.status === 'ACTIVE';
             return (
-              <Card key={session.id} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <Card key={sid} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
                     <Badge variant={getStatusBadgeVariant(session.status)}>
@@ -99,11 +102,11 @@ export function CandidateDashboardPage() {
                   </div>
 
                   <h3 style={{ fontSize: '1.125rem', marginBottom: '0.5rem', color: 'var(--color-text-primary)' }}>
-                    {session.exam_title || `Exam Session #${session.id.slice(0, 8)}`}
+                    {session.exam_title || `Exam Session #${sid.slice(0, 8)}`}
                   </h3>
 
                   <div style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)', display: 'flex', flexDirection: 'column', gap: '0.25rem', marginBottom: '1.25rem' }}>
-                    <div>Window: {formatDateTime(session.start_time)} – {formatDateTime(session.end_time)}</div>
+                    <div>Window: {formatDateTime(sStart)} – {formatDateTime(sEnd)}</div>
                     <div>Duration: {session.exam_duration_minutes || 60} minutes</div>
                   </div>
                 </div>
@@ -112,7 +115,7 @@ export function CandidateDashboardPage() {
                   <Button
                     variant={isLive ? 'primary' : 'secondary'}
                     style={{ flex: 1 }}
-                    onClick={() => navigate(`/candidate/readiness/${session.id}`)}
+                    onClick={() => navigate(`/candidate/readiness/${sid}`)}
                   >
                     {isLive ? 'Enter Examination' : 'Pre-Exam Readiness'}
                   </Button>

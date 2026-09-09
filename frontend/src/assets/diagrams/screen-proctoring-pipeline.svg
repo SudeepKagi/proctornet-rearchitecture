@@ -1,0 +1,121 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 480" width="100%" height="100%" role="img" aria-label="ProctorNet Screen Proctoring and Analysis Pipeline">
+  <defs>
+    <linearGradient id="clientGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0284c7" />
+      <stop offset="100%" stop-color="#0369a1" />
+    </linearGradient>
+    <linearGradient id="workerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7c3aed" />
+      <stop offset="100%" stop-color="#6d28d9" />
+    </linearGradient>
+    <linearGradient id="serverGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e3a8a" />
+      <stop offset="100%" stop-color="#1e40af" />
+    </linearGradient>
+    <linearGradient id="invigGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0d9488" />
+      <stop offset="100%" stop-color="#0f766e" />
+    </linearGradient>
+    <filter id="cardShadow" x="-5%" y="-5%" width="110%" height="115%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#0f172a" flood-opacity="0.08" />
+    </filter>
+  </defs>
+
+  <rect width="960" height="480" rx="16" fill="#f8fafc" />
+
+  <!-- Title Header -->
+  <text x="40" y="45" font-family="Inter, sans-serif" font-size="18" font-weight="700" fill="#0f172a">Client-Side Screen Analysis &amp; Ethical Proctoring Pipeline</text>
+  <text x="40" y="68" font-family="Inter, sans-serif" font-size="12" fill="#64748b">Zero continuous camera or audio AI • Ephemeral client-side telemetry • Human-in-the-loop triage</text>
+
+  <!-- Step 1: Candidate Display Capture -->
+  <g transform="translate(40, 100)">
+    <rect width="190" height="260" rx="10" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" filter="url(#cardShadow)" />
+    <rect width="190" height="36" rx="10" fill="url(#clientGrad)" />
+    <rect x="0" y="26" width="190" height="10" fill="url(#clientGrad)" />
+    <text x="15" y="24" font-family="Inter, sans-serif" font-size="13" font-weight="700" fill="#ffffff">1. Candidate Display</text>
+    
+    <text x="15" y="65" font-family="Inter, sans-serif" font-size="12" font-weight="600" fill="#0f172a">Display Capture API</text>
+    <text x="15" y="85" font-family="Inter, sans-serif" font-size="11" fill="#475569">• Full Desktop Stream</text>
+    <text x="15" y="105" font-family="Inter, sans-serif" font-size="11" fill="#475569">• getDisplayMedia()</text>
+    <text x="15" y="125" font-family="Inter, sans-serif" font-size="11" fill="#475569">• Video Frame Sampler</text>
+
+    <line x1="15" y1="145" x2="175" y2="145" stroke="#e2e8f0" stroke-width="1" />
+    <text x="15" y="170" font-family="Inter, sans-serif" font-size="11" font-weight="600" fill="#dc2626">Privacy Guardrails:</text>
+    <text x="15" y="190" font-family="Inter, sans-serif" font-size="10" fill="#64748b">• No raw stream to cloud</text>
+    <text x="15" y="208" font-family="Inter, sans-serif" font-size="10" fill="#64748b">• No webcam AI inference</text>
+    <text x="15" y="226" font-family="Inter, sans-serif" font-size="10" fill="#64748b">• No microphone tracking</text>
+    <text x="15" y="244" font-family="Inter, sans-serif" font-size="10" fill="#16a34a">✓ Bounded to Exam Session</text>
+  </g>
+
+  <!-- Step 2: Web Worker Off-Thread Inference -->
+  <g transform="translate(270, 100)">
+    <rect width="190" height="260" rx="10" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" filter="url(#cardShadow)" />
+    <rect width="190" height="36" rx="10" fill="url(#workerGrad)" />
+    <rect x="0" y="26" width="190" height="10" fill="url(#workerGrad)" />
+    <text x="15" y="24" font-family="Inter, sans-serif" font-size="13" font-weight="700" fill="#ffffff">2. Web Worker AI</text>
+    
+    <text x="15" y="65" font-family="Inter, sans-serif" font-size="12" font-weight="600" fill="#0f172a">Client-Side Classifier</text>
+    <text x="15" y="85" font-family="Inter, sans-serif" font-size="11" fill="#475569">• Off-main-thread worker</text>
+    <text x="15" y="105" font-family="Inter, sans-serif" font-size="11" fill="#475569">• Zero UI thread freezing</text>
+    <text x="15" y="125" font-family="Inter, sans-serif" font-size="11" fill="#475569">• Fullscreen loss detect</text>
+    <text x="15" y="145" font-family="Inter, sans-serif" font-size="11" fill="#475569">• Window blur duration</text>
+    <text x="15" y="165" font-family="Inter, sans-serif" font-size="11" fill="#475569">• Tab switch counter</text>
+
+    <line x1="15" y1="185" x2="175" y2="185" stroke="#e2e8f0" stroke-width="1" />
+    <rect x="15" y="198" width="160" height="42" rx="4" fill="#faf5ff" stroke="#e9d5ff" />
+    <text x="22" y="215" font-family="Inter, sans-serif" font-size="10" font-weight="600" fill="#7e22ce">OUTPUT PAYLOAD:</text>
+    <text x="22" y="230" font-family="Inter, sans-serif" font-size="9" fill="#6b21a8">Ephemeral telemetry flags only</text>
+  </g>
+
+  <!-- Step 3: Server Authoritative Scoring -->
+  <g transform="translate(500, 100)">
+    <rect width="190" height="260" rx="10" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" filter="url(#cardShadow)" />
+    <rect width="190" height="36" rx="10" fill="url(#serverGrad)" />
+    <rect x="0" y="26" width="190" height="10" fill="url(#serverGrad)" />
+    <text x="15" y="24" font-family="Inter, sans-serif" font-size="13" font-weight="700" fill="#ffffff">3. Server Risk Engine</text>
+    
+    <text x="15" y="65" font-family="Inter, sans-serif" font-size="12" font-weight="600" fill="#0f172a">Authoritative Triage</text>
+    <text x="15" y="85" font-family="Inter, sans-serif" font-size="11" fill="#475569">• Client untrusted model</text>
+    <text x="15" y="105" font-family="Inter, sans-serif" font-size="11" fill="#475569">• Exponential decay curve</text>
+    <text x="15" y="125" font-family="Inter, sans-serif" font-size="11" fill="#475569">• Duration-weighted risk</text>
+    
+    <rect x="15" y="145" width="160" height="45" rx="6" fill="#eff6ff" stroke="#bfdbfe" />
+    <text x="22" y="163" font-family="Inter, sans-serif" font-size="10" font-weight="700" fill="#1d4ed8">0–100 RISK SCORE</text>
+    <text x="22" y="178" font-family="Inter, sans-serif" font-size="9" fill="#1e40af">Low &lt;20 | Med 20-50 | High &gt;50</text>
+
+    <text x="15" y="212" font-family="Inter, sans-serif" font-size="11" fill="#475569">• WebSocket Room Push</text>
+    <text x="15" y="232" font-family="Inter, sans-serif" font-size="11" fill="#475569">• Redis Pub/Sub Multiplex</text>
+  </g>
+
+  <!-- Step 4: Real-Time Invigilator Console -->
+  <g transform="translate(730, 100)">
+    <rect width="190" height="260" rx="10" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" filter="url(#cardShadow)" />
+    <rect width="190" height="36" rx="10" fill="url(#invigGrad)" />
+    <rect x="0" y="26" width="190" height="10" fill="url(#invigGrad)" />
+    <text x="15" y="24" font-family="Inter, sans-serif" font-size="13" font-weight="700" fill="#ffffff">4. Invigilator Console</text>
+    
+    <text x="15" y="65" font-family="Inter, sans-serif" font-size="12" font-weight="600" fill="#0f172a">Human-in-the-Loop</text>
+    <text x="15" y="85" font-family="Inter, sans-serif" font-size="11" fill="#475569">• 12-Stream Video Matrix</text>
+    <text x="15" y="105" font-family="Inter, sans-serif" font-size="11" fill="#475569">• Dynamic Priority Sorting</text>
+    <text x="15" y="125" font-family="Inter, sans-serif" font-size="11" fill="#475569">• Live Proctor Warnings</text>
+    <text x="15" y="145" font-family="Inter, sans-serif" font-size="11" fill="#475569">• Require Identity Check</text>
+
+    <line x1="15" y1="165" x2="175" y2="165" stroke="#e2e8f0" stroke-width="1" />
+    <rect x="15" y="178" width="160" height="60" rx="4" fill="#f0fdf4" stroke="#bbf7d0" />
+    <text x="22" y="196" font-family="Inter, sans-serif" font-size="10" font-weight="700" fill="#15803d">ETHICAL GUARANTEE:</text>
+    <text x="22" y="212" font-family="Inter, sans-serif" font-size="9" fill="#166534">Zero automated cancellation.</text>
+    <text x="22" y="226" font-family="Inter, sans-serif" font-size="9" fill="#166534">Human makes all decisions.</text>
+  </g>
+
+  <!-- Connective Arrows -->
+  <path d="M 230 230 L 270 230" stroke="#0284c7" stroke-width="2.5" />
+  <path d="M 460 230 L 500 230" stroke="#7c3aed" stroke-width="2.5" />
+  <path d="M 690 230 L 730 230" stroke="#1e3a8a" stroke-width="2.5" />
+
+  <!-- Bottom Immutability Banner -->
+  <g transform="translate(40, 390)">
+    <rect width="880" height="60" rx="8" fill="#1e293b" />
+    <text x="20" y="26" font-family="Inter, sans-serif" font-size="12" font-weight="700" fill="#f8fafc">PostgreSQL Trigger-Enforced Audit Defense (SQLSTATE 20000)</text>
+    <text x="20" y="45" font-family="Inter, sans-serif" font-size="11" fill="#94a3b8">Every intervention, score adjustment, and anomaly timestamp is immutably sealed. Prohibits record tampering by any role.</text>
+  </g>
+</svg>

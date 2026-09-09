@@ -26,6 +26,36 @@
   --color-primary-light: #eff6ff;
   --color-primary-border: #bfdbfe;
 
+  /* Academic Brand Palette */
+  --color-brand-primary: #1e3a8a;
+  --color-brand-primary-hover: #1e40af;
+  --color-brand-secondary: #0d9488;
+  --color-brand-secondary-hover: #0f766e;
+  --color-brand-accent: #6366f1;
+  --color-brand-surface: #f8fafc;
+  --color-brand-elevated: #ffffff;
+  --color-brand-border: #e2e8f0;
+  --color-brand-text-main: #0f172a;
+  --color-brand-text-muted: #64748b;
+
+  /* Academic Structured Panels (No decorative glassmorphism) */
+  --panel-bg: #ffffff;
+  --panel-border: #e2e8f0;
+  --panel-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.04), 0 1px 2px -1px rgba(15, 23, 42, 0.03);
+  --glass-bg: #ffffff;
+  --glass-border: #e2e8f0;
+  --glass-blur: none;
+  --glass-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.04);
+
+  /* Academic Assessment Statuses */
+  --color-status-draft: #64748b;
+  --color-status-published: #0284c7;
+  --color-status-scheduled: #7c3aed;
+  --color-status-live: #16a34a;
+  --color-status-ended: #475569;
+  --color-status-evaluated: #0d9488;
+  --color-status-released: #2563eb;
+
   /* Semantic Accents */
   --color-success: #16a34a;
   --color-success-hover: #15803d;
@@ -146,6 +176,16 @@
   --color-text-muted: #94a3b8;
   --color-text-subtle: #64748b;
   --color-text-inverse: #0f172a;
+
+  /* Dark Theme Academic Brand Tokens */
+  --color-brand-surface: #0b1120;
+  --color-brand-elevated: #1e293b;
+  --color-brand-border: #334155;
+  --color-brand-text-main: #f8fafc;
+  --color-brand-text-muted: #94a3b8;
+  --glass-bg: rgba(19, 27, 46, 0.85);
+  --glass-border: rgba(51, 65, 85, 0.8);
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
 
   --focus-ring-color: #60a5fa;
 

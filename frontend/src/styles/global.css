@@ -31,13 +31,13 @@ body {
   }
 }
 
-/* 200% Fluid Text Scaling Support (WCAG 1.4.4 Resize Text) */
+/* Fluid Text Scaling Support (WCAG 1.4.4 Resize Text) */
 html {
   font-size: 100%;
 }
 
 body {
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-base, 15px);
   line-height: 1.5;
   overflow-wrap: break-word;
   word-break: normal;
@@ -93,3 +93,172 @@ body {
   }
 }
 
+/* ==========================================================================
+   Institutional Design System Components
+   ========================================================================== */
+
+/* Clean Structured Panel */
+.glass-panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-subtle);
+  box-shadow: var(--shadow-card);
+  border-radius: var(--radius-md);
+}
+
+/* Institutional Badges */
+.badge-academic {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary-border);
+  letter-spacing: 0.01em;
+}
+
+.badge-measured {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: var(--radius-sm);
+  background-color: var(--color-success-light);
+  color: var(--color-success);
+  border: 1px solid var(--color-success-border);
+  text-transform: uppercase;
+}
+
+.badge-estimated {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: var(--radius-sm);
+  background-color: var(--color-warning-light);
+  color: var(--color-warning);
+  border: 1px solid var(--color-warning-border);
+  text-transform: uppercase;
+}
+
+.badge-target {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: var(--radius-sm);
+  background-color: var(--badge-screen-ai-bg);
+  color: var(--badge-screen-ai-text);
+  border: 1px solid var(--badge-screen-ai-border);
+  text-transform: uppercase;
+}
+
+/* Institutional Card */
+.card-interactive {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.card-interactive:hover {
+  border-color: var(--color-border-medium);
+  box-shadow: var(--shadow-md);
+}
+
+/* Action Buttons */
+.btn-academic-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 18px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  background-color: var(--color-primary);
+  color: #ffffff;
+  border: 1px solid transparent;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.btn-academic-primary:hover {
+  background-color: var(--color-primary-hover);
+}
+
+.btn-academic-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 18px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  background-color: var(--color-surface);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-medium);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.btn-academic-secondary:hover {
+  background-color: var(--color-surface-secondary);
+  border-color: var(--color-border-strong);
+}
+
+.btn-academic-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 14px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  background-color: transparent;
+  color: var(--color-primary);
+  border: 1px solid transparent;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.btn-academic-ghost:hover {
+  background-color: var(--color-primary-light);
+}
+
+/* Grids */
+.grid-2-col {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.grid-3-col {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.grid-4-col {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.25rem;
+}
+
+/* Academic Heading Hierarchy (High Contrast Solid Text - No AI Gradient Gimmicks) */
+.text-gradient {
+  color: var(--color-text-primary);
+  font-weight: 700;
+}

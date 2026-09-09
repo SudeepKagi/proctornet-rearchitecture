@@ -160,38 +160,43 @@ export function SessionManagerPage() {
         </Card>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {sessions.map((sess) => (
-            <Card key={sess.id} padding="normal" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.375rem' }}>
-                  <h3 style={{ fontSize: '1.125rem', margin: 0 }}>
-                    {sess.exam_title || `Session #${sess.id.slice(0, 8)}`}
-                  </h3>
-                  <Badge variant={getStatusBadgeVariant(sess.status)}>
-                    {sess.status}
-                  </Badge>
+          {sessions.map((sess) => {
+            const sid = sess.session_id || sess.id || '';
+            const sStart = sess.scheduled_start_time || sess.start_time;
+            const sEnd = sess.scheduled_end_time || sess.end_time;
+            return (
+              <Card key={sid} padding="normal" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.375rem' }}>
+                    <h3 style={{ fontSize: '1.125rem', margin: 0 }}>
+                      {sess.exam_title || `Session #${sid.slice(0, 8)}`}
+                    </h3>
+                    <Badge variant={getStatusBadgeVariant(sess.status)}>
+                      {sess.status}
+                    </Badge>
+                  </div>
+                  <div style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)', display: 'flex', gap: '1.5rem' }}>
+                    <span>Room: <strong>{sess.room_name || 'Virtual / Unassigned'}</strong></span>
+                    <span>Start: <strong>{sStart ? new Date(sStart).toLocaleString() : 'N/A'}</strong></span>
+                    <span>End: <strong>{sEnd ? new Date(sEnd).toLocaleString() : 'N/A'}</strong></span>
+                  </div>
                 </div>
-                <div style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)', display: 'flex', gap: '1.5rem' }}>
-                  <span>Room: <strong>{sess.room_name || 'Virtual / Unassigned'}</strong></span>
-                  <span>Start: <strong>{new Date(sess.start_time).toLocaleString()}</strong></span>
-                  <span>End: <strong>{new Date(sess.end_time).toLocaleString()}</strong></span>
-                </div>
-              </div>
 
-              <div style={{ display: 'flex', gap: '0.75rem' }}>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={async () => {
-                    const detailed = await sessionsApi.getSession(sess.id);
-                    setActiveSession(detailed);
-                  }}
-                >
-                  Manage Rosters
-                </Button>
-              </div>
-            </Card>
-          ))}
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={async () => {
+                      const detailed = await sessionsApi.getSession(sid);
+                      setActiveSession(detailed);
+                    }}
+                  >
+                    Manage Rosters
+                  </Button>
+                </div>
+              </Card>
+            );
+          })}
         </div>
       )}
 
@@ -294,78 +299,80 @@ export function SessionManagerPage() {
       </Modal>
 
       {/* Roster Management Modal */}
-      {activeSession && (
-        <Modal
-          isOpen={!!activeSession}
-          onClose={() => setActiveSession(null)}
-          title={`Session Rosters — #${activeSession.id.slice(0, 8)}`}
-          maxWidth="640px"
-        >
-          <div>
-            <h4 style={{ marginBottom: '0.75rem' }}>Candidate Roster ({activeSession.students?.length || 0})</h4>
-            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
-              <input
-                type="text"
-                placeholder="Student User ID (UUID)"
-                value={studentIdInput}
-                onChange={(e) => setStudentIdInput(e.target.value)}
-                style={{
-                  flex: 1,
-                  padding: '0.375rem 0.625rem',
-                  fontSize: '0.875rem',
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--color-border-subtle)',
-                }}
-              />
-              <Button
-                variant="primary"
-                size="sm"
-                loading={rosterActionLoading}
-                onClick={() => handleAssignStudent(activeSession.id)}
-              >
-                Enroll Student
-              </Button>
-            </div>
+      {activeSession && (() => {
+        const activeSid = activeSession.session_id || activeSession.id || '';
+        return (
+          <Modal
+            isOpen={!!activeSession}
+            onClose={() => setActiveSession(null)}
+            title={`Session Rosters — #${activeSid.slice(0, 8)}`}
+            maxWidth="640px"
+          >
+            <div>
+              <h4 style={{ marginBottom: '0.75rem' }}>Candidate Roster ({activeSession.students?.length || 0})</h4>
+              <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+                <input
+                  type="text"
+                  placeholder="Student User ID (UUID)"
+                  value={studentIdInput}
+                  onChange={(e) => setStudentIdInput(e.target.value)}
+                  style={{
+                    flex: 1,
+                    padding: '0.375rem 0.625rem',
+                    fontSize: '0.875rem',
+                    borderRadius: 'var(--radius-sm)',
+                    border: '1px solid var(--color-border-subtle)',
+                  }}
+                />
+                <Button
+                  variant="primary"
+                  size="sm"
+                  loading={rosterActionLoading}
+                  onClick={() => handleAssignStudent(activeSid)}
+                >
+                  Enroll Student
+                </Button>
+              </div>
 
-            <div style={{ maxHeight: '160px', overflowY: 'auto', marginBottom: '1.5rem', border: '1px solid var(--color-border-subtle)', borderRadius: 'var(--radius-sm)' }}>
-              {activeSession.students?.length > 0 ? (
-                activeSession.students.map((st) => (
-                  <div key={st.student_id} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0.75rem', borderBottom: '1px solid var(--color-border-subtle)' }}>
-                    <span style={{ fontSize: '0.8125rem' }}>{st.name || st.email || st.student_id}</span>
-                    <Badge variant="neutral" size="sm">{st.status || 'ASSIGNED'}</Badge>
+              <div style={{ maxHeight: '160px', overflowY: 'auto', marginBottom: '1.5rem', border: '1px solid var(--color-border-subtle)', borderRadius: 'var(--radius-sm)' }}>
+                {activeSession.students?.length > 0 ? (
+                  activeSession.students.map((st) => (
+                    <div key={st.student_id} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0.75rem', borderBottom: '1px solid var(--color-border-subtle)' }}>
+                      <span style={{ fontSize: '0.8125rem' }}>{st.name || st.email || st.student_id}</span>
+                      <Badge variant="neutral" size="sm">{st.status || 'ASSIGNED'}</Badge>
+                    </div>
+                  ))
+                ) : (
+                  <div style={{ padding: '1rem', textAlign: 'center', fontSize: '0.8125rem', color: 'var(--color-text-muted)' }}>
+                    No students assigned to this session.
                   </div>
-                ))
-              ) : (
-                <div style={{ padding: '1rem', textAlign: 'center', fontSize: '0.8125rem', color: 'var(--color-text-muted)' }}>
-                  No students assigned to this session.
-                </div>
-              )}
-            </div>
+                )}
+              </div>
 
-            <h4 style={{ marginBottom: '0.75rem' }}>Invigilators ({activeSession.invigilators?.length || 0})</h4>
-            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
-              <input
-                type="text"
-                placeholder="Invigilator User ID (UUID)"
-                value={invigilatorIdInput}
-                onChange={(e) => setInvigilatorIdInput(e.target.value)}
-                style={{
-                  flex: 1,
-                  padding: '0.375rem 0.625rem',
-                  fontSize: '0.875rem',
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--color-border-subtle)',
-                }}
-              />
-              <Button
-                variant="secondary"
-                size="sm"
-                loading={rosterActionLoading}
-                onClick={() => handleAssignInvigilator(activeSession.id)}
-              >
-                Assign Invigilator
-              </Button>
-            </div>
+              <h4 style={{ marginBottom: '0.75rem' }}>Invigilators ({activeSession.invigilators?.length || 0})</h4>
+              <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+                <input
+                  type="text"
+                  placeholder="Invigilator User ID (UUID)"
+                  value={invigilatorIdInput}
+                  onChange={(e) => setInvigilatorIdInput(e.target.value)}
+                  style={{
+                    flex: 1,
+                    padding: '0.375rem 0.625rem',
+                    fontSize: '0.875rem',
+                    borderRadius: 'var(--radius-sm)',
+                    border: '1px solid var(--color-border-subtle)',
+                  }}
+                />
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  loading={rosterActionLoading}
+                  onClick={() => handleAssignInvigilator(activeSid)}
+                >
+                  Assign Invigilator
+                </Button>
+              </div>
 
             <div style={{ maxHeight: '120px', overflowY: 'auto', border: '1px solid var(--color-border-subtle)', borderRadius: 'var(--radius-sm)' }}>
               {activeSession.invigilators?.length > 0 ? (
@@ -378,11 +385,12 @@ export function SessionManagerPage() {
                 <div style={{ padding: '1rem', textAlign: 'center', fontSize: '0.8125rem', color: 'var(--color-text-muted)' }}>
                   No invigilators assigned.
                 </div>
-              )}
+                )}
+              </div>
             </div>
-          </div>
-        </Modal>
-      )}
+          </Modal>
+        );
+      })()}
     </div>
   );
 }

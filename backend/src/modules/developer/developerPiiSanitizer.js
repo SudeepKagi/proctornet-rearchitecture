@@ -82,6 +82,10 @@ export function sanitizeDeveloperPayload(data, depth = 0) {
     return data;
   }
 
+  if (data instanceof Date) {
+    return data.toISOString();
+  }
+
   if (Array.isArray(data)) {
     return data.map((item) => sanitizeDeveloperPayload(item, depth + 1));
   }

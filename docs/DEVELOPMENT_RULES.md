@@ -7,7 +7,7 @@ These rules govern all engineering workflows, architectural decisions, and contr
 ## 1. Architectural Integrity & Scope Control
 
 1. **Finalized Architecture as Source of Truth**: All implementation work must strictly conform to the system design specified in `docs/ARCHITECTURE.md` and the master architecture specification.
-2. **One Phase at a Time**: Development proceeds sequentially according to `docs/DEVELOPMENT_PLAN.md`. Do not start or implement future phases prematurely.
+2. **Scope Discipline**: Adhere strictly to authorized capabilities and system boundaries. Do not start or introduce unverified features prematurely.
 3. **No Scope Expansion Without Approval**: Do not introduce unrequested features, libraries, or frameworks.
 4. **No Hidden Architecture Changes**: Never alter core architectural patterns (e.g., swapping a database, adding microservices, changing messaging semantics) without explicit review and approval.
 5. **Mandatory ADRs**: Any intentional deviation from or addition to the architectural baseline must be documented as an **Architectural Decision Record (ADR)** in `docs/ADR/` prior to or alongside the implementation.
@@ -42,11 +42,11 @@ These rules govern all engineering workflows, architectural decisions, and contr
 - `main` is the protected, production-ready branch. **Direct development on `main` is strictly prohibited.**
 - All implementation work must take place on short-lived branches created from `main`.
 - **Branch Naming Conventions**:
-  - Feature branches: `feature/<phase>-<short-description>`  
-    *Example:* `feature/phase-1-backend-foundation`, `feature/phase-7-answer-autosave`
-  - Bug-fix branches: `fix/<phase>-<short-description>`  
-    *Example:* `fix/phase-7-answer-revision-race`
-- Keep branches focused on a single logical phase or milestone. Do not mix unrelated tasks.
+  - Feature branches: `feature/<component>-<short-description>`
+    *Example:* `feature/backend-foundation`, `feature/answer-autosave`
+  - Bug-fix branches: `fix/<component>-<short-description>`
+    *Example:* `fix/answer-revision-race`
+- Keep branches focused on a single logical capability or bugfix. Do not mix unrelated tasks.
 - Keep branch lifetimes short to avoid merge conflicts.
 
 ### 4.2 Pull Requests & Merging

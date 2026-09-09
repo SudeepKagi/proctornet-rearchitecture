@@ -123,7 +123,12 @@ export function DeveloperAuditPage() {
                     }}
                   >
                     <span style={{ color: 'var(--color-text-muted)', fontSize: '0.75rem', minWidth: '130px', fontFamily: 'monospace' }}>
-                      {new Date(log.timestamp).toLocaleTimeString()}
+                      {(() => {
+                        const raw = log.timestamp || log.created_at;
+                        if (!raw) return 'N/A';
+                        const d = new Date(raw);
+                        return isNaN(d.getTime()) ? 'N/A' : d.toLocaleTimeString();
+                      })()}
                     </span>
                     <Badge variant="primary" size="sm">
                       {log.action}

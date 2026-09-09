@@ -1,5 +1,5 @@
 # ProctorNet — Benchmark Methodology & Runbook
-## Phase 21: Load Testing & Concurrency Benchmarking Specification
+## Load Testing & Concurrency Benchmarking Specification
 
 > **Governance Status:** RATIFIED ARCHITECTURAL SPECIFICATION  
 > **Target Baseline:** AWS Single-Host EC2 `c6i.xlarge` (4 vCPUs, 8 GiB RAM, encrypted gp3 EBS volume)  

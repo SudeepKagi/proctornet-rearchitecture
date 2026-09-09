@@ -62,16 +62,17 @@ How will this decision be enforced and validated in testing/CI?
 
 ## Index of Approved ADRs
 
-- [ADR-0001: Redis Non-Authoritative Caching, Sliding-Window Rate Limiting, and Resilience](0001-redis-non-authoritative-caching-and-resilience.md) — *Accepted (Phase 11)*
-- [ADR-0002: RabbitMQ Asynchronous Transport, Quorum Queue Delayed Retries, and Worker Idempotency](0002-rabbitmq-asynchronous-transport-and-worker-idempotency.md) — *Accepted (Phase 12)*
-- [ADR-0003: In-Process Prometheus Metrics, Distributed Trace Context Propagation, and Database-Enforced Audit Immutability](0003-observability-metrics-and-audit.md) — *Accepted (Phase 13)*
-- [ADR-0004: Proctoring Event Ingestion, Server-Authoritative Anomaly Scoring, and Flag Lifecycle](0004-proctoring-event-ingestion-and-anomaly-scoring.md) — *Accepted (Phase 14)*
-- [ADR-0005: Private Object Storage Architecture, Direct Presigned Evidence Uploads, and Authoritative PostgreSQL Metadata Lifecycle](0005-private-object-storage-architecture-direct-presigned-evidence-uploads-and-authoritative-postgresql-metadata-lifecycle.md) — *Accepted (Phase 15)*
-- [ADR-0006: WebSocket Realtime Control Plane, Subprotocol Authentication, and Redis Pub/Sub Synchronization](0006-websocket-realtime-control-plane-and-redis-pubsub-synchronization.md) — *Accepted (Phase 16)*
-- [ADR-0007: WebRTC SFU Media Plane Architecture and mediasoup Integration](0007-webrtc-sfu-media-plane-architecture-and-mediasoup-integration.md) — *Accepted (Phase 17)*
-- [ADR-0008: Application Security Hardening, Cryptographic Anti-Tampering, and Defense-in-Depth](0008-application-security-hardening-cryptographic-anti-tampering.md) — *Accepted (Phase 18)*
-- [ADR-0009: Containerization Topology, Multi-Stage Builds, Host-Networked SFU Media Plane, and Single-Host Delivery Architecture](0009-containerization-topology-multistage-builds-host-networked-sfu-and-single-host-delivery.md) — *Accepted (Phase 19)*
-- [ADR-0010: Declarative AWS Infrastructure, Single-Host EC2 Delivery Baseline, and Managed Service Migration Boundaries](0010-declarative-aws-infrastructure-single-host-delivery-baseline-and-managed-service-migration-boundaries.md) — *Accepted (Phase 20)*
-- [ADR-0011: Developer Operations Telemetry Architecture, Circular Log Ring Buffer Aggregation, and WireGuard Network Segmentation Boundary](0011-developer-operations-telemetry-architecture-circular-log-ring-buffer-aggregation-and-wireguard-network-segmentation-boundary.md) — *Accepted (Phase 27)*
-- [ADR-0012: Client-Side Web Worker Screen AI Inference and Server-Authoritative Telemetry Ingestion Architecture](0012-client-side-web-worker-screen-ai-inference-and-server-authoritative-telemetry-ingestion-architecture.md) — *Accepted (Phase 28)*
-
+- [ADR-0001: Redis Non-Authoritative Caching, Sliding-Window Rate Limiting, and Resilience](0001-redis-non-authoritative-caching-and-resilience.md) — *Accepted*
+- [ADR-0002: RabbitMQ Asynchronous Transport, Quorum Queue Delayed Retries, and Worker Idempotency](0002-rabbitmq-asynchronous-transport-and-worker-idempotency.md) — *Accepted*
+- [ADR-0003: In-Process Prometheus Metrics, Distributed Trace Context Propagation, and Database-Enforced Audit Immutability](0003-observability-metrics-and-audit.md) — *Accepted*
+- [ADR-0004: Proctoring Event Ingestion, Server-Authoritative Anomaly Scoring, and Flag Lifecycle](0004-proctoring-event-ingestion-and-anomaly-scoring.md) — *Accepted*
+- [ADR-0005: Private Object Storage Architecture, Direct Presigned Evidence Uploads, and Authoritative PostgreSQL Metadata Lifecycle](0005-private-object-storage-architecture-direct-presigned-evidence-uploads-and-authoritative-postgresql-metadata-lifecycle.md) — *Accepted*
+- [ADR-0006: WebSocket Realtime Control Plane, Subprotocol Authentication, and Redis Pub/Sub Synchronization](0006-websocket-realtime-control-plane-and-redis-pubsub-synchronization.md) — *Accepted*
+- [ADR-0007: WebRTC SFU Media Plane Architecture and mediasoup Integration](0007-webrtc-sfu-media-plane-architecture-and-mediasoup-integration.md) — *Accepted*
+- [ADR-0008: Application Security Hardening, Cryptographic Anti-Tampering, and Defense-in-Depth](0008-application-security-hardening-cryptographic-anti-tampering.md) — *Accepted*
+- [ADR-0009: Containerization Topology, Multi-Stage Builds, Host-Networked SFU Media Plane, and Single-Host Delivery Architecture](0009-containerization-topology-multistage-builds-host-networked-sfu-and-single-host-delivery.md) — *Accepted*
+- [ADR-0010: Declarative AWS Infrastructure, Single-Host EC2 Delivery Baseline, and Managed Service Migration Boundaries](0010-declarative-aws-infrastructure-single-host-delivery-baseline-and-managed-service-migration-boundaries.md) — *Accepted*
+- [ADR-0011: Developer Operations Telemetry Architecture, Circular Log Ring Buffer Aggregation, and WireGuard Network Segmentation Boundary](0011-developer-operations-telemetry-architecture-circular-log-ring-buffer-aggregation-and-wireguard-network-segmentation-boundary.md) — *Accepted*
+- [ADR-0012: Client-Side Web Worker Screen AI Inference and Server-Authoritative Telemetry Ingestion Architecture](0012-client-side-web-worker-screen-ai-inference-and-server-authoritative-telemetry-ingestion-architecture.md) — *Accepted*
+- [ADR-0013: Public Website Information Architecture, Educational Identity Presentation, and Static Asset Delivery](0013-public-website-information-architecture-and-educational-identity.md) — *Accepted*
+- [ADR-0014: Privacy-Preserving Client-Side Telemetry, First-Party Event Logging, and Consent-Gated Analytics](0014-privacy-preserving-telemetry-and-consent-management.md) — *Accepted*

@@ -118,20 +118,23 @@ export function AdminOverviewPage() {
               </tr>
             </thead>
             <tbody>
-              {sessions.slice(0, 5).map((s) => (
-                <tr key={s.id} style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
-                  <td style={{ padding: '0.75rem 0.5rem', fontFamily: 'var(--font-family-mono)' }}>
-                    {s.id.slice(0, 8)}...
-                  </td>
-                  <td style={{ padding: '0.75rem 0.5rem' }}>{s.exam_title || '—'}</td>
-                  <td style={{ padding: '0.75rem 0.5rem' }}>{s.room_name || 'Virtual'}</td>
-                  <td style={{ padding: '0.75rem 0.5rem' }}>
-                    <Badge variant={getStatusBadgeVariant(s.status)} size="sm">
-                      {s.status}
-                    </Badge>
-                  </td>
-                </tr>
-              ))}
+              {(Array.isArray(sessions) ? sessions : []).slice(0, 5).map((s) => {
+                const sid = s.session_id || s.id || '';
+                return (
+                  <tr key={sid || Math.random()} style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
+                    <td style={{ padding: '0.75rem 0.5rem', fontFamily: 'var(--font-family-mono)' }}>
+                      {sid ? `${sid.slice(0, 8)}...` : '—'}
+                    </td>
+                    <td style={{ padding: '0.75rem 0.5rem' }}>{s.exam_title || '—'}</td>
+                    <td style={{ padding: '0.75rem 0.5rem' }}>{s.room_name || 'Virtual'}</td>
+                    <td style={{ padding: '0.75rem 0.5rem' }}>
+                      <Badge variant={getStatusBadgeVariant(s.status)} size="sm">
+                        {s.status}
+                      </Badge>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}

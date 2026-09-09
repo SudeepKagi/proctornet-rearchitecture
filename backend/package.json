@@ -15,6 +15,7 @@
     "db:migrate": "node src/infrastructure/postgres/migrate.js up",
     "db:rollback": "node src/infrastructure/postgres/migrate.js down",
     "db:create": "npx node-pg-migrate create --migrations-dir migrations --migration-file-language js",
+    "seed:users": "node ../scripts/db/seed-default-users.js",
     "bench:smoke": "k6 run ../scripts/load/k6/smoke-test.js",
     "bench:seed": "node ../scripts/load/seed-benchmark-data.js",
     "bench:cleanup": "node ../scripts/load/cleanup-benchmark-data.js",

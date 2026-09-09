@@ -1,0 +1,37 @@
+# Robots.txt for ProctorNet (Academic Software Engineering Demonstration)
+User-agent: *
+Allow: /
+Allow: /about
+Allow: /features
+Allow: /how-it-works
+Allow: /for-students
+Allow: /for-faculty
+Allow: /for-institutions
+Allow: /ai-proctoring
+Allow: /security
+Allow: /accessibility
+Allow: /architecture
+Allow: /documentation
+Allow: /faq
+Allow: /project-feedback
+Allow: /contact
+Allow: /project-interest
+Allow: /thank-you
+Allow: /terms
+Allow: /privacy
+Allow: /cookies
+Allow: /acceptable-use
+Allow: /academic-integrity
+Allow: /ai-proctoring-notice
+Allow: /accessibility-statement
+
+# Disallow Private Exam and Administrative Portals
+Disallow: /candidate/
+Disallow: /faculty/
+Disallow: /invigilator/
+Disallow: /admin/
+Disallow: /developer/
+Disallow: /onboarding/
+Disallow: /api/
+
+Sitemap: /sitemap.xml

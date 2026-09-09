@@ -35,11 +35,17 @@ export function setOnUnauthorized(callback) {
  * Custom API Error class preserving HTTP status and backend error envelope.
  */
 export class ApiError extends Error {
-  constructor(message, status, data = null) {
-    super(message);
+  constructor(message, status, data = null, requestId = null) {
+    const stringMessage = typeof message === 'string'
+      ? message
+      : (data?.error?.message || data?.message || 'Request failed');
+    super(stringMessage);
     this.name = 'ApiError';
     this.status = status;
     this.data = data;
+    this.code = data?.code || data?.error?.code || null;
+    this.details = data?.details || data?.error?.details || null;
+    this.requestId = requestId || data?.error?.requestId || null;
   }
 }
 
@@ -146,7 +152,16 @@ export async function apiClient(endpoint, options = {}) {
 
   await attachSignatureHeader(defaultHeaders);
 
-  let response = await fetch(endpoint, config);
+  let response;
+  try {
+    response = await fetch(endpoint, config);
+  } catch (_netErr) {
+    throw new ApiError(
+      'Unable to connect to the ProctorNet service. Please check your network connection.',
+      0,
+      null
+    );
+  }
 
   // Intercept 401 Unauthorized for token refresh (except for auth endpoints)
   if (response.status === 401 && !endpoint.includes('/auth/login') && !endpoint.includes('/auth/refresh')) {
@@ -173,8 +188,35 @@ export async function apiClient(endpoint, options = {}) {
   }
 
   if (!response.ok) {
-    const message = responseData?.message || responseData?.error || `HTTP ${response.status}: Request failed`;
-    throw new ApiError(message, response.status, responseData);
+    const rawError = responseData?.error;
+    const extractedMessage =
+      (typeof responseData?.message === 'string' && responseData.message) ||
+      (typeof rawError?.message === 'string' && rawError.message) ||
+      (typeof rawError === 'string' && rawError) ||
+      null;
+
+    const fallbackStatusMessages = {
+      400: 'Invalid request. Please verify the submitted information.',
+      401: 'Your session has expired. Please sign in again.',
+      403: 'You do not have permission to perform this action.',
+      404: 'The requested resource was not found.',
+      409: 'A conflict occurred with the current state of the resource.',
+      422: 'Unable to process the request due to validation errors.',
+      429: 'Too many requests. Please wait a moment and try again.',
+      500: 'Something went wrong on the server while processing your request.',
+      502: 'Unable to connect to the upstream service. Please retry shortly.',
+      503: 'Service temporarily unavailable. Please retry in a few moments.',
+      504: 'Gateway timeout waiting for server response.'
+    };
+
+    const finalMessage =
+      extractedMessage ||
+      fallbackStatusMessages[response.status] ||
+      `HTTP ${response.status}: Request failed`;
+
+    const requestId = rawError?.requestId || response.headers.get('x-request-id') || null;
+
+    throw new ApiError(finalMessage, response.status, responseData, requestId);
   }
 
   return responseData;

@@ -17,6 +17,7 @@
 
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert/strict';
+import amqp from 'amqplib';
 import {
   getRabbitMQConnection,
   createConfirmChannel,
@@ -25,6 +26,38 @@ import {
 } from '../../src/infrastructure/rabbitmq/client.js';
 import { TOPOLOGY, assertTopology } from '../../src/infrastructure/rabbitmq/topology.js';
 
+// ---------------------------------------------------------------------------
+// Infrastructure availability probe — skip the entire suite if RabbitMQ is
+// not reachable in the current environment (e.g. local dev without Docker).
+// This prevents a 120-second timeout from blocking the local test run.
+// ---------------------------------------------------------------------------
+const RABBITMQ_URL =
+  process.env.RABBITMQ_URL ||
+  `amqp://${process.env.RABBITMQ_USER || 'guest'}:${process.env.RABBITMQ_PASSWORD || 'guest'}@${process.env.RABBITMQ_HOST || 'localhost'}:${process.env.RABBITMQ_PORT || 5672}${process.env.RABBITMQ_VHOST || '/'}`;
+
+let rabbitMQAvailable = false;
+try {
+  const probeConn = await amqp.connect(RABBITMQ_URL, { timeout: 3000 });
+  await probeConn.close();
+  rabbitMQAvailable = true;
+} catch {
+  console.warn(
+    '\n  ⏩  [SKIP] Live RabbitMQ Broker Semantics Integration Suite — ' +
+    'RabbitMQ is not reachable at ' + RABBITMQ_URL + '. ' +
+    'Start RabbitMQ (e.g. docker-compose up rabbitmq) to run broker semantics tests.\n'
+  );
+}
+
+// When RabbitMQ is unavailable, register a single skipped placeholder.
+// Using a full if/else because node:test evaluates the describe() callback
+// even when skip:true is set — meaning before() hooks still fire and hang.
+if (!rabbitMQAvailable) {
+  describe('Live RabbitMQ Broker Semantics Integration Suite', () => {
+    it('(offline) broker not available — all 10 semantics tests skipped', {
+      skip: 'RabbitMQ broker is not running. Start it with: docker-compose up rabbitmq'
+    }, () => {});
+  });
+} else {
 describe('Live RabbitMQ Broker Semantics Integration Suite', { timeout: 120000 }, () => {
   let connection;
 
@@ -518,3 +551,4 @@ describe('Live RabbitMQ Broker Semantics Integration Suite', { timeout: 120000 }
     }
   });
 });
+} // end if (rabbitMQAvailable)

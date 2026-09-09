@@ -1,6 +1,6 @@
 # ProctorNet Infrastructure & Deployment Operations Runbook
 
-This directory contains the containerization, orchestration, and delivery infrastructure for the ProctorNet Examination Platform, adhering strictly to the modular monolith architecture established in Phase 19.
+This directory contains the containerization, orchestration, and delivery infrastructure for the ProctorNet Examination Platform, adhering strictly to the modular monolith architecture.
 
 ---
 

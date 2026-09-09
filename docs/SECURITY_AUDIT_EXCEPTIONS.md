@@ -4,7 +4,7 @@ This document tracks formal, approved security exceptions for vulnerabilities de
 
 ## 1. Exception Policy & Governance
 
-In accordance with Phase 19 Security Hardening and Vulnerability Policy:
+In accordance with ProctorNet Security Hardening and Vulnerability Policy:
 - **Blocking Severity**: Any **CRITICAL** vulnerability with an available vendor fix blocks the Continuous Integration (CI) pipeline (`exit-code: 1`).
 - **Non-Blocking Warnings**: **HIGH** vulnerabilities produce CI warnings.
 - **Exception Criteria**: An exception may only be granted if:

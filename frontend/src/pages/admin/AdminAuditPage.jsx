@@ -35,10 +35,10 @@ export function AdminAuditPage() {
         action: actionFilter.trim() || undefined,
         resource_type: resourceTypeFilter.trim() || undefined
       });
-      setLogs(data.logs || []);
+      setLogs(data.audit_logs || data.logs || []);
       setPagination(data.pagination || { page: 1, limit: 15, total: 0, totalPages: 1 });
     } catch (err) {
-      setError(err?.message || 'Failed to load audit logs');
+      setError(typeof err?.message === 'string' ? err.message : 'Failed to load audit logs');
     } finally {
       setLoading(false);
     }
@@ -126,7 +126,12 @@ export function AdminAuditPage() {
                 logs.map((l) => (
                   <tr key={l.audit_id || l.auditId} style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
                     <td style={{ padding: '10px 16px', color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>
-                      {new Date(l.timestamp).toLocaleString()}
+                      {(() => {
+                        const raw = l.timestamp || l.created_at;
+                        if (!raw) return 'N/A';
+                        const d = new Date(raw);
+                        return isNaN(d.getTime()) ? 'N/A' : d.toLocaleString();
+                      })()}
                     </td>
                     <td style={{ padding: '10px 16px' }}>
                       <Badge variant="primary" size="sm">{l.action}</Badge>

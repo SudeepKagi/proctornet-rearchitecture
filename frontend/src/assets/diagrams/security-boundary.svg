@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 480" width="100%" height="100%" role="img" aria-label="ProctorNet Security and Network Isolation Boundaries">
+  <defs>
+    <linearGradient id="publicGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0284c7" />
+      <stop offset="100%" stop-color="#0369a1" />
+    </linearGradient>
+    <linearGradient id="appGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e3a8a" />
+      <stop offset="100%" stop-color="#1d4ed8" />
+    </linearGradient>
+    <linearGradient id="vpnGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4c1d95" />
+      <stop offset="100%" stop-color="#5b21b6" />
+    </linearGradient>
+    <filter id="boxShadow" x="-5%" y="-5%" width="110%" height="115%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="3" stdDeviation="5" flood-color="#0f172a" flood-opacity="0.08" />
+    </filter>
+  </defs>
+
+  <rect width="960" height="480" rx="16" fill="#f8fafc" />
+
+  <!-- Header -->
+  <text x="40" y="40" font-family="Inter, sans-serif" font-size="18" font-weight="700" fill="#0f172a">Defense-in-Depth Security &amp; Network Isolation Boundary</text>
+  <text x="40" y="62" font-family="Inter, sans-serif" font-size="12" fill="#64748b">Tiered network boundaries • WireGuard management perimeter • Database trigger immutability</text>
+
+  <!-- Zone 1: Public Internet & Ingress (Left) -->
+  <g transform="translate(40, 90)">
+    <rect width="250" height="350" rx="12" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" filter="url(#boxShadow)" />
+    <rect width="250" height="36" rx="12" fill="url(#publicGrad)" />
+    <rect x="0" y="26" width="250" height="10" fill="url(#publicGrad)" />
+    <text x="15" y="24" font-family="Inter, sans-serif" font-size="13" font-weight="700" fill="#ffffff">ZONE 1: PUBLIC INGRESS</text>
+
+    <text x="15" y="65" font-family="Inter, sans-serif" font-size="12" font-weight="600" fill="#0f172a">Internet &amp; Edge Protection</text>
+    <text x="15" y="85" font-family="Inter, sans-serif" font-size="11" fill="#475569">• AWS Application Load Balancer</text>
+    <text x="15" y="105" font-family="Inter, sans-serif" font-size="11" fill="#475569">• TLS 1.3 / Strict Cipher Suites</text>
+    <text x="15" y="125" font-family="Inter, sans-serif" font-size="11" fill="#475569">• Helmet.js Security Headers</text>
+    <text x="15" y="145" font-family="Inter, sans-serif" font-size="11" fill="#475569">• Sliding-Window Rate Limiting</text>
+    <text x="15" y="165" font-family="Inter, sans-serif" font-size="11" fill="#475569">• Strict CORS Domain Whitelist</text>
+
+    <line x1="15" y1="185" x2="235" y2="185" stroke="#e2e8f0" stroke-width="1" />
+    <text x="15" y="210" font-family="Inter, sans-serif" font-size="11" font-weight="600" fill="#0284c7">Public Routes Allowed:</text>
+    <text x="15" y="230" font-family="Inter, sans-serif" font-size="10" fill="#64748b">/ (Landing), /about, /features, /faq</text>
+    <text x="15" y="248" font-family="Inter, sans-serif" font-size="10" fill="#64748b">/for-students, /for-faculty</text>
+    <text x="15" y="266" font-family="Inter, sans-serif" font-size="10" fill="#64748b">/login, /register, /contact</text>
+
+    <rect x="15" y="290" width="220" height="40" rx="6" fill="#f0f9ff" stroke="#bae6fd" />
+    <text x="25" y="308" font-family="Inter, sans-serif" font-size="10" font-weight="700" fill="#0369a1">ANONYMOUS ACCESS</text>
+    <text x="25" y="322" font-family="Inter, sans-serif" font-size="9" fill="#0284c7">Zero auth token required</text>
+  </g>
+
+  <!-- Zone 2: Authenticated Application Tier (Center) -->
+  <g transform="translate(325, 90)">
+    <rect width="280" height="350" rx="12" fill="#ffffff" stroke="#93c5fd" stroke-width="2" filter="url(#boxShadow)" />
+    <rect width="280" height="36" rx="12" fill="url(#appGrad)" />
+    <rect x="0" y="26" width="280" height="10" fill="url(#appGrad)" />
+    <text x="15" y="24" font-family="Inter, sans-serif" font-size="13" font-weight="700" fill="#ffffff">ZONE 2: APPLICATION &amp; RBAC</text>
+
+    <text x="15" y="65" font-family="Inter, sans-serif" font-size="12" font-weight="600" fill="#0f172a">Identity &amp; Tenant Authorization</text>
+    <text x="15" y="85" font-family="Inter, sans-serif" font-size="11" fill="#475569">• JWT Lifecycle (15m access / 7d refresh)</text>
+    <text x="15" y="105" font-family="Inter, sans-serif" font-size="11" fill="#475569">• Redis Real-Time Revocation List</text>
+    <text x="15" y="125" font-family="Inter, sans-serif" font-size="11" fill="#475569">• RBAC &amp; Resource Tenancy Checks</text>
+    <text x="15" y="145" font-family="Inter, sans-serif" font-size="11" fill="#475569">• BOLA Mitigation: User Ownership Gate</text>
+    <text x="15" y="165" font-family="Inter, sans-serif" font-size="11" fill="#475569">• Zod Input Validation &amp; Sanitization</text>
+
+    <line x1="15" y1="185" x2="265" y2="185" stroke="#e2e8f0" stroke-width="1" />
+    <text x="15" y="210" font-family="Inter, sans-serif" font-size="11" font-weight="600" fill="#1e40af">Private Assessment Endpoints:</text>
+    <text x="15" y="230" font-family="Inter, sans-serif" font-size="10" fill="#475569">/api/v1/candidate/* (Verified Candidate)</text>
+    <text x="15" y="248" font-family="Inter, sans-serif" font-size="10" fill="#475569">/api/v1/faculty/* (Verified Faculty)</text>
+    <text x="15" y="266" font-family="Inter, sans-serif" font-size="10" fill="#475569">/api/v1/invigilator/* (Assigned Proctor)</text>
+    <text x="15" y="284" font-family="Inter, sans-serif" font-size="10" fill="#475569">/api/v1/admin/* (System Administrator)</text>
+
+    <rect x="15" y="300" width="250" height="36" rx="6" fill="#eff6ff" stroke="#bfdbfe" />
+    <text x="25" y="316" font-family="Inter, sans-serif" font-size="10" font-weight="700" fill="#1e40af">AUTHENTICATED ONLY</text>
+    <text x="25" y="328" font-family="Inter, sans-serif" font-size="9" fill="#2563eb">Unauthenticated visits redirect to /login</text>
+  </g>
+
+  <!-- Zone 3: WireGuard Isolated Ops Boundary (Right) -->
+  <g transform="translate(640, 90)">
+    <rect width="280" height="350" rx="12" fill="#ffffff" stroke="#c084fc" stroke-width="2" filter="url(#boxShadow)" />
+    <rect width="280" height="36" rx="12" fill="url(#vpnGrad)" />
+    <rect x="0" y="26" width="280" height="10" fill="url(#vpnGrad)" />
+    <text x="15" y="24" font-family="Inter, sans-serif" font-size="13" font-weight="700" fill="#ffffff">ZONE 3: WIREGUARD SUBNET</text>
+
+    <text x="15" y="65" font-family="Inter, sans-serif" font-size="12" font-weight="600" fill="#0f172a">Zero-Trust Network Perimeter</text>
+    <text x="15" y="85" font-family="Inter, sans-serif" font-size="11" fill="#475569">• Private Subnet: 10.100.0.0/24</text>
+    <text x="15" y="105" font-family="Inter, sans-serif" font-size="11" fill="#475569">• Public Port 443 strictly rejected</text>
+    <text x="15" y="125" font-family="Inter, sans-serif" font-size="11" fill="#475569">• Cryptographic Peer Handshake</text>
+    <text x="15" y="145" font-family="Inter, sans-serif" font-size="11" fill="#475569">• Dual Gate: VPN Peer + DEVELOPER Role</text>
+
+    <line x1="15" y1="165" x2="265" y2="165" stroke="#e2e8f0" stroke-width="1" />
+    <text x="15" y="190" font-family="Inter, sans-serif" font-size="11" font-weight="600" fill="#7e22ce">Protected Ops Routes:</text>
+    <text x="15" y="210" font-family="Inter, sans-serif" font-size="10" fill="#6b21a8">/developer/* (Frontend Console)</text>
+    <text x="15" y="228" font-family="Inter, sans-serif" font-size="10" fill="#6b21a8">/api/v1/developer/health (13 Subsystems)</text>
+    <text x="15" y="246" font-family="Inter, sans-serif" font-size="10" fill="#6b21a8">/api/v1/developer/logs (Trace Feeds)</text>
+    <text x="15" y="264" font-family="Inter, sans-serif" font-size="10" fill="#6b21a8">/api/v1/developer/audit (Trigger Logs)</text>
+
+    <rect x="15" y="290" width="250" height="45" rx="6" fill="#faf5ff" stroke="#e9d5ff" />
+    <text x="25" y="308" font-family="Inter, sans-serif" font-size="10" font-weight="700" fill="#6b21a8">ZERO PUBLIC ACCESS</text>
+    <text x="25" y="324" font-family="Inter, sans-serif" font-size="9" fill="#7e22ce">Returns 403 Forbidden without VPN</text>
+  </g>
+
+  <!-- Connective Arrows -->
+  <path d="M 290 260 L 325 260" stroke="#0284c7" stroke-width="2" />
+  <path d="M 605 260 L 640 260" stroke="#7c3aed" stroke-width="2" stroke-dasharray="4,4" />
+</svg>

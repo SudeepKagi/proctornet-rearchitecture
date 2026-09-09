@@ -10,7 +10,7 @@
 
 ## 1. System Purpose & Vision
 
-ProctorNet is a secure, high-concurrency, enterprise-grade online examination and remote proctoring platform. The re-architecture addresses the scalability and reliability bottlenecks of previous implementations by enforcing strict transactional integrity, authoritative server-side state, resilient asynchronous processing, and isolated media streaming.
+ProctorNet is a student-built academic software engineering project demonstrating an open, resilient, high-concurrency online examination and remote proctoring platform. The architecture addresses the scalability and reliability bottlenecks of traditional examination systems by enforcing strict transactional integrity, authoritative server-side state, resilient asynchronous processing, and isolated media streaming.
 
 The platform supports:
 - High-concurrency exam delivery with zero data loss on student answers.
@@ -159,13 +159,13 @@ Proctoring is partitioned into three distinct planes:
 
 ## 9. Explicit Non-Goals (What We Are NOT Building)
 
-To prevent premature complexity and architectural drift, the following are strictly out of scope for initial phases:
-- **No Premature Microservices**: Avoid distributed inter-service RPC overhead.
-- **No Database Sharding**: PostgreSQL single-cluster with read-replicas provides sufficient headroom for initial target scale.
+To prevent premature complexity and architectural drift, the following are strictly out of scope:
+- **No Premature Microservices**: Avoid distributed inter-service RPC overhead; modular monolith provides clean boundaries.
+- **No Database Sharding**: PostgreSQL single-cluster with read-replicas provides sufficient headroom for target scale.
 - **No Multi-Region Active-Active**: Single primary region deployment.
 - **No Kafka**: RabbitMQ meets all asynchronous messaging and outbox requirements with simpler operational overhead.
 - **No GraphQL**: RESTful APIs with predictable payloads and caching semantics.
-- **No Kubernetes in Early Phases**: Docker Compose for local development; containerized ECS / App Runner / EC2 for initial deployments before considering Kubernetes.
+- **No Kubernetes**: Docker Compose for local development; containerized EC2 single-host architecture with host-networked SFU and Nginx edge.
 
 ---
 

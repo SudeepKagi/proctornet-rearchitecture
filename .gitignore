@@ -160,3 +160,6 @@ scripts/load/telemetry/*.csv
 scripts/load/telemetry/*.json
 scripts/load/results/*.json
 
+# Scratch / temporary debug scripts (never commit)
+scratch/
+**/scratch/

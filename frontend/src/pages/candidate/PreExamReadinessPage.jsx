@@ -177,7 +177,7 @@ export function PreExamReadinessPage() {
         </Button>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 700 }}>
-            {session.exam_title || `Examination #${session.id.slice(0, 8)}`}
+            {session.exam_title || `Examination #${(session.session_id || session.id || '').slice(0, 8)}`}
           </h1>
           <Badge variant={getStatusBadgeVariant(session.status)}>
             {session.status}

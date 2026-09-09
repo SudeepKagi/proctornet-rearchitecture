@@ -53,7 +53,7 @@ import { UserDetailPage } from './pages/admin/UserDetailPage.jsx';
 import { OrganizationSettingsPage } from './pages/admin/OrganizationSettingsPage.jsx';
 import { AdminAuditPage } from './pages/admin/AdminAuditPage.jsx';
 
-// Developer Operations Pages (Phase 27)
+// Developer Operations Pages
 import { DeveloperLayout } from './components/layout/DeveloperLayout.jsx';
 import { DeveloperOverviewPage } from './pages/developer/DeveloperOverviewPage.jsx';
 import { DeveloperHealthPage } from './pages/developer/DeveloperHealthPage.jsx';
@@ -61,6 +61,34 @@ import { DeveloperLogsPage } from './pages/developer/DeveloperLogsPage.jsx';
 import { DeveloperAuditPage } from './pages/developer/DeveloperAuditPage.jsx';
 import { DeveloperTopologyPage } from './pages/developer/DeveloperTopologyPage.jsx';
 import { DeveloperIncidentsPage } from './pages/developer/DeveloperIncidentsPage.jsx';
+
+// Public Educational Website Pages
+import { PublicLayout } from './components/public/PublicLayout.jsx';
+import { LandingPage } from './pages/public/LandingPage.jsx';
+import { AboutPage } from './pages/public/AboutPage.jsx';
+import { FeaturesPage } from './pages/public/FeaturesPage.jsx';
+import { HowItWorksPage } from './pages/public/HowItWorksPage.jsx';
+import { ForStudentsPage } from './pages/public/ForStudentsPage.jsx';
+import { ForFacultyPage } from './pages/public/ForFacultyPage.jsx';
+import { ForInstitutionsPage } from './pages/public/ForInstitutionsPage.jsx';
+import { AiProctoringPage } from './pages/public/AiProctoringPage.jsx';
+import { SecurityPage } from './pages/public/SecurityPage.jsx';
+import { AccessibilityPage } from './pages/public/AccessibilityPage.jsx';
+import { ArchitecturePage } from './pages/public/ArchitecturePage.jsx';
+import { DocumentationHubPage } from './pages/public/DocumentationHubPage.jsx';
+import { FaqPage } from './pages/public/FaqPage.jsx';
+import { ContactPage } from './pages/public/ContactPage.jsx';
+import { ProjectInterestPage } from './pages/public/ProjectInterestPage.jsx';
+import { ProjectFeedbackPage } from './pages/public/ProjectFeedbackPage.jsx';
+import { ThankYouPage } from './pages/public/ThankYouPage.jsx';
+import { TermsPage } from './pages/public/TermsPage.jsx';
+import { PrivacyPage } from './pages/public/PrivacyPage.jsx';
+import { CookiesPage } from './pages/public/CookiesPage.jsx';
+import { AcceptableUsePage } from './pages/public/AcceptableUsePage.jsx';
+import { AcademicIntegrityPage } from './pages/public/AcademicIntegrityPage.jsx';
+import { AiProctoringNoticePage } from './pages/public/AiProctoringNoticePage.jsx';
+import { AccessibilityStatementPage } from './pages/public/AccessibilityStatementPage.jsx';
+import { PublicNotFoundPage } from './pages/public/PublicNotFoundPage.jsx';
 
 function RootRedirect() {
   const { user, isAuthenticated, loading } = useAuth();
@@ -104,8 +132,8 @@ export function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
 
-        {/* Root redirect */}
-        <Route path="/" element={<RootRedirect />} />
+        {/* Dashboard redirect for authenticated users */}
+        <Route path="/dashboard" element={<RootRedirect />} />
 
         {/* Onboarding Routes (Protected, without standard operational dashboard chrome) */}
         <Route
@@ -400,8 +428,36 @@ export function App() {
           </Route>
         </Route>
 
-        {/* Unmatched routes */}
-        <Route path="*" element={<NotFoundPage />} />
+        {/* Public Educational Website Routes */}
+        <Route element={<PublicLayout />}>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/features" element={<FeaturesPage />} />
+          <Route path="/how-it-works" element={<HowItWorksPage />} />
+          <Route path="/for-students" element={<ForStudentsPage />} />
+          <Route path="/for-faculty" element={<ForFacultyPage />} />
+          <Route path="/for-institutions" element={<ForInstitutionsPage />} />
+          <Route path="/ai-proctoring" element={<AiProctoringPage />} />
+          <Route path="/security" element={<SecurityPage />} />
+          <Route path="/accessibility" element={<AccessibilityPage />} />
+          <Route path="/architecture" element={<ArchitecturePage />} />
+          <Route path="/documentation" element={<DocumentationHubPage />} />
+          <Route path="/faq" element={<FaqPage />} />
+          <Route path="/contact" element={<ContactPage />} />
+          <Route path="/project-interest" element={<ProjectInterestPage />} />
+          <Route path="/project-feedback" element={<ProjectFeedbackPage />} />
+          <Route path="/thank-you" element={<ThankYouPage />} />
+          <Route path="/terms" element={<TermsPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/cookies" element={<CookiesPage />} />
+          <Route path="/acceptable-use" element={<AcceptableUsePage />} />
+          <Route path="/academic-integrity" element={<AcademicIntegrityPage />} />
+          <Route path="/ai-proctoring-notice" element={<AiProctoringNoticePage />} />
+          <Route path="/accessibility-statement" element={<AccessibilityStatementPage />} />
+
+          {/* Accessible Public 404 Catch-All */}
+          <Route path="*" element={<PublicNotFoundPage />} />
+        </Route>
       </Routes>
     </RealtimeProvider>
   );

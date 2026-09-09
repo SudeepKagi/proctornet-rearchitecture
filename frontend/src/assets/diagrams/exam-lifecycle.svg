@@ -1,0 +1,113 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 380" width="100%" height="100%" role="img" aria-label="ProctorNet Examination Lifecycle Diagram">
+  <defs>
+    <linearGradient id="stepGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#f1f5f9" />
+    </linearGradient>
+    <filter id="boxShadow" x="-5%" y="-5%" width="110%" height="115%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="3" stdDeviation="5" flood-color="#0f172a" flood-opacity="0.08" />
+    </filter>
+  </defs>
+
+  <rect width="960" height="380" rx="16" fill="#f8fafc" />
+
+  <!-- Header -->
+  <text x="40" y="42" font-family="Inter, sans-serif" font-size="18" font-weight="700" fill="#0f172a">End-to-End Examination Lifecycle</text>
+  <text x="40" y="64" font-family="Inter, sans-serif" font-size="12" fill="#64748b">From blueprint creation to immutable score publication across all platform roles</text>
+
+  <!-- Step 1 -->
+  <g transform="translate(40, 95)">
+    <rect width="160" height="230" rx="10" fill="url(#stepGrad)" stroke="#cbd5e1" stroke-width="1.5" filter="url(#boxShadow)" />
+    <circle cx="28" cy="28" r="14" fill="#1e3a8a" />
+    <text x="23" y="33" font-family="Inter, sans-serif" font-size="13" font-weight="700" fill="#ffffff">1</text>
+    <text x="50" y="32" font-family="Inter, sans-serif" font-size="12" font-weight="700" fill="#1e3a8a">BLUEPRINT</text>
+
+    <text x="15" y="70" font-family="Inter, sans-serif" font-size="12" font-weight="600" fill="#0f172a">Authoring Quotas</text>
+    <text x="15" y="90" font-family="Inter, sans-serif" font-size="11" fill="#475569">• Multi-format items</text>
+    <text x="15" y="110" font-family="Inter, sans-serif" font-size="11" fill="#475569">• Difficulty quotas</text>
+    <text x="15" y="130" font-family="Inter, sans-serif" font-size="11" fill="#475569">• Dynamic shuffling</text>
+    <text x="15" y="150" font-family="Inter, sans-serif" font-size="11" fill="#475569">• Sectional limits</text>
+    
+    <rect x="12" y="175" width="136" height="40" rx="4" fill="#eff6ff" />
+    <text x="18" y="193" font-family="Inter, sans-serif" font-size="10" font-weight="600" fill="#1e40af">ROLE: FACULTY</text>
+    <text x="18" y="206" font-family="Inter, sans-serif" font-size="9" fill="#2563eb">Draft / Published</text>
+  </g>
+
+  <!-- Step 2 -->
+  <g transform="translate(225, 95)">
+    <rect width="160" height="230" rx="10" fill="url(#stepGrad)" stroke="#cbd5e1" stroke-width="1.5" filter="url(#boxShadow)" />
+    <circle cx="28" cy="28" r="14" fill="#0284c7" />
+    <text x="23" y="33" font-family="Inter, sans-serif" font-size="13" font-weight="700" fill="#ffffff">2</text>
+    <text x="50" y="32" font-family="Inter, sans-serif" font-size="12" font-weight="700" fill="#0284c7">SCHEDULING</text>
+
+    <text x="15" y="70" font-family="Inter, sans-serif" font-size="12" font-weight="600" fill="#0f172a">Session Setup</text>
+    <text x="15" y="90" font-family="Inter, sans-serif" font-size="11" fill="#475569">• Candidate roster</text>
+    <text x="15" y="110" font-family="Inter, sans-serif" font-size="11" fill="#475569">• Room assignment</text>
+    <text x="15" y="130" font-family="Inter, sans-serif" font-size="11" fill="#475569">• Invigilator linking</text>
+    <text x="15" y="150" font-family="Inter, sans-serif" font-size="11" fill="#475569">• Strictness config</text>
+
+    <rect x="12" y="175" width="136" height="40" rx="4" fill="#f0f9ff" />
+    <text x="18" y="193" font-family="Inter, sans-serif" font-size="10" font-weight="600" fill="#0369a1">ROLE: FACULTY / ADMIN</text>
+    <text x="18" y="206" font-family="Inter, sans-serif" font-size="9" fill="#0284c7">Scheduled Status</text>
+  </g>
+
+  <!-- Step 3 -->
+  <g transform="translate(410, 95)">
+    <rect width="160" height="230" rx="10" fill="url(#stepGrad)" stroke="#cbd5e1" stroke-width="1.5" filter="url(#boxShadow)" />
+    <circle cx="28" cy="28" r="14" fill="#0d9488" />
+    <text x="23" y="33" font-family="Inter, sans-serif" font-size="13" font-weight="700" fill="#ffffff">3</text>
+    <text x="50" y="32" font-family="Inter, sans-serif" font-size="12" font-weight="700" fill="#0d9488">READINESS</text>
+
+    <text x="15" y="70" font-family="Inter, sans-serif" font-size="12" font-weight="600" fill="#0f172a">Pre-Exam Check</text>
+    <text x="15" y="90" font-family="Inter, sans-serif" font-size="11" fill="#475569">• System diagnostics</text>
+    <text x="15" y="110" font-family="Inter, sans-serif" font-size="11" fill="#475569">• Biometric match</text>
+    <text x="15" y="130" font-family="Inter, sans-serif" font-size="11" fill="#475569">• Screen share grant</text>
+    <text x="15" y="150" font-family="Inter, sans-serif" font-size="11" fill="#475569">• Rules acceptance</text>
+
+    <rect x="12" y="175" width="136" height="40" rx="4" fill="#f0fdf4" />
+    <text x="18" y="193" font-family="Inter, sans-serif" font-size="10" font-weight="600" fill="#15803d">ROLE: CANDIDATE</text>
+    <text x="18" y="206" font-family="Inter, sans-serif" font-size="9" fill="#16a34a">Verified / Ready</text>
+  </g>
+
+  <!-- Step 4 -->
+  <g transform="translate(595, 95)">
+    <rect width="160" height="230" rx="10" fill="url(#stepGrad)" stroke="#cbd5e1" stroke-width="1.5" filter="url(#boxShadow)" />
+    <circle cx="28" cy="28" r="14" fill="#ea580c" />
+    <text x="23" y="33" font-family="Inter, sans-serif" font-size="13" font-weight="700" fill="#ffffff">4</text>
+    <text x="50" y="32" font-family="Inter, sans-serif" font-size="12" font-weight="700" fill="#ea580c">ASSESSMENT</text>
+
+    <text x="15" y="70" font-family="Inter, sans-serif" font-size="12" font-weight="600" fill="#0f172a">Live Exam &amp; Sync</text>
+    <text x="15" y="90" font-family="Inter, sans-serif" font-size="11" fill="#475569">• OCC Autosave sync</text>
+    <text x="15" y="110" font-family="Inter, sans-serif" font-size="11" fill="#475569">• Screen worker flags</text>
+    <text x="15" y="130" font-family="Inter, sans-serif" font-size="11" fill="#475569">• Live invigilation</text>
+    <text x="15" y="150" font-family="Inter, sans-serif" font-size="11" fill="#475569">• Disconnect recovery</text>
+
+    <rect x="12" y="175" width="136" height="40" rx="4" fill="#fff7ed" />
+    <text x="18" y="193" font-family="Inter, sans-serif" font-size="10" font-weight="600" fill="#c2410c">DUAL ACTIVE</text>
+    <text x="18" y="206" font-family="Inter, sans-serif" font-size="9" fill="#ea580c">Candidate + Invigilator</text>
+  </g>
+
+  <!-- Step 5 -->
+  <g transform="translate(775, 95)">
+    <rect width="160" height="230" rx="10" fill="url(#stepGrad)" stroke="#cbd5e1" stroke-width="1.5" filter="url(#boxShadow)" />
+    <circle cx="28" cy="28" r="14" fill="#16a34a" />
+    <text x="23" y="33" font-family="Inter, sans-serif" font-size="13" font-weight="700" fill="#ffffff">5</text>
+    <text x="50" y="32" font-family="Inter, sans-serif" font-size="12" font-weight="700" fill="#16a34a">EVALUATION</text>
+
+    <text x="15" y="70" font-family="Inter, sans-serif" font-size="12" font-weight="600" fill="#0f172a">Grading &amp; Release</text>
+    <text x="15" y="90" font-family="Inter, sans-serif" font-size="11" fill="#475569">• Instant MCQ auto-score</text>
+    <text x="15" y="110" font-family="Inter, sans-serif" font-size="11" fill="#475569">• Rubric grading suite</text>
+    <text x="15" y="130" font-family="Inter, sans-serif" font-size="11" fill="#475569">• Trigger locked audit</text>
+    <text x="15" y="150" font-family="Inter, sans-serif" font-size="11" fill="#475569">• Scorecard publication</text>
+
+    <rect x="12" y="175" width="136" height="40" rx="4" fill="#f0fdf4" />
+    <text x="18" y="193" font-family="Inter, sans-serif" font-size="10" font-weight="600" fill="#15803d">ROLE: FACULTY / STUDENT</text>
+    <text x="18" y="206" font-family="Inter, sans-serif" font-size="9" fill="#16a34a">Evaluated / Released</text>
+  </g>
+
+  <!-- Connective Arrows -->
+  <path d="M 200 210 L 225 210" stroke="#94a3b8" stroke-width="2" />
+  <path d="M 385 210 L 410 210" stroke="#94a3b8" stroke-width="2" />
+  <path d="M 570 210 L 595 210" stroke="#94a3b8" stroke-width="2" />
+  <path d="M 755 210 L 775 210" stroke="#94a3b8" stroke-width="2" />
+</svg>

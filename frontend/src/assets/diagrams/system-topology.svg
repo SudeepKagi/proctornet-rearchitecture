@@ -1,0 +1,176 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 640" width="100%" height="100%" role="img" aria-label="ProctorNet System Topology Diagram">
+  <defs>
+    <linearGradient id="primaryGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e3a8a" />
+      <stop offset="100%" stop-color="#2563eb" />
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0d9488" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#f8fafc" />
+    </linearGradient>
+    <linearGradient id="devGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#312e81" />
+      <stop offset="100%" stop-color="#4338ca" />
+    </linearGradient>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="115%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#0f172a" flood-opacity="0.08" />
+    </filter>
+  </defs>
+
+  <rect width="1000" height="640" fill="#f8fafc" rx="16" />
+
+  <!-- Outer Boundary: AWS Cloud / Infrastructure -->
+  <rect x="20" y="20" width="960" height="600" rx="12" fill="none" stroke="#cbd5e1" stroke-width="2" stroke-dasharray="6,6" />
+  <text x="40" y="50" font-family="Inter, sans-serif" font-size="14" font-weight="700" fill="#64748b" letter-spacing="1">AWS INFRASTRUCTURE &amp; HOST BOUNDARY</text>
+
+  <!-- Section 1: Client Edge -->
+  <g transform="translate(50, 80)">
+    <!-- Candidate Client -->
+    <rect x="0" y="0" width="220" height="120" rx="10" fill="url(#cardGrad)" stroke="#cbd5e1" stroke-width="1.5" filter="url(#shadow)" />
+    <rect x="12" y="12" width="8" height="8" rx="4" fill="#16a34a" />
+    <text x="28" y="20" font-family="Inter, sans-serif" font-size="14" font-weight="700" fill="#0f172a">Candidate Browser</text>
+    <text x="12" y="44" font-family="Inter, sans-serif" font-size="11" fill="#475569">• React 19 Exam Workspace</text>
+    <text x="12" y="62" font-family="Inter, sans-serif" font-size="11" fill="#475569">• Web Worker Screen AI</text>
+    <text x="12" y="80" font-family="Inter, sans-serif" font-size="11" fill="#475569">• OCC Offline Draft Buffer</text>
+    <text x="12" y="98" font-family="Inter, sans-serif" font-size="11" fill="#475569">• WebRTC Video Publisher</text>
+
+    <!-- Invigilator Client -->
+    <rect x="0" y="150" width="220" height="110" rx="10" fill="url(#cardGrad)" stroke="#cbd5e1" stroke-width="1.5" filter="url(#shadow)" />
+    <rect x="12" y="162" width="8" height="8" rx="4" fill="#0284c7" />
+    <text x="28" y="170" font-family="Inter, sans-serif" font-size="14" font-weight="700" fill="#0f172a">Invigilator Console</text>
+    <text x="12" y="194" font-family="Inter, sans-serif" font-size="11" fill="#475569">• 12-Stream Video Matrix</text>
+    <text x="12" y="212" font-family="Inter, sans-serif" font-size="11" fill="#475569">• Dynamic Priority Sorting</text>
+    <text x="12" y="230" font-family="Inter, sans-serif" font-size="11" fill="#475569">• Live Intervention Controls</text>
+
+    <!-- Faculty Client -->
+    <rect x="0" y="290" width="220" height="90" rx="10" fill="url(#cardGrad)" stroke="#cbd5e1" stroke-width="1.5" filter="url(#shadow)" />
+    <text x="12" y="312" font-family="Inter, sans-serif" font-size="14" font-weight="700" fill="#0f172a">Faculty / Admin Portal</text>
+    <text x="12" y="334" font-family="Inter, sans-serif" font-size="11" fill="#475569">• Blueprint Authoring Engine</text>
+    <text x="12" y="352" font-family="Inter, sans-serif" font-size="11" fill="#475569">• Rubric Grading Workspace</text>
+  </g>
+
+  <!-- Ingress: ALB & Coturn -->
+  <g transform="translate(320, 110)">
+    <rect x="0" y="0" width="130" height="180" rx="10" fill="#ffffff" stroke="#94a3b8" stroke-width="2" filter="url(#shadow)" />
+    <text x="15" y="30" font-family="Inter, sans-serif" font-size="13" font-weight="700" fill="#1e3a8a">INGRESS</text>
+    <line x1="15" y1="40" x2="115" y2="40" stroke="#e2e8f0" stroke-width="1.5" />
+    <text x="15" y="65" font-family="Inter, sans-serif" font-size="12" font-weight="600" fill="#0f172a">AWS ALB</text>
+    <text x="15" y="82" font-family="Inter, sans-serif" font-size="10" fill="#64748b">TLS 1.3 / Port 443</text>
+    <text x="15" y="97" font-family="Inter, sans-serif" font-size="10" fill="#64748b">WAF / Rate Limits</text>
+    <line x1="15" y1="112" x2="115" y2="112" stroke="#e2e8f0" stroke-width="1.5" />
+    <text x="15" y="135" font-family="Inter, sans-serif" font-size="12" font-weight="600" fill="#0d9488">Coturn TURN</text>
+    <text x="15" y="152" font-family="Inter, sans-serif" font-size="10" fill="#64748b">STUN / TURN Relay</text>
+    <text x="15" y="167" font-family="Inter, sans-serif" font-size="10" fill="#64748b">UDP 3478 / 40000+</text>
+  </g>
+
+  <!-- Core: Modular Monolith Engine -->
+  <g transform="translate(490, 80)">
+    <rect x="0" y="0" width="220" height="310" rx="12" fill="url(#primaryGrad)" filter="url(#shadow)" />
+    <text x="20" y="34" font-family="Inter, sans-serif" font-size="16" font-weight="700" fill="#ffffff">Node.js 24 LTS</text>
+    <text x="20" y="52" font-family="Inter, sans-serif" font-size="12" fill="#bfdbfe">Modular Monolith Core</text>
+    <line x1="20" y1="65" x2="200" y2="65" stroke="rgba(255,255,255,0.2)" stroke-width="1" />
+    
+    <rect x="15" y="75" width="190" height="42" rx="6" fill="rgba(255,255,255,0.12)" />
+    <text x="25" y="93" font-family="Inter, sans-serif" font-size="11" font-weight="600" fill="#ffffff">REST API &amp; Auth (JWT)</text>
+    <text x="25" y="107" font-family="Inter, sans-serif" font-size="10" fill="#bfdbfe">RBAC / ABAC Security Gates</text>
+
+    <rect x="15" y="125" width="190" height="42" rx="6" fill="rgba(255,255,255,0.12)" />
+    <text x="25" y="143" font-family="Inter, sans-serif" font-size="11" font-weight="600" fill="#ffffff">Exam &amp; Scoring Engine</text>
+    <text x="25" y="157" font-family="Inter, sans-serif" font-size="10" fill="#bfdbfe">OCC Sync &amp; Atomic Grading</text>
+
+    <rect x="15" y="175" width="190" height="42" rx="6" fill="rgba(255,255,255,0.12)" />
+    <text x="25" y="193" font-family="Inter, sans-serif" font-size="11" font-weight="600" fill="#ffffff">Risk Evaluation Engine</text>
+    <text x="25" y="207" font-family="Inter, sans-serif" font-size="10" fill="#bfdbfe">0–100 Scale Weighted Triage</text>
+
+    <rect x="15" y="225" width="190" height="42" rx="6" fill="rgba(255,255,255,0.12)" />
+    <text x="25" y="243" font-family="Inter, sans-serif" font-size="11" font-weight="600" fill="#ffffff">mediasoup SFU Workers</text>
+    <text x="25" y="257" font-family="Inter, sans-serif" font-size="10" fill="#bfdbfe">WebRTC Multi-Stream Routing</text>
+
+    <rect x="15" y="275" width="190" height="25" rx="4" fill="rgba(255,255,255,0.18)" />
+    <text x="25" y="291" font-family="Inter, sans-serif" font-size="10" font-weight="600" fill="#ffffff">Transactional Outbox Queue</text>
+  </g>
+
+  <!-- Data Tier -->
+  <g transform="translate(750, 80)">
+    <!-- PostgreSQL -->
+    <rect x="0" y="0" width="200" height="90" rx="10" fill="url(#cardGrad)" stroke="#3b82f6" stroke-width="1.5" filter="url(#shadow)" />
+    <text x="15" y="25" font-family="Inter, sans-serif" font-size="13" font-weight="700" fill="#1e3a8a">PostgreSQL 16 Multi-AZ</text>
+    <text x="15" y="45" font-family="Inter, sans-serif" font-size="11" fill="#475569">• Blueprints, Submissions</text>
+    <text x="15" y="62" font-family="Inter, sans-serif" font-size="11" fill="#475569">• Trigger Immutability (20000)</text>
+    <text x="15" y="78" font-family="Inter, sans-serif" font-size="10" font-weight="600" fill="#16a34a">OCC Revision Locking</text>
+
+    <!-- Redis -->
+    <rect x="0" y="105" width="200" height="75" rx="10" fill="url(#cardGrad)" stroke="#dc2626" stroke-width="1.5" filter="url(#shadow)" />
+    <text x="15" y="128" font-family="Inter, sans-serif" font-size="13" font-weight="700" fill="#dc2626">Redis 7 Cluster</text>
+    <text x="15" y="148" font-family="Inter, sans-serif" font-size="11" fill="#475569">• Fast Session &amp; Blacklist</text>
+    <text x="15" y="165" font-family="Inter, sans-serif" font-size="11" fill="#475569">• Room Multiplexing Pub/Sub</text>
+
+    <!-- RabbitMQ -->
+    <rect x="0" y="195" width="200" height="75" rx="10" fill="url(#cardGrad)" stroke="#d97706" stroke-width="1.5" filter="url(#shadow)" />
+    <text x="15" y="218" font-family="Inter, sans-serif" font-size="13" font-weight="700" fill="#b45309">RabbitMQ 3.13 Broker</text>
+    <text x="15" y="238" font-family="Inter, sans-serif" font-size="11" fill="#475569">• Async Outbox Relays</text>
+    <text x="15" y="255" font-family="Inter, sans-serif" font-size="11" fill="#475569">• Dead-Letter Recovery (DLQ)</text>
+
+    <!-- Amazon S3 -->
+    <rect x="0" y="285" width="200" height="65" rx="10" fill="url(#cardGrad)" stroke="#059669" stroke-width="1.5" filter="url(#shadow)" />
+    <text x="15" y="308" font-family="Inter, sans-serif" font-size="13" font-weight="700" fill="#065f46">Amazon S3 Encrypted</text>
+    <text x="15" y="328" font-family="Inter, sans-serif" font-size="11" fill="#475569">• SSE-S256 Pre-Exam Identity</text>
+    <text x="15" y="342" font-family="Inter, sans-serif" font-size="10" font-weight="600" fill="#0d9488">90-Day Automated Purge</text>
+  </g>
+
+  <!-- WireGuard Private Management Subnet -->
+  <g transform="translate(50, 470)">
+    <rect x="0" y="0" width="900" height="130" rx="10" fill="url(#devGrad)" filter="url(#shadow)" />
+    <text x="20" y="30" font-family="Inter, sans-serif" font-size="14" font-weight="700" fill="#a5b4fc" letter-spacing="1">WIREGUARD ISOLATED MANAGEMENT SUBNET (10.100.0.0/24)</text>
+    <text x="20" y="50" font-family="Inter, sans-serif" font-size="11" fill="#c7d2fe">Zero Public Access • Developer Telemetry &amp; Hardened Operations Suite</text>
+    
+    <g transform="translate(20, 65)">
+      <rect x="0" y="0" width="130" height="45" rx="6" fill="rgba(255,255,255,0.12)" />
+      <text x="10" y="20" font-family="Inter, sans-serif" font-size="11" font-weight="600" fill="#ffffff">Overview</text>
+      <text x="10" y="34" font-family="Inter, sans-serif" font-size="9" fill="#a5b4fc">Live System Health</text>
+    </g>
+    <g transform="translate(165, 65)">
+      <rect x="0" y="0" width="130" height="45" rx="6" fill="rgba(255,255,255,0.12)" />
+      <text x="10" y="20" font-family="Inter, sans-serif" font-size="11" font-weight="600" fill="#ffffff">Subsystems</text>
+      <text x="10" y="34" font-family="Inter, sans-serif" font-size="9" fill="#a5b4fc">13 Monitored Units</text>
+    </g>
+    <g transform="translate(310, 65)">
+      <rect x="0" y="0" width="130" height="45" rx="6" fill="rgba(255,255,255,0.12)" />
+      <text x="10" y="20" font-family="Inter, sans-serif" font-size="11" font-weight="600" fill="#ffffff">Structured Logs</text>
+      <text x="10" y="34" font-family="Inter, sans-serif" font-size="9" fill="#a5b4fc">Correlation Tracing</text>
+    </g>
+    <g transform="translate(455, 65)">
+      <rect x="0" y="0" width="130" height="45" rx="6" fill="rgba(255,255,255,0.12)" />
+      <text x="10" y="20" font-family="Inter, sans-serif" font-size="11" font-weight="600" fill="#ffffff">Immutable Audit</text>
+      <text x="10" y="34" font-family="Inter, sans-serif" font-size="9" fill="#a5b4fc">Trigger Defense</text>
+    </g>
+    <g transform="translate(600, 65)">
+      <rect x="0" y="0" width="130" height="45" rx="6" fill="rgba(255,255,255,0.12)" />
+      <text x="10" y="20" font-family="Inter, sans-serif" font-size="11" font-weight="600" fill="#ffffff">Topology Map</text>
+      <text x="10" y="34" font-family="Inter, sans-serif" font-size="9" fill="#a5b4fc">Real-Time Discovery</text>
+    </g>
+    <g transform="translate(745, 65)">
+      <rect x="0" y="0" width="130" height="45" rx="6" fill="rgba(255,255,255,0.12)" />
+      <text x="10" y="20" font-family="Inter, sans-serif" font-size="11" font-weight="600" fill="#ffffff">Incident Tracker</text>
+      <text x="10" y="34" font-family="Inter, sans-serif" font-size="9" fill="#a5b4fc">Severity Mitigation</text>
+    </g>
+  </g>
+
+  <!-- Connection Arrows / Flow Lines -->
+  <!-- Client to Ingress -->
+  <path d="M 270 140 L 320 140" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow)" />
+  <path d="M 270 200 L 320 200" stroke="#0284c7" stroke-width="2" />
+  <!-- Ingress to Core -->
+  <path d="M 450 180 L 490 180" stroke="#1e3a8a" stroke-width="2.5" />
+  <!-- Core to Data Tier -->
+  <path d="M 710 130 L 750 130" stroke="#2563eb" stroke-width="2" />
+  <path d="M 710 160 L 750 160" stroke="#dc2626" stroke-width="2" />
+  <path d="M 710 230 L 750 230" stroke="#d97706" stroke-width="2" />
+  <path d="M 710 320 L 750 320" stroke="#059669" stroke-width="2" />
+  <!-- Core to WireGuard -->
+  <path d="M 600 390 L 600 470" stroke="#6366f1" stroke-width="2" stroke-dasharray="4,4" />
+</svg>

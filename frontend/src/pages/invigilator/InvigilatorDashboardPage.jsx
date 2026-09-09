@@ -72,31 +72,36 @@ export function InvigilatorDashboardPage() {
         </Card>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {sessions.map((sess) => (
-            <Card key={sess.id} padding="normal" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.375rem' }}>
-                  <h3 style={{ fontSize: '1.125rem', margin: 0 }}>
-                    {sess.exam_title || `Session #${sess.id.slice(0, 8)}`}
-                  </h3>
-                  <Badge variant={getStatusBadgeVariant(sess.status)}>{sess.status}</Badge>
+          {sessions.map((sess) => {
+            const sid = sess.session_id || sess.id || '';
+            const sStart = sess.scheduled_start_time || sess.start_time;
+            const sEnd = sess.scheduled_end_time || sess.end_time;
+            return (
+              <Card key={sid} padding="normal" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.375rem' }}>
+                    <h3 style={{ fontSize: '1.125rem', margin: 0 }}>
+                      {sess.exam_title || `Session #${sid.slice(0, 8)}`}
+                    </h3>
+                    <Badge variant={getStatusBadgeVariant(sess.status)}>{sess.status}</Badge>
+                  </div>
+                  <div style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)', display: 'flex', gap: '1.5rem' }}>
+                    <span>Room: <strong>{sess.room_name || 'Virtual / Unassigned'}</strong></span>
+                    <span>Start: <strong>{sStart ? new Date(sStart).toLocaleString() : 'N/A'}</strong></span>
+                    <span>End: <strong>{sEnd ? new Date(sEnd).toLocaleString() : 'N/A'}</strong></span>
+                  </div>
                 </div>
-                <div style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)', display: 'flex', gap: '1.5rem' }}>
-                  <span>Room: <strong>{sess.room_name || 'Virtual / Unassigned'}</strong></span>
-                  <span>Start: <strong>{new Date(sess.start_time).toLocaleString()}</strong></span>
-                  <span>End: <strong>{new Date(sess.end_time).toLocaleString()}</strong></span>
-                </div>
-              </div>
 
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => navigate(`/invigilator/sessions/${sess.id}`)}
-              >
-                Launch Session Monitor &rarr;
-              </Button>
-            </Card>
-          ))}
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => navigate(`/invigilator/sessions/${sid}`)}
+                >
+                  Launch Session Monitor &rarr;
+                </Button>
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>
