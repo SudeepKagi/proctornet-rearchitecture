@@ -12,16 +12,18 @@ import {
 
 describe('Question Domain & Type Validation', () => {
   describe('QuestionType Enum', () => {
-    it('should support exactly MCQ, TRUE_FALSE, and NUMERIC in v1', () => {
-      assert.deepEqual(ALL_QUESTION_TYPES, ['MCQ', 'TRUE_FALSE', 'NUMERIC']);
+    it('should support MCQ, TRUE_FALSE, NUMERIC, SHORT_ANSWER, ESSAY, and CODE in Phase 26', () => {
+      assert.deepEqual(ALL_QUESTION_TYPES, ['MCQ', 'TRUE_FALSE', 'NUMERIC', 'SHORT_ANSWER', 'ESSAY', 'CODE']);
     });
 
     it('should validate supported types and reject others', () => {
       assert.equal(isValidQuestionType('MCQ'), true);
       assert.equal(isValidQuestionType('TRUE_FALSE'), true);
       assert.equal(isValidQuestionType('NUMERIC'), true);
+      assert.equal(isValidQuestionType('SHORT_ANSWER'), true);
+      assert.equal(isValidQuestionType('ESSAY'), true);
+      assert.equal(isValidQuestionType('CODE'), true);
 
-      assert.equal(isValidQuestionType('ESSAY'), false);
       assert.equal(isValidQuestionType('CODING'), false);
       assert.equal(isValidQuestionType('DESCRIPTIVE'), false);
       assert.equal(isValidQuestionType(''), false);
@@ -48,7 +50,7 @@ describe('Question Domain & Type Validation', () => {
 
     it('should reject unsupported question types', () => {
       assert.throws(
-        () => validateQuestion({ prompt_text: 'What is X?', question_type: 'ESSAY' }),
+        () => validateQuestion({ prompt_text: 'What is X?', question_type: 'UNKNOWN_TYPE' }),
         (err) => err instanceof DomainInvariantError && err.message.includes('Unsupported question type')
       );
     });
@@ -253,6 +255,47 @@ describe('Question Domain & Type Validation', () => {
           correct_numeric_value: Infinity
         }),
         (err) => err instanceof InvalidQuestionDefinitionError
+      );
+    });
+  });
+
+  describe('Subjective Question Validation (SHORT_ANSWER, ESSAY, CODE)', () => {
+    it('should accept valid SHORT_ANSWER, ESSAY, and CODE definitions', () => {
+      assert.doesNotThrow(() => validateQuestion({
+        prompt_text: 'Explain how TCP 3-way handshake works.',
+        question_type: QuestionType.SHORT_ANSWER,
+        default_points: 5.0,
+        rubric: {
+          syn_ack: 2.0,
+          clarity: 3.0
+        }
+      }));
+
+      assert.doesNotThrow(() => validateQuestion({
+        prompt_text: 'Discuss the impact of distributed consensus protocols on database consistency.',
+        question_type: QuestionType.ESSAY,
+        default_points: 10.0
+      }));
+
+      assert.doesNotThrow(() => validateQuestion({
+        prompt_text: 'Write a function in Python that reverses a singly linked list.',
+        question_type: QuestionType.CODE,
+        default_points: 15.0,
+        rubric: {
+          correctness: 10.0,
+          edge_cases: 5.0
+        }
+      }));
+    });
+
+    it('should reject subjective questions with non-object rubric', () => {
+      assert.throws(
+        () => validateQuestion({
+          prompt_text: 'Explain photosynthesis.',
+          question_type: QuestionType.SHORT_ANSWER,
+          rubric: 'not-an-object'
+        }),
+        (err) => err instanceof InvalidQuestionDefinitionError && err.message.includes('rubric must be a valid JSON object')
       );
     });
   });

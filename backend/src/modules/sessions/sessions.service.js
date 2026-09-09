@@ -316,7 +316,24 @@ export async function assignStudents(sessionId, studentIds, user, requestId = nu
       }
     }
 
-    // 6. Batch insert students
+    // 6. Candidate double-booking conflict check
+    if (newlyAddingIds.length > 0) {
+      const conflicts = await sessionsRepo.findConflictingStudentSessions(
+        newlyAddingIds,
+        session.scheduled_start_time,
+        session.scheduled_end_time,
+        sessionId,
+        client
+      );
+      if (conflicts.length > 0) {
+        const c = conflicts[0];
+        throw new ConflictError(
+          `Cannot assign candidate '${c.student_name || c.student_id}': Conflicting overlapping session already exists (Exam: '${c.exam_title}', Session: '${c.session_id}')`
+        );
+      }
+    }
+
+    // 7. Batch insert students
     const insertedIds = await sessionsRepo.assignStudentsToSession(sessionId, newlyAddingIds, client);
     const totalEnrolled = currentlyEnrolledIds.length + insertedIds.length;
 
@@ -466,6 +483,21 @@ export async function assignInvigilator(sessionId, payload, user, requestId = nu
     if (!isEligible) {
       throw new BadRequestError(
         `Cannot assign user as invigilator: User must possess FACULTY, INVIGILATOR, or ADMIN role. User roles: [${roles.join(', ')}]`
+      );
+    }
+
+    // Invigilator conflict check: verify invigilator is not already assigned to an overlapping session
+    const invigilatorConflicts = await sessionsRepo.findConflictingInvigilatorSessions(
+      targetUserId,
+      session.scheduled_start_time,
+      session.scheduled_end_time,
+      sessionId,
+      client
+    );
+    if (invigilatorConflicts.length > 0) {
+      const ic = invigilatorConflicts[0];
+      throw new ConflictError(
+        `Cannot assign invigilator '${ic.invigilator_name || targetUserId}': Already assigned to an overlapping session (Exam: '${ic.exam_title}', Session: '${ic.session_id}')`
       );
     }
 

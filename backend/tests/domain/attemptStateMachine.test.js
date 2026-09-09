@@ -18,10 +18,11 @@ import {
 
 describe('Exam Attempt Domain & State Machine', () => {
   describe('AttemptStatus Enum & Utility Checks', () => {
-    it('should define exactly the 5 authoritative attempt lifecycle states', () => {
+    it('should define exactly the 6 authoritative attempt lifecycle states', () => {
       assert.deepEqual(ALL_ATTEMPT_STATUSES, [
         'READY',
         'ACTIVE',
+        'PAUSED',
         'SUBMITTED',
         'TERMINATED',
         'EXPIRED'
@@ -31,6 +32,7 @@ describe('Exam Attempt Domain & State Machine', () => {
     it('should correctly identify valid and invalid attempt statuses', () => {
       assert.equal(isValidAttemptStatus('READY'), true);
       assert.equal(isValidAttemptStatus('ACTIVE'), true);
+      assert.equal(isValidAttemptStatus('PAUSED'), true);
       assert.equal(isValidAttemptStatus('SUBMITTED'), true);
       assert.equal(isValidAttemptStatus('TERMINATED'), true);
       assert.equal(isValidAttemptStatus('EXPIRED'), true);
@@ -52,12 +54,19 @@ describe('Exam Attempt Domain & State Machine', () => {
 
       assert.equal(isAttemptTerminal(AttemptStatus.READY), false);
       assert.equal(isAttemptTerminal(AttemptStatus.ACTIVE), false);
+      assert.equal(isAttemptTerminal(AttemptStatus.PAUSED), false);
     });
 
     it('should return allowed next states for non-terminal and terminal states', () => {
       assert.deepEqual(getNextAllowedAttemptStates(AttemptStatus.READY), [AttemptStatus.ACTIVE]);
       assert.deepEqual(getNextAllowedAttemptStates(AttemptStatus.ACTIVE), [
+        AttemptStatus.PAUSED,
         AttemptStatus.SUBMITTED,
+        AttemptStatus.TERMINATED,
+        AttemptStatus.EXPIRED
+      ]);
+      assert.deepEqual(getNextAllowedAttemptStates(AttemptStatus.PAUSED), [
+        AttemptStatus.ACTIVE,
         AttemptStatus.TERMINATED,
         AttemptStatus.EXPIRED
       ]);
@@ -93,16 +102,35 @@ describe('Exam Attempt Domain & State Machine', () => {
       assert.equal(next, AttemptStatus.TERMINATED);
     });
 
-    it('should allow timer expiration: ACTIVE -> EXPIRED', () => {
-      assert.equal(canTransitionAttempt(AttemptStatus.ACTIVE, AttemptStatus.EXPIRED), true);
-      const next = transitionAttemptState(AttemptStatus.ACTIVE, AttemptStatus.EXPIRED);
+    it('should allow proctor pause: ACTIVE -> PAUSED', () => {
+      assert.equal(canTransitionAttempt(AttemptStatus.ACTIVE, AttemptStatus.PAUSED), true);
+      const next = transitionAttemptState(AttemptStatus.ACTIVE, AttemptStatus.PAUSED);
+      assert.equal(next, AttemptStatus.PAUSED);
+    });
+
+    it('should allow proctor resume: PAUSED -> ACTIVE', () => {
+      assert.equal(canTransitionAttempt(AttemptStatus.PAUSED, AttemptStatus.ACTIVE), true);
+      const next = transitionAttemptState(AttemptStatus.PAUSED, AttemptStatus.ACTIVE);
+      assert.equal(next, AttemptStatus.ACTIVE);
+    });
+
+    it('should allow proctor terminate while paused: PAUSED -> TERMINATED', () => {
+      assert.equal(canTransitionAttempt(AttemptStatus.PAUSED, AttemptStatus.TERMINATED), true);
+      const next = transitionAttemptState(AttemptStatus.PAUSED, AttemptStatus.TERMINATED);
+      assert.equal(next, AttemptStatus.TERMINATED);
+    });
+
+    it('should allow timer expiration while paused: PAUSED -> EXPIRED', () => {
+      assert.equal(canTransitionAttempt(AttemptStatus.PAUSED, AttemptStatus.EXPIRED), true);
+      const next = transitionAttemptState(AttemptStatus.PAUSED, AttemptStatus.EXPIRED);
       assert.equal(next, AttemptStatus.EXPIRED);
     });
   });
 
   describe('Invalid Attempt Transitions & Guards', () => {
-    it('should reject direct jump from READY to any terminal state without becoming ACTIVE', () => {
+    it('should reject direct jump from READY to any terminal or paused state without becoming ACTIVE', () => {
       const invalidFromReady = [
+        AttemptStatus.PAUSED,
         AttemptStatus.SUBMITTED,
         AttemptStatus.TERMINATED,
         AttemptStatus.EXPIRED

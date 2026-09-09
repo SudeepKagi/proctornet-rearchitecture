@@ -453,3 +453,48 @@ export async function createAuditLog(
     client
   );
 }
+
+/**
+ * Detects if any students in the list are already booked in an overlapping active or scheduled session.
+ */
+export async function findConflictingStudentSessions(studentIds, startTime, endTime, excludeSessionId = null, client = null) {
+  if (!studentIds || studentIds.length === 0) return [];
+  const text = `
+    SELECT ss.student_id, u.name as student_name, es.session_id, es.scheduled_start_time, es.scheduled_end_time, e.title as exam_title
+    FROM session_students ss
+    JOIN exam_sessions es ON ss.session_id = es.session_id
+    JOIN users u ON ss.student_id = u.user_id
+    JOIN exams e ON es.exam_id = e.exam_id
+    WHERE ss.student_id = ANY($1::uuid[])
+      AND es.status IN ('SCHEDULED', 'ACTIVE')
+      AND ($2::uuid IS NULL OR es.session_id != $2::uuid)
+      AND es.scheduled_start_time < $4
+      AND es.scheduled_end_time > $3;
+  `;
+  const res = client
+    ? await client.query(text, [studentIds, excludeSessionId, startTime, endTime])
+    : await query(text, [studentIds, excludeSessionId, startTime, endTime]);
+  return res.rows;
+}
+
+/**
+ * Detects if an invigilator is already assigned to an overlapping active or scheduled session.
+ */
+export async function findConflictingInvigilatorSessions(invigilatorId, startTime, endTime, excludeSessionId = null, client = null) {
+  const text = `
+    SELECT si.user_id, u.name as invigilator_name, es.session_id, es.scheduled_start_time, es.scheduled_end_time, e.title as exam_title
+    FROM session_invigilators si
+    JOIN exam_sessions es ON si.session_id = es.session_id
+    JOIN users u ON si.user_id = u.user_id
+    JOIN exams e ON es.exam_id = e.exam_id
+    WHERE si.user_id = $1
+      AND es.status IN ('SCHEDULED', 'ACTIVE')
+      AND ($2::uuid IS NULL OR es.session_id != $2::uuid)
+      AND es.scheduled_start_time < $4
+      AND es.scheduled_end_time > $3;
+  `;
+  const res = client
+    ? await client.query(text, [invigilatorId, excludeSessionId, startTime, endTime])
+    : await query(text, [invigilatorId, excludeSessionId, startTime, endTime]);
+  return res.rows;
+}

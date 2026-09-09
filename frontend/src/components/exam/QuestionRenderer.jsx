@@ -259,6 +259,105 @@ export function QuestionRenderer({
           />
         </div>
       )}
+
+      {/* Short Answer Input */}
+      {question_type === 'SHORT_ANSWER' && (
+        <div style={{ width: '100%', maxWidth: '600px' }}>
+          <label
+            htmlFor={`short-answer-${question.id}`}
+            style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.5rem', color: 'var(--color-text-muted)' }}
+          >
+            Enter your short answer response:
+          </label>
+          <input
+            id={`short-answer-${question.id}`}
+            type="text"
+            value={value?.text_response || ''}
+            onChange={(e) => !disabled && onChange({ text_response: e.target.value })}
+            disabled={disabled}
+            placeholder="Type your answer here..."
+            style={{
+              width: '100%',
+              padding: '0.75rem 1rem',
+              fontSize: '1rem',
+              borderRadius: 'var(--radius-md)',
+              border: '2px solid var(--color-border-subtle)',
+              backgroundColor: disabled ? 'var(--color-surface-secondary)' : 'var(--color-surface)',
+              color: 'var(--color-text-primary)',
+            }}
+          />
+        </div>
+      )}
+
+      {/* Essay Input */}
+      {question_type === 'ESSAY' && (
+        <div style={{ width: '100%' }}>
+          <label
+            htmlFor={`essay-${question.id}`}
+            style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.5rem', color: 'var(--color-text-muted)' }}
+          >
+            Provide your comprehensive essay response:
+          </label>
+          <textarea
+            id={`essay-${question.id}`}
+            rows={10}
+            value={value?.text_response || ''}
+            onChange={(e) => !disabled && onChange({ text_response: e.target.value })}
+            disabled={disabled}
+            placeholder="Structure your analysis, arguments, and evidence here..."
+            style={{
+              width: '100%',
+              padding: '1rem',
+              fontSize: '1rem',
+              lineHeight: 1.6,
+              borderRadius: 'var(--radius-md)',
+              border: '2px solid var(--color-border-subtle)',
+              backgroundColor: disabled ? 'var(--color-surface-secondary)' : 'var(--color-surface)',
+              color: 'var(--color-text-primary)',
+              resize: 'vertical',
+            }}
+          />
+        </div>
+      )}
+
+      {/* Code Input */}
+      {question_type === 'CODE' && (
+        <div style={{ width: '100%' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+            <label
+              htmlFor={`code-${question.id}`}
+              style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}
+            >
+              Write your solution code:
+            </label>
+            <span style={{ fontSize: '0.75rem', fontFamily: 'var(--font-family-mono)', color: 'var(--color-text-muted)' }}>
+              Plain text / Source code
+            </span>
+          </div>
+          <textarea
+            id={`code-${question.id}`}
+            rows={12}
+            value={value?.text_response || ''}
+            onChange={(e) => !disabled && onChange({ text_response: e.target.value })}
+            disabled={disabled}
+            placeholder="// Write your code implementation here..."
+            spellCheck={false}
+            style={{
+              width: '100%',
+              padding: '1rem',
+              fontSize: '0.9375rem',
+              fontFamily: 'monospace, Consolas, Courier New',
+              lineHeight: 1.5,
+              borderRadius: 'var(--radius-md)',
+              border: '2px solid var(--color-border-subtle)',
+              backgroundColor: disabled ? 'var(--color-surface-secondary)' : '#0f172a',
+              color: '#f8fafc',
+              tabSize: 2,
+              resize: 'vertical',
+            }}
+          />
+        </div>
+      )}
     </fieldset>
   );
 }

@@ -7,14 +7,53 @@
 import { InvalidQuestionDefinitionError, DomainInvariantError } from '../shared/domainErrors.js';
 
 /**
- * Supported Question Types in ProctorNet v1.
+ * Supported Question Types in ProctorNet v1 & v2.
  * @readonly
  * @enum {string}
  */
 export const QuestionType = Object.freeze({
   MCQ: 'MCQ',
   TRUE_FALSE: 'TRUE_FALSE',
-  NUMERIC: 'NUMERIC'
+  NUMERIC: 'NUMERIC',
+  SHORT_ANSWER: 'SHORT_ANSWER',
+  ESSAY: 'ESSAY',
+  CODE: 'CODE'
+});
+
+/**
+ * Question difficulty levels.
+ * @readonly
+ * @enum {string}
+ */
+export const DifficultyLevel = Object.freeze({
+  EASY: 'EASY',
+  MEDIUM: 'MEDIUM',
+  HARD: 'HARD'
+});
+
+/**
+ * Bloom's Taxonomy cognitive levels.
+ * @readonly
+ * @enum {string}
+ */
+export const BloomLevel = Object.freeze({
+  REMEMBER: 'REMEMBER',
+  UNDERSTAND: 'UNDERSTAND',
+  APPLY: 'APPLY',
+  ANALYZE: 'ANALYZE',
+  EVALUATE: 'EVALUATE',
+  CREATE: 'CREATE'
+});
+
+/**
+ * Question lifecycle status.
+ * @readonly
+ * @enum {string}
+ */
+export const QuestionStatus = Object.freeze({
+  DRAFT: 'DRAFT',
+  PUBLISHED: 'PUBLISHED',
+  ARCHIVED: 'ARCHIVED'
 });
 
 /**
@@ -22,6 +61,18 @@ export const QuestionType = Object.freeze({
  * @type {readonly string[]}
  */
 export const ALL_QUESTION_TYPES = Object.freeze(Object.values(QuestionType));
+export const ALL_DIFFICULTY_LEVELS = Object.freeze(Object.values(DifficultyLevel));
+export const ALL_BLOOM_LEVELS = Object.freeze(Object.values(BloomLevel));
+export const ALL_QUESTION_STATUSES = Object.freeze(Object.values(QuestionStatus));
+
+/**
+ * Checks if a given question type is subjective (requires manual grading).
+ * @param {string} type
+ * @returns {boolean}
+ */
+export function isSubjectiveQuestionType(type) {
+  return type === QuestionType.SHORT_ANSWER || type === QuestionType.ESSAY || type === QuestionType.CODE;
+}
 
 /**
  * Checks if a given string is a valid QuestionType.
@@ -130,6 +181,18 @@ export function validateQuestion(question) {
         throw new InvalidQuestionDefinitionError(
           QuestionType.NUMERIC,
           'Numeric questions must specify a valid finite numeric value for correct_numeric_value'
+        );
+      }
+      break;
+    }
+
+    case QuestionType.SHORT_ANSWER:
+    case QuestionType.ESSAY:
+    case QuestionType.CODE: {
+      if (question.rubric !== undefined && question.rubric !== null && typeof question.rubric !== 'object') {
+        throw new InvalidQuestionDefinitionError(
+          question.question_type,
+          'Question rubric must be a valid JSON object when provided'
         );
       }
       break;

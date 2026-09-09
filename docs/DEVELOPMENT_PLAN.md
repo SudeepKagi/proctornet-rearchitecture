@@ -8,9 +8,8 @@
 | Current Milestone: Biometric Identity: Face Enrollment, Verification &  |
 |                    Anti-Spoofing                                        |
 | Status:            Complete (Merged in PR #23, Merge 3e45cd1)           |
-| Master Plan:       Reconstructed & Expanded (Phases 0–34)               |
-| Next Milestone:    Phase 26 — Complete Faculty Examination & Assessment |
-|                    Lifecycle                                            |
+| Master Plan:       Consolidated Execution Roadmap (Phases 0–29)         |
+| Next Milestone:    Phase 26 — Examination & Invigilation                |
 +-------------------------------------------------------------------------+
 ```
 
@@ -719,7 +718,7 @@ $$\text{Plan} \longrightarrow \text{Implement} \longrightarrow \text{Test} \long
   - Establish automated repeatable load testing harness using k6 and Artillery with anti-tamper signing and dynamic auth. *(Stage 21A Complete)*
   - Execute Stage 21B environment, security, regression, and harness readiness gate. *(Stage 21B Complete / Passed)*
   - Execute official concurrency tiers (500, 1,000, 1,500, 2,000, 2,500 VUs) against the intended AWS `c6i.xlarge` staging/benchmark environment. *(Stage 21C Pending)*
-  - Derive empirical Safe Operating Capacity (SOC), saturation thresholds, and Phase 32 migration triggers. *(Stage 21D/21E Pending)*
+  - Derive empirical Safe Operating Capacity (SOC), saturation thresholds, and Phase 29 (Old Phase 32) migration triggers. *(Stage 21D/21E Pending)*
 - **Acceptance Criteria:**
   - p95 latency for answer autosaves remains under 200ms at peak target concurrency.
   - Zero answer data loss, zero unhandled OCC rollback failures, and zero PostgreSQL deadlocks during burst submissions.
@@ -830,204 +829,186 @@ $$\text{Plan} \longrightarrow \text{Implement} \longrightarrow \text{Test} \long
 
 ---
 
-### Phase 26 — Complete Faculty Examination & Assessment Lifecycle
+### Phase 26 — Examination & Invigilation (Consolidating Historical Phases 26 & 27)
 - [ ] **Status:** Pending
-- **Objective:** Expand the faculty/examiner portal into an end-to-end academic authoring and assessment suite with question banks, blueprint rules, rich-text question authoring, multi-room session scheduling, manual grading workflows, and item analytics.
-- **Dependencies:** Phase 5, Phase 9, Phase 10
-- **Major Tasks:**
-  - Implement question bank management API (`GET/POST/PATCH/DELETE /api/v1/faculty/question-bank`) with subject and topic tagging, difficulty categorization, and question cloning.
-  - Enhance question schemas and authoring to support rich text, mathematical formulas (LaTeX / MathJax), and programming code snippets with syntax highlighting.
-  - Build Question Bank UI (`/faculty/question-bank`) with search, filter, bulk operations, and question preview.
-  - Enhance Exam Editor UI (`/faculty/exams/:id`) with interactive topic rule builder, point distribution calculator, and automated blueprint validation checks.
-  - Implement manual grading and assessment review API (`GET /api/v1/results/:id/evaluation`, `POST /api/v1/results/:id/manual-grade`) allowing instructors to grade subjective questions and adjust auto-evaluated scores with mandatory rationale.
-  - Build Manual Grading Workspace (`/faculty/exams/:id/grading`) with side-by-side answer display, rubric scoring, and feedback entry.
-  - Implement Exam Analytics API and Dashboard (`/faculty/exams/:id/analytics`) displaying score distribution histograms, question difficulty indices, and candidate completion rates.
+- **Objective:** Deliver the unified academic examination authoring, blueprint rules, question bank, manual evaluation, and high-density real-time invigilation workstation with live multi-stream video/audio, anomaly inspection, and instant intervention controls.
+- **Historical Mapping:** Consolidates **Old Phase 26** (Complete Faculty Examination & Assessment Lifecycle) and **Old Phase 27** (Complete Invigilation & Live Proctoring Workstation).
+- **Dependencies:** Phase 5, Phase 9, Phase 10, Phase 14, Phase 16, Phase 17, Phase 25
+- **Internal Workstreams & Major Tasks:**
+  - **Workstream A: Reusable Question Bank & Rich Question Authoring (Old Phase 26)**:
+    - Implement question bank management API (`GET/POST/PATCH/DELETE /api/v1/faculty/question-bank`) with subject and topic tagging, difficulty categorization (`EASY`, `MEDIUM`, `HARD`), and question cloning.
+    - Enhance question schemas and authoring to support rich text, mathematical formulas (LaTeX / MathJax), and programming code snippets with syntax highlighting.
+    - Build Question Bank UI (`/faculty/question-bank`) with search, filter, bulk operations, and question preview.
+  - **Workstream B: Blueprint Engine & Exam Authoring (Old Phase 26)**:
+    - Enhance Exam Editor UI (`/faculty/exams/:id`) with interactive topic rule builder, point distribution calculator, and automated blueprint validation checks.
+    - Support multi-room session scheduling, room selection, seat capacity checks, candidate roster assignment, and invigilator designation.
+  - **Workstream C: Assessment Oversight & Manual Grading (Old Phase 26)**:
+    - Implement manual grading and assessment review API (`GET /api/v1/results/:id/evaluation`, `POST /api/v1/results/:id/manual-grade`) allowing instructors to grade subjective questions and adjust auto-evaluated scores with mandatory rationale.
+    - Build Manual Grading Workspace (`/faculty/exams/:id/grading`) with side-by-side answer display, rubric scoring, and feedback entry.
+  - **Workstream D: Exam Analytics & Grade Distribution (Old Phase 26)**:
+    - Implement Exam Analytics API and Dashboard (`/faculty/exams/:id/analytics`) displaying score distribution histograms, question difficulty indices, candidate completion rates, and item discrimination metrics.
+    - Configure and manage result visibility policies (`IMMEDIATE`, `SCHEDULED`, `MANUAL`).
+  - **Workstream E: Invigilator Supervision Console & Video Grid (Old Phase 27)**:
+    - Redesign Invigilator Console (`/invigilator/sessions/:id`) featuring a 12-candidate paginated video grid with audio activity indicators, WebRTC stream health badges, and risk score filters.
+    - Build Candidate Detail Drawer featuring high-resolution live video, audio VU meter, candidate profile, hardware readiness history, real-time violation feed, and risk score gauge.
+  - **Workstream F: Real-Time Proctor Interventions & Control Plane (Old Phase 27)**:
+    - Implement proctor intervention endpoints (`POST /api/v1/sessions/:id/announcements`, `POST /api/v1/attempts/:id/messages`, `POST /api/v1/attempts/:id/pause`, `POST /api/v1/attempts/:id/terminate`).
+    - Wire real-time intervention events over WebSocket control plane (`PROCTOR_ANNOUNCEMENT`, `DIRECT_MESSAGE`, `EXAM_PAUSED`, `EXAM_TERMINATED`) with client delivery acknowledgements.
+    - Implement Candidate Intervention Modals: Send Warning Message, Broadcast Room Alert, Pause Exam Attempt, and Emergency Terminate Attempt (with mandatory documented reason).
+  - **Workstream G: Candidate Intervention UX & Evidence Inspection (Old Phase 27)**:
+    - Implement Candidate UX for proctor warnings, pause modal (locked inputs, server-frozen timer), and emergency termination.
+    - Implement Evidence Inspection Modal for in-session and post-session review of S3 snapshot evidence with secure presigned URLs.
+    - Implement invigilator session completion workflow and post-session incident summary reporting.
 - **Acceptance Criteria:**
   - Faculty can author reusable question banks, compose balanced exam blueprints, and schedule multi-room exam sessions.
   - Instructors can review and manually adjust evaluations with full audit trail tracking.
   - Analytics accurately report grade distributions, average completion times, and item discrimination metrics.
-- **Tests Required:** Question bank CRUD API tests, manual grading consistency tests, analytics aggregation unit tests, faculty authoring UI component tests.
-
----
-
-### Phase 27 — Complete Invigilation & Live Proctoring Workstation
-- [ ] **Status:** Pending
-- **Objective:** Deliver a high-density, real-time proctoring workstation enabling invigilators to monitor live candidate video/audio streams, inspect anomaly timelines, issue real-time interventions, and manage exam room discipline.
-- **Dependencies:** Phase 14, Phase 16, Phase 17
-- **Major Tasks:**
-  - Implement proctor intervention endpoints (`POST /api/v1/sessions/:id/announcements`, `POST /api/v1/attempts/:id/messages`, `POST /api/v1/attempts/:id/pause`, `POST /api/v1/attempts/:id/terminate`).
-  - Wire real-time intervention events over WebSocket control plane (`PROCTOR_ANNOUNCEMENT`, `DIRECT_MESSAGE`, `EXAM_PAUSED`, `EXAM_TERMINATED`) with client delivery acknowledgements.
-  - Redesign Invigilator Console (`/invigilator/sessions/:id`) featuring a 12-candidate paginated video grid with audio activity indicators, WebRTC stream health badges, and risk score filters.
-  - Build Candidate Detail Drawer featuring high-resolution live video, audio VU meter, candidate profile, hardware readiness history, real-time violation feed, and risk score gauge.
-  - Implement Candidate Intervention Modals: Send Warning Message, Broadcast Room Alert, Pause Exam Attempt, and Emergency Terminate Attempt (with mandatory documented reason).
-  - Implement Evidence Inspection Modal for in-session and post-session review of S3 snapshot evidence with secure presigned URLs.
-  - Implement invigilator session completion workflow and post-session incident summary reporting.
-- **Acceptance Criteria:**
   - Proctors can monitor multiple candidate streams concurrently with low latency and clear connection health indicators.
   - Candidate violation events appear in real time on the invigilator dashboard with server-authoritative severity scores.
   - Proctor interventions (warnings, pause, termination) propagate instantaneously over WebSocket and take immediate effect on the candidate client.
-- **Tests Required:** Proctor intervention API unit/integration tests, WebSocket intervention delivery tests, invigilator video grid UI tests, candidate pause/terminate UX flow tests.
+- **Tests Required:** Question bank CRUD API tests, manual grading consistency tests, analytics aggregation unit tests, faculty authoring UI component tests, proctor intervention API unit/integration tests, WebSocket intervention delivery tests, invigilator video grid UI tests, candidate pause/terminate UX flow tests.
 
 ---
 
-### Phase 28 — Developer & System Operations Portal
+### Phase 27 — Developer Operations & Secure Management Plane (Consolidating Historical Phases 28 & 29)
 - [ ] **Status:** Pending
-- **Objective:** Build a dedicated technical control plane for Developers and System Operators providing real-time system health observability, component status indicators, centralized log stream inspection, technical audit feeds, infrastructure topology mapping, and incident triage across all 6 dedicated developer screens.
-- **Dependencies:** Phase 13, Phase 20
-- **Major Tasks:**
-  - Implement technical control plane API under `/api/v1/developer/*` strictly restricted to the `DEVELOPER` role.
-  - Implement Comprehensive System Health Aggregator (`GET /api/v1/developer/health`) querying actual component probes:
-    - Backend API process health and uptime
-    - PostgreSQL primary pool status, active connections, and query latency
-    - PostgreSQL replica status and replication lag (when replicas exist)
-    - Redis connection health, memory usage, and hit/miss ratio
-    - RabbitMQ connection, queue depths, and consumer counts
-    - WebSocket gateway active connections and message throughput
-    - WebRTC SFU worker processes, router counts, and active RTP transports
-    - Coturn STUN/TURN listener health and allocation counts
-    - Transactional Outbox poller status, dispatch latency, and event backlog
-    - Asynchronous Evaluation Consumer status and in-flight job count
-    - AWS S3 connectivity and bucket accessibility
-    - Automated Backup service status and last backup timestamp
-  - Standardize component health states: `UP`, `DEGRADED`, `DOWN`, `UNKNOWN` derived strictly from live telemetry (zero manual labels).
-  - Implement Centralized System Logs Viewer API (`GET /api/v1/developer/logs`) aggregating structured logs with filtering by service, severity, timestamp range, host, request ID, trace ID, and event type with automated PII masking.
-  - Implement Technical Audit Feed (`GET /api/v1/developer/audit`) surfacing authentication events, authorization rejections, deployment history, configuration updates, and security anomalies.
-  - Build Developer Portal UI across all 6 specified screens:
+- **Objective:** Build a dedicated technical control plane for Developers and System Operators providing real-time system health observability, component status indicators, centralized log stream inspection, technical audit feeds, infrastructure topology mapping, and incident triage across all 6 dedicated developer screens, while establishing, containerizing, and operationalizing the WireGuard management plane with strict network segmentation.
+- **Historical Mapping:** Consolidates **Old Phase 28** (Developer & System Operations Portal) and **Old Phase 29** (WireGuard Secure Management Plane & Network Segmentation).
+- **Dependencies:** Phase 13, Phase 20, Phase 26
+- **Internal Workstreams & Major Tasks:**
+  - **Workstream A: Developer Technical Control Plane API & Role Isolation (Old Phase 28)**:
+    - Implement technical control plane API under `/api/v1/developer/*` strictly restricted to the `DEVELOPER` role.
+    - Enforce strict developer security boundary: Developer role has technical telemetry and operational maintenance privileges, but is strictly DENIED access to raw student PII, government ID documents, biometric images, candidate exam answers, and scorecards.
+  - **Workstream B: Subsystem Health Monitor & Telemetry Aggregation (Old Phase 28)**:
+    - Implement Comprehensive System Health Aggregator (`GET /api/v1/developer/health`) querying actual component probes across all 12+ subsystems: Backend API process health/uptime, PostgreSQL primary pool status/connections/latency, PostgreSQL replica status/lag (when replicas exist), Redis connection/memory/hit-miss, RabbitMQ connection/queues/consumers, WebSocket gateway connections/throughput, WebRTC SFU workers/routers/transports, Coturn STUN/TURN listener health/allocations, Transactional Outbox poller status/latency/backlog, Evaluation Consumer status/in-flight jobs, AWS S3 connectivity/buckets, and Automated Backup service status/timestamps.
+    - Standardize component health states: `UP`, `DEGRADED`, `DOWN`, `UNKNOWN` derived strictly from live telemetry (zero manual labels).
+  - **Workstream C: Centralized System Logs & Technical Audit (Old Phase 28)**:
+    - Implement Centralized System Logs Viewer API (`GET /api/v1/developer/logs`) aggregating structured logs with filtering by service, severity, timestamp range, host, request ID, trace ID, and event type with automated PII masking.
+    - Implement Technical Audit Feed (`GET /api/v1/developer/audit`) surfacing authentication events, authorization rejections, deployment history, configuration updates, and security anomalies.
+  - **Workstream D: Developer Portal UI Workspaces — All 6 Screens (Old Phase 28)**:
     - Developer Overview (`/developer/overview`) with high-level system telemetry and KPI summary.
     - Subsystem Health Monitor (`/developer/health`) with live probe matrices and connection pool gauges.
     - Central System Logs Viewer (`/developer/logs`) with sub-second search, severity filters, and trace inspection.
     - Technical Audit Feed (`/developer/audit`) with security and operational event streams.
     - Infrastructure Topology Map (`/developer/topology`) with interactive service mesh and replication lag indicators.
     - Incident Triage & Alerts (`/developer/incidents`) with down/degraded service alerts and failure logs.
-  - Enforce strict developer security boundary: Developer role has technical telemetry and operational maintenance privileges, but is strictly DENIED access to raw student PII, government ID documents, biometric images, candidate exam answers, and scorecards.
+  - **Workstream E: WireGuard Service Deployment & Host Firewall (Old Phase 29)**:
+    - Deploy and configure WireGuard VPN service on the management gateway/host using static IP subnet `10.100.0.0/24`.
+    - Configure host firewall rules (`iptables` / `ufw`) and AWS Security Groups restricting administrative SSH (port 22) and Developer/Admin web interfaces strictly to WireGuard VPN peers (`10.100.0.0/24` or `var.admin_cidr`).
+    - Administrative SSH port 22 completely unreachable from the public internet (`0.0.0.0/0`).
+  - **Workstream F: Network Segmentation & Candidate Traffic Isolation (Old Phase 29)**:
+    - Enforce architectural network segmentation:
+      - **Management Plane**: WireGuard VPN tunnel required for all infrastructure access, SSH, database administration, and developer portals.
+      - **Candidate Examination Plane**: Public TLS 1.3 HTTPS/WSS/WebRTC traffic via Nginx edge reverse proxy with zero VPN dependency. Candidates do NOT require WireGuard.
+    - Non-VPN access rejection for internal management surfaces.
+  - **Workstream G: Peer Management Automation & Lifecycle Runbooks (Old Phase 29)**:
+    - Author automated peer management utility (`infrastructure/wireguard/manage-peers.sh`) for server key generation, peer key generation, IP allocation, and `.conf` / QR code export.
+    - Implement peer lifecycle runbooks: peer provisioning, key rotation, instant peer revocation, and handshake monitoring via CloudWatch metrics.
 - **Acceptance Criteria:**
   - Developers can inspect live operational health, connection pool saturation, and error rates across all 12+ subsystems.
   - Centralized log viewer enables sub-second filtering by trace ID across backend, workers, and database logs with automated PII masking.
   - All 6 developer pages render with real-time telemetry, clear empty/loading/error states, and interactive diagnostics.
   - Sensitive candidate business data and biometrics remain completely inaccessible to the developer role.
-- **Tests Required:** Developer API authorization tests, health probe aggregation tests, PII masking unit tests, Developer portal component and page tests across all 6 screens.
-
----
-
-### Phase 29 — WireGuard Secure Management Plane & Network Segmentation
-- [ ] **Status:** Pending
-- **Objective:** Implement, containerize/daemonize, and operationalize the WireGuard management plane for secure administrator and developer access, establishing strict network segmentation between management traffic and candidate exam traffic.
-- **Dependencies:** Phase 20, Phase 28
-- **Major Tasks:**
-  - Deploy and configure WireGuard VPN service on the management gateway/host using static IP subnet `10.100.0.0/24`.
-  - Author automated peer management utility (`infrastructure/wireguard/manage-peers.sh`) for server key generation, peer key generation, IP allocation, and `.conf` / QR code export.
-  - Configure host firewall rules (`iptables` / `ufw`) and AWS Security Groups restricting administrative SSH (port 22) and Developer/Admin web interfaces strictly to WireGuard VPN peers (`10.100.0.0/24` or `var.admin_cidr`).
-  - Enforce architectural network segmentation:
-    - **Management Plane**: WireGuard VPN tunnel required for all infrastructure access, SSH, database administration, and developer portals.
-    - **Candidate Examination Plane**: Public TLS 1.3 HTTPS/WSS/WebRTC traffic via Nginx edge reverse proxy with zero VPN dependency. Candidates do NOT require WireGuard.
-  - Clarify baseline boundary: Phase 20 established only the SG CIDR variable (`var.admin_cidr`); full WireGuard service deployment, daemon configuration, and peer management are implemented in Phase 29.
-  - Implement peer lifecycle runbooks: peer provisioning, key rotation, instant peer revocation, and handshake monitoring via CloudWatch metrics.
-- **Acceptance Criteria:**
   - Administrative SSH access is completely unreachable from the public internet (`0.0.0.0/0`) and accessible only through active WireGuard VPN sessions.
   - Authorized operators can generate peer profiles and connect securely to internal management endpoints.
   - Candidate examination traffic functions normally over the public internet without VPN interference or client requirements.
-- **Tests Required:** WireGuard handshake verification tests, firewall ingress rejection tests from non-VPN IPs, peer provisioning and revocation script validation.
+- **Tests Required:** Developer API authorization tests, health probe aggregation tests, PII masking unit tests, Developer portal component and page tests across all 6 screens, WireGuard handshake verification tests, firewall ingress rejection tests from non-VPN IPs, peer provisioning and revocation script validation.
 
 ---
 
-### Phase 30 — End-to-End User Experience, Accessibility & Design System Polish
+### Phase 28 — UX, Accessibility & Advanced AI Proctoring (Consolidating Historical Phases 30 & 31)
 - [ ] **Status:** Pending
-- **Objective:** Perform holistic user experience refinement, responsive layout optimization, WCAG 2.1 AA accessibility compliance, unified design system token standardization, and complete journey testing across all 5 user roles, building upon the fully implemented role portals from Phases 23–29.
-- **Dependencies:** Phases 23, 24, 25, 26, 27, 28, 29
-- **Major Tasks:**
-  - Audit and enforce CSS custom properties across the complete frontend application, ensuring visual consistency across all 4 density tiers (Marketing/Auth, Dashboard, Exam Workspace, Proctoring Console).
-  - Implement responsive layouts and mobile/tablet breakpoints across all non-exam workspaces.
-  - Enforce full keyboard navigation support: tab ordering, visible focus rings, keyboard shortcuts in exam workspace, and modal focus traps.
-  - Implement comprehensive ARIA landmarks, roles, and live regions (`aria-live="polite"`) for real-time timer warnings, proctor alerts, and autosave feedback.
-  - Implement standardized state components: Loading spinners, Empty states with actionable guidance, Error boundaries with retry buttons, and Destructive action confirmation dialogs.
-  - Author automated end-to-end user journey test suites using Playwright validating all 5 roles from login through completion.
+- **Objective:** Perform holistic user experience refinement, responsive layout optimization, WCAG 2.1 AA accessibility compliance, unified design system token standardization, and complete journey testing across all 5 user roles, while implementing client-side and server-assisted AI proctoring models for continuous face presence, gaze tracking, multiple-person detection, background voice classification, and integrated anomaly scoring.
+- **Historical Mapping:** Consolidates **Old Phase 30** (End-to-End User Experience, Accessibility & Design System Polish) and **Old Phase 31** (Advanced Real-Time AI Proctoring & Multi-Modal Anomaly Detection).
+- **Dependencies:** Phase 25, Phase 26, Phase 27
+- **Internal Workstreams & Major Tasks:**
+  - **Workstream A: Unified Design System & Density Tier Normalization (Old Phase 30)**:
+    - Audit and enforce CSS custom properties across the complete frontend application, ensuring visual consistency across all 4 density tiers (Marketing/Auth, Dashboard, Exam Workspace, Proctoring Console).
+    - Implement standardized state components: Loading spinners, Empty states with actionable guidance, Error boundaries with retry buttons, and Destructive action confirmation dialogs.
+    - Enforce two-step confirmation dialogs for all destructive operations (submitting exams, pausing candidates, deleting blueprints, revoking accounts).
+  - **Workstream B: Responsive Layouts & Cross-Device Optimization (Old Phase 30)**:
+    - Implement responsive layouts and mobile/tablet breakpoints across all non-exam workspaces.
+  - **Workstream C: Keyboard Navigation & WCAG 2.1 AA Accessibility (Old Phase 30)**:
+    - Enforce full keyboard navigation support: tab ordering, visible focus rings, keyboard shortcuts in exam workspace, and modal focus traps.
+    - Implement comprehensive ARIA landmarks, roles, and live regions (`aria-live="polite"`) for real-time timer warnings, proctor alerts, and autosave feedback.
+  - **Workstream D: End-to-End User Journey Suites (Old Phase 30)**:
+    - Author automated end-to-end user journey test suites using Playwright validating all 5 roles from login through completion.
+  - **Workstream E: Client-Side Web Worker AI Inference Models (Old Phase 31)**:
+    - Implement client-side lightweight AI inference models (TensorFlow.js / ONNX runtime) executing in dedicated Web Workers:
+      - Real-time face presence and bounding box detection
+      - Gaze direction estimation (detecting prolonged off-screen looking)
+      - Multiple face detection in camera view
+      - Inference framerate performance target: >= 15 FPS on standard candidate laptop hardware (engineering benchmark target).
+    - Strict boundary: Continuous proctoring AI is strictly decoupled from the Phase 25 Biometric Identity plane (enrollment, pre-exam verification, and anti-spoofing remain authoritative and separate).
+  - **Workstream F: Multi-Modal Audio Anomaly Classification (Old Phase 31)**:
+    - Implement server-assisted audio anomaly classification on periodic evidence audio snippets (speech detection, whispered voice detection).
+  - **Workstream G: AI Anomaly Ingestion & Scorer Dampening (Old Phase 31)**:
+    - Connect AI detection events to Phase 14 server-authoritative proctoring event ingestion pipeline (`POST /api/v1/attempts/:id/events`) with event types `AI_FACE_ABSENT`, `AI_MULTIPLE_FACES`, `AI_GAZE_OFF_SCREEN`, `AI_VOICE_DETECTED`.
+    - Update Anomaly Scorer to incorporate multi-modal AI signals with configurable confidence weights and server-side dampening to prevent false positive alert storms.
+  - **Workstream H: Invigilator AI Overlays & False-Positive Triage (Old Phase 31)**:
+    - Display real-time AI anomaly markers and confidence scores in the Invigilator Console Candidate Detail Drawer.
+    - Enable proctors to dismiss false-positive AI flags with one click, recording the action in the immutable audit trail.
 - **Acceptance Criteria:**
   - Full compliance with WCAG 2.1 AA accessibility standards verified via automated axe-core scans and manual keyboard navigation audits.
   - All supported user journeys execute end-to-end with zero layout breaks, console errors, or unhandled promise rejections.
   - All destructive operations (submitting exams, pausing candidates, deleting blueprints, revoking accounts) require explicit two-step confirmation.
-- **Tests Required:** Playwright E2E journey tests across all 5 roles, axe-core automated accessibility audits, responsive viewport visual regression tests.
-
----
-
-### Phase 31 — Advanced Real-Time AI Proctoring & Multi-Modal Anomaly Detection
-- [ ] **Status:** Pending
-- **Objective:** Implement client-side and server-assisted AI proctoring models for continuous face presence, gaze tracking, multiple-person detection, background voice classification, and integrated anomaly scoring, treating inference framerate targets as calibrated engineering benchmarks.
-- **Dependencies:** Phase 14, Phase 17, Phase 25, Phase 27
-- **Major Tasks:**
-  - Implement client-side lightweight AI inference models (TensorFlow.js / ONNX runtime) executing in dedicated Web Workers:
-    - Real-time face presence and bounding box detection
-    - Gaze direction estimation (detecting prolonged off-screen looking)
-    - Multiple face detection in camera view
-    - Inference framerate performance target: >= 15 FPS on standard candidate laptop hardware (engineering benchmark target).
-  - Implement server-assisted audio anomaly classification on periodic evidence audio snippets (speech detection, whispered voice detection).
-  - Connect AI detection events to Phase 14 server-authoritative proctoring event ingestion pipeline (`POST /api/v1/attempts/:id/events`) with event types `AI_FACE_ABSENT`, `AI_MULTIPLE_FACES`, `AI_GAZE_OFF_SCREEN`, `AI_VOICE_DETECTED`.
-  - Update Anomaly Scorer to incorporate multi-modal AI signals with configurable confidence weights and server-side dampening to prevent false positive alert storms.
-  - Display real-time AI anomaly markers and confidence scores in the Invigilator Console Candidate Detail Drawer.
-- **Acceptance Criteria:**
   - Client-side AI runs smoothly in Web Workers without degrading exam countdown timer accuracy or answer input responsiveness (calibrated engineering target: >= 15 fps on standard hardware).
   - High-confidence AI anomalies feed the server-authoritative risk score and trigger proctor notifications.
   - Proctors can dismiss false-positive AI flags with one click, feeding the audit trail.
-- **Tests Required:** Web Worker AI inference benchmark tests, anomaly event ingestion integration tests, aggregate scoring calculation tests, Invigilator UI AI overlay tests.
+- **Tests Required:** Playwright E2E journey tests across all 5 roles, axe-core automated accessibility audits, responsive viewport visual regression tests, Web Worker AI inference benchmark tests, anomaly event ingestion integration tests, aggregate scoring calculation tests, Invigilator UI AI overlay tests.
 
 ---
 
-### Phase 32 — Infrastructure Horizontal Scaling, High Availability & Managed Service Migration
+### Phase 29 — HA, Final Security, Compliance & Release (Consolidating Historical Phases 32, 33 & 34)
 - [ ] **Status:** Pending
-- **Objective:** Migrate from the single-host EC2 baseline to horizontally scalable, multi-AZ high availability infrastructure when justified and guided by Phase 21 load testing benchmarks, activating managed AWS services (RDS PostgreSQL, ElastiCache Redis, ALB, mediasoup SFU clustering).
-- **Dependencies:** Phase 20, Phase 21, Phase 22
-- **Major Tasks:**
-  - Analyze empirical bottleneck data and capacity ceilings from Phase 21 concurrency benchmarking to establish data-driven scaling triggers.
-  - Activate Terraform managed service modules:
-    - Multi-AZ Amazon RDS PostgreSQL 16 (`var.enable_rds = true`) with automated backups and read replicas
-    - Amazon ElastiCache Redis replication group (`var.enable_elasticache = true`) with multi-node failover
-    - AWS Application Load Balancer (`var.enable_alb = true`) with HTTPS termination and health check target groups
-  - Execute zero-downtime database migration from containerized host PostgreSQL to Amazon RDS PostgreSQL using logical replication.
-  - Migrate ephemeral session and caching layers to ElastiCache Redis.
-  - Implement mediasoup SFU clustering and pipe transports allowing WebRTC candidate streams to route across multiple dedicated media nodes.
-  - Configure Auto Scaling Groups for stateless backend application containers behind the ALB.
-  - Update Developer Topology Dashboard to display live primary/replica health, replication lag, and multi-node cluster status.
+- **Objective:** Finalize the ProctorNet platform for enterprise production delivery through data-driven horizontal scaling and high availability multi-AZ AWS managed services migration, comprehensive security hardening, penetration testing, compliance verification (OWASP ASVS Level 2, FERPA, GDPR), OpenAPI 3.1 specifications, operational runbooks, disaster recovery walkthroughs, and final project release handover.
+- **Historical Mapping:** Consolidates **Old Phase 32** (Infrastructure Horizontal Scaling, High Availability & Managed Service Migration), **Old Phase 33** (Final Security Hardening, Penetration Testing & Compliance), and **Old Phase 34** (Final Documentation, Runbooks & Release Handover).
+- **Dependencies:** Phase 20, Phase 21, Phase 22, Phase 26, Phase 27, Phase 28
+- **Internal Workstreams & Major Tasks:**
+  - **Workstream A: Data-Driven Scaling Analysis & Capacity Triggers (Old Phase 32)**:
+    - Analyze empirical bottleneck data and capacity ceilings from Phase 21 concurrency benchmarking to establish data-driven scaling triggers.
+  - **Workstream B: Terraform Managed Services Activation (Old Phase 32)**:
+    - Activate Terraform managed service modules:
+      - Multi-AZ Amazon RDS PostgreSQL 16 (`var.enable_rds = true`) with automated backups and read replicas
+      - Amazon ElastiCache Redis replication group (`var.enable_elasticache = true`) with multi-node failover
+      - AWS Application Load Balancer (`var.enable_alb = true`) with HTTPS termination and health check target groups
+      - Configure Auto Scaling Groups for stateless backend application containers behind the ALB
+  - **Workstream C: Zero-Downtime Data Migration & SFU Media Clustering (Old Phase 32)**:
+    - Execute zero-downtime database migration from containerized host PostgreSQL to Amazon RDS PostgreSQL using logical replication.
+    - Migrate ephemeral session and caching layers to ElastiCache Redis.
+    - Implement mediasoup SFU clustering and pipe transports allowing WebRTC candidate streams to route across multiple dedicated media nodes.
+    - Update Developer Topology Dashboard to display live primary/replica health, replication lag, and multi-node cluster status.
+  - **Workstream D: Comprehensive SAST, DAST & Dependency Hardening (Old Phase 33)**:
+    - Execute comprehensive Static Application Security Testing (SAST) and Dynamic Application Security Testing (DAST).
+    - Perform dependency supply-chain security sweeps using Trivy, Snyk, and npm audit, resolving all high and critical vulnerabilities.
+  - **Workstream E: Penetration Testing Across Critical Attack Vectors (Old Phase 33)**:
+    - Conduct penetration testing across critical attack vectors: WebRTC media eavesdropping, WebSocket hijacking, JWT replay attacks, SQL injection, BOLA, and biometric spoofing.
+    - Verify cryptographic anti-tampering enforcement across 100% of candidate mutation endpoints.
+  - **Workstream F: Data Retention, Purging & Privacy Compliance (Old Phase 33)**:
+    - Verify automated data retention and purging policies for sensitive evidence and identity documents.
+    - Compile security audit report and compliance verification matrix (OWASP ASVS Level 2, FERPA, GDPR).
+  - **Workstream G: Complete OpenAPI 3.1 Specifications (Old Phase 34)**:
+    - Generate complete OpenAPI 3.1 specification for all REST API endpoints across all 5 roles.
+  - **Workstream H: Operational Runbooks & Disaster Recovery (Old Phase 34)**:
+    - Author System Operations Runbook covering incident triage, failover procedures, backup restoration, scaling guides, and metric alarm responses.
+    - Verify disaster recovery runbook through live restore walkthrough.
+  - **Workstream I: Developer Guides, WireGuard Runbook & ADR Archival (Old Phase 34)**:
+    - Author Developer Onboarding & Contribution Guide covering local environment setup, testing standards, and git workflows.
+    - Author WireGuard Management Runbook covering peer generation, key rotation, and revocation procedures.
+    - Archive all project Architecture Decision Records (ADRs) and compile final release changelog.
+  - **Workstream J: Final Release Handover & Project Sign-Off (Old Phase 34)**:
+    - Complete release handover, production readiness verification, and final sign-off.
 - **Acceptance Criteria:**
   - Seamless migration to managed AWS services with zero data loss on business records.
   - High availability architecture survives single Availability Zone outage without exam service interruption.
   - ALB distributes traffic across backend pool with automatic unhealthy node eviction.
-- **Tests Required:** Multi-AZ RDS failover tests, ElastiCache failover validation, ALB health check eviction tests, SFU pipe transport streaming tests.
-
----
-
-### Phase 33 — Final Security Hardening, Penetration Testing & Compliance
-- [ ] **Status:** Pending
-- **Objective:** Execute comprehensive application and infrastructure security penetration testing, OWASP ASVS Level 2 verification, dependency supply chain audit, and data protection compliance verification (FERPA / GDPR).
-- **Dependencies:** Phases 18, 29, 32
-- **Major Tasks:**
-  - Execute comprehensive Static Application Security Testing (SAST) and Dynamic Application Security Testing (DAST).
-  - Perform dependency supply-chain security sweeps using Trivy, Snyk, and npm audit, resolving all high and critical vulnerabilities.
-  - Conduct penetration testing across critical attack vectors: WebRTC media eavesdropping, WebSocket hijacking, JWT replay attacks, SQL injection, BOLA, and biometric spoofing.
-  - Verify cryptographic anti-tampering enforcement across 100% of candidate mutation endpoints.
-  - Verify automated data retention and purging policies for sensitive evidence and identity documents.
-  - Compile security audit report and compliance verification matrix.
-- **Acceptance Criteria:**
   - Zero critical, zero high, and zero unmitigated medium vulnerabilities across application and infrastructure code.
   - All OWASP Top 10 and ASVS Level 2 security requirements systematically satisfied.
   - Evidence retention and candidate data handling comply with FERPA and GDPR privacy principles.
-- **Tests Required:** Penetration test validation suites, automated security vulnerability scans, cryptographic audit assertions, data purging verification tests.
-
----
-
-### Phase 34 — Final Documentation, Runbooks & Release Handover
-- [ ] **Status:** Pending
-- **Objective:** Complete comprehensive developer guides, OpenAPI 3.1 specifications, operational runbooks, disaster recovery procedures, and project handover documentation.
-- **Dependencies:** Phases 0–33
-- **Major Tasks:**
-  - Generate complete OpenAPI 3.1 specification for all REST API endpoints across all 5 roles.
-  - Author System Operations Runbook covering incident triage, failover procedures, backup restoration, scaling guides, and metric alarm responses.
-  - Author Developer Onboarding & Contribution Guide covering local environment setup, testing standards, and git workflows.
-  - Author WireGuard Management Runbook covering peer generation, key rotation, and revocation procedures.
-  - Archive all project Architecture Decision Records (ADRs) and compile the final release changelog.
-- **Acceptance Criteria:**
   - Documentation enables a new engineer or system operator to onboard, deploy, operate, and maintain ProctorNet independently.
-  - All API routes, request/response schemas, and error codes are fully documented.
+  - All API routes, request/response schemas, and error codes are fully documented in OpenAPI 3.1.
   - Disaster recovery runbook verified through live restore walkthrough.
-- **Tests Required:** Documentation link verification, OpenAPI schema validation tests, runbook procedure validation.
+- **Tests Required:** Multi-AZ RDS failover tests, ElastiCache failover validation, ALB health check eviction tests, SFU pipe transport streaming tests, penetration test validation suites, automated security vulnerability scans, cryptographic audit assertions, data purging verification tests, documentation link verification, OpenAPI schema validation tests, runbook procedure validation.
 
 ---
 
@@ -1062,51 +1043,51 @@ Every product capability is classified into one of six authoritative states:
 | **Identity** | Private S3 Encrypted Document Storage | [x] | [x] | [x] | [x] | `IMPLEMENTED` | Phase 15, Phase 24 |
 | **Identity** | Document OCR & Candidate Matching | [ ] | [ ] | [ ] | [ ] | `DEFERRED` | Phase 24/25 Boundary |
 | **Identity** | Admin Verification Review Queue (`/admin/verifications`)| [x] | [x] | [x] | [x] | `IMPLEMENTED` | Phase 24 |
-| **Biometrics** | Reference Face Enrollment & Embedding | [ ] | [ ] | [ ] | [ ] | `MISSING` | Phase 25 |
-| **Biometrics** | Pre-Exam Face Verification (Selfie Match) | [ ] | [ ] | [ ] | [ ] | `MISSING` | Phase 25 |
-| **Biometrics** | Passive & Active Liveness / Anti-Spoofing | [ ] | [ ] | [ ] | [ ] | `MISSING` | Phase 25 |
+| **Biometrics** | Reference Face Enrollment & Embedding | [x] | [x] | [x] | [x] | `IMPLEMENTED` | Phase 25 |
+| **Biometrics** | Pre-Exam Face Verification (Selfie Match) | [x] | [x] | [x] | [x] | `IMPLEMENTED` | Phase 25 |
+| **Biometrics** | Passive & Active Liveness / Anti-Spoofing | [x] | [x] | [x] | [x] | `IMPLEMENTED` | Phase 25 |
 | **Exam Delivery** | Exam Authoring & Blueprint Composition | [x] | [x] | [x] | [x] | `IMPLEMENTED` | Phase 5, Phase 10 |
-| **Exam Delivery** | Reusable Question Bank Management | [ ] | [ ] | [ ] | [ ] | `MISSING` | Phase 26 |
-| **Exam Delivery** | Multi-Room Session Scheduling & Rostering | [x] | [x] | [x] | [x] | `IMPLEMENTED` | Phase 5, Phase 10 |
+| **Exam Delivery** | Reusable Question Bank Management | [ ] | [ ] | [ ] | [ ] | `MISSING` | Phase 26 (Old Phase 26) |
+| **Exam Delivery** | Multi-Room Session Scheduling & Rostering | [x] | [x] | [x] | [x] | `IMPLEMENTED` | Phase 5, Phase 10, Phase 26 |
 | **Exam Delivery** | Deterministic Question Shuffling (PRNG) | [x] | [x] | [x] | [x] | `IMPLEMENTED` | Phase 6, Phase 10 |
 | **Exam Delivery** | Authoritative Timing & Expiration Engine | [x] | [x] | [x] | [x] | `IMPLEMENTED` | Phase 6, Phase 10 |
 | **Exam Delivery** | Debounced Answer Autosave & OCC Revision | [x] | [x] | [x] | [x] | `IMPLEMENTED` | Phase 7, Phase 10 |
-| **Exam Delivery** | Atomic Batch Autosave | [x] | [ ] | [ ] | [ ] | `PARTIALLY IMPLEMENTED` | Phase 7, Phase 26 |
+| **Exam Delivery** | Atomic Batch Autosave | [x] | [ ] | [ ] | [ ] | `PARTIALLY IMPLEMENTED` | Phase 7, Phase 26 (Old Phase 26) |
 | **Exam Delivery** | Idempotent Exam Submission | [x] | [x] | [x] | [x] | `IMPLEMENTED` | Phase 8, Phase 10 |
 | **Exam Delivery** | Transactional Outbox & Async Evaluation | [x] | N/A | [x] | [x] | `IMPLEMENTED` | Phase 8, Phase 12 |
-| **Exam Delivery** | Manual Grading Workspace & Score Overrides | [ ] | [ ] | [ ] | [ ] | `MISSING` | Phase 26 |
+| **Exam Delivery** | Manual Grading Workspace & Score Overrides | [ ] | [ ] | [ ] | [ ] | `MISSING` | Phase 26 (Old Phase 26) |
 | **Exam Delivery** | Result Release Policies & Scorecards | [x] | [x] | [x] | [x] | `IMPLEMENTED` | Phase 9, Phase 10 |
-| **Exam Delivery** | Exam Analytics, KPIs & Grade Distribution | [ ] | [ ] | [ ] | [ ] | `MISSING` | Phase 26 |
+| **Exam Delivery** | Exam Analytics, KPIs & Grade Distribution | [ ] | [ ] | [ ] | [ ] | `MISSING` | Phase 26 (Old Phase 26) |
 | **Proctoring** | Client Violation Telemetry Hook & Ingestion | [x] | [x] | [x] | [x] | `IMPLEMENTED` | Phase 14, Phase 16 |
 | **Proctoring** | Server-Authoritative Anomaly Scoring | [x] | [x] | [x] | [x] | `IMPLEMENTED` | Phase 14, Phase 16 |
-| **Proctoring** | Direct Presigned Evidence Upload (S3) | [x] | [ ] | [ ] | [ ] | `PARTIALLY IMPLEMENTED` | Phase 15, Phase 27 |
+| **Proctoring** | Direct Presigned Evidence Upload (S3) | [x] | [x] | [x] | [x] | `IMPLEMENTED` | Phase 15, Phase 24, Phase 25 |
 | **Proctoring** | Realtime WebSocket Signaling & Presence | [x] | [x] | [x] | [x] | `IMPLEMENTED` | Phase 16, Phase 17 |
 | **Proctoring** | WebRTC Multi-Party Video/Audio SFU | [x] | [x] | [x] | [x] | `IMPLEMENTED` | Phase 17 |
-| **Proctoring** | Invigilator Multi-Stream Grid & Detail Drawer | [-] | [-] | [-] | [-] | `PARTIALLY IMPLEMENTED` | Phase 17, Phase 27 |
-| **Proctoring** | Proctor Direct Interventions (Warn/Pause/Kill) | [ ] | [ ] | [ ] | [ ] | `MISSING` | Phase 27 |
-| **Proctoring** | In-Session Evidence Inspection Modal | [ ] | [ ] | [ ] | [ ] | `MISSING` | Phase 27 |
-| **Proctoring** | Advanced AI Gaze & Multi-Face Detection | [ ] | [ ] | [ ] | [ ] | `PLANNED` | Phase 31 |
-| **Operations** | Developer Role in RBAC (`user_roles`) | [ ] | [ ] | [ ] | [ ] | `MISSING` | Phase 28 |
-| **Operations** | Developer Overview (`/developer/overview`) | [ ] | [ ] | [ ] | [ ] | `MISSING` | Phase 28 |
-| **Operations** | Subsystem Health Monitor (`/developer/health`) | [ ] | [ ] | [ ] | [ ] | `MISSING` | Phase 28 |
-| **Operations** | Centralized System Logs Viewer (`/developer/logs`) | [ ] | [ ] | [ ] | [ ] | `MISSING` | Phase 28 |
-| **Operations** | Technical Audit Feed (`/developer/audit`) | [x] (admin) | [ ] | [x] | [ ] | `PARTIALLY IMPLEMENTED` | Phase 13, Phase 28 |
-| **Operations** | Infrastructure Topology Map (`/developer/topology`) | [ ] | [ ] | [ ] | [ ] | `MISSING` | Phase 28 |
-| **Operations** | Incident Triage & Alerts (`/developer/incidents`) | [ ] | [ ] | [ ] | [ ] | `MISSING` | Phase 28 |
-| **Network** | WireGuard VPN Service & Daemon Deployment | [ ] | N/A | [ ] | N/A | `MISSING` | Phase 29 |
-| **Network** | WireGuard Peer Generation & Key Management | [ ] | N/A | [ ] | N/A | `MISSING` | Phase 29 |
-| **Network** | Management vs Exam Network Segmentation | [x] (SG base) | N/A | [ ] | N/A | `PARTIALLY IMPLEMENTED` | Phase 20, Phase 29 |
+| **Proctoring** | Invigilator Multi-Stream Grid & Detail Drawer | [-] | [-] | [-] | [-] | `PARTIALLY IMPLEMENTED` | Phase 17, Phase 26 (Old Phase 27) |
+| **Proctoring** | Proctor Direct Interventions (Warn/Pause/Kill) | [ ] | [ ] | [ ] | [ ] | `MISSING` | Phase 26 (Old Phase 27) |
+| **Proctoring** | In-Session Evidence Inspection Modal | [ ] | [ ] | [ ] | [ ] | `MISSING` | Phase 26 (Old Phase 27) |
+| **Proctoring** | Advanced AI Gaze & Multi-Face Detection | [ ] | [ ] | [ ] | [ ] | `PLANNED` | Phase 28 (Old Phase 31) |
+| **Operations** | Developer Role in RBAC (`user_roles`) | [ ] | [ ] | [ ] | [ ] | `MISSING` | Phase 27 (Old Phase 28) |
+| **Operations** | Developer Overview (`/developer/overview`) | [ ] | [ ] | [ ] | [ ] | `MISSING` | Phase 27 (Old Phase 28) |
+| **Operations** | Subsystem Health Monitor (`/developer/health`) | [ ] | [ ] | [ ] | [ ] | `MISSING` | Phase 27 (Old Phase 28) |
+| **Operations** | Centralized System Logs Viewer (`/developer/logs`) | [ ] | [ ] | [ ] | [ ] | `MISSING` | Phase 27 (Old Phase 28) |
+| **Operations** | Technical Audit Feed (`/developer/audit`) | [x] (admin) | [ ] | [x] | [ ] | `PARTIALLY IMPLEMENTED` | Phase 13, Phase 27 (Old Phase 28) |
+| **Operations** | Infrastructure Topology Map (`/developer/topology`) | [ ] | [ ] | [ ] | [ ] | `MISSING` | Phase 27 (Old Phase 28) |
+| **Operations** | Incident Triage & Alerts (`/developer/incidents`) | [ ] | [ ] | [ ] | [ ] | `MISSING` | Phase 27 (Old Phase 28) |
+| **Network** | WireGuard VPN Service & Daemon Deployment | [ ] | N/A | [ ] | N/A | `MISSING` | Phase 27 (Old Phase 29) |
+| **Network** | WireGuard Peer Generation & Key Management | [ ] | N/A | [ ] | N/A | `MISSING` | Phase 27 (Old Phase 29) |
+| **Network** | Management vs Exam Network Segmentation | [x] (SG base) | N/A | [ ] | N/A | `PARTIALLY IMPLEMENTED` | Phase 20, Phase 27 (Old Phase 29) |
 | **Infra** | Docker Containerization & Multi-Stage Builds | [x] | [x] | [x] | [x] | `IMPLEMENTED` | Phase 19 |
 | **Infra** | Single-Host EC2 Production Baseline | [x] | N/A | [x] | [x] | `IMPLEMENTED` | Phase 19, Phase 20 |
 | **Infra** | Persistent Encrypted EBS Volume Protection | [x] | N/A | [x] | [x] | `IMPLEMENTED` | Phase 20 |
 | **Infra** | Terraform IaC (S3 Backend, S3 Lockfile) | [x] | N/A | [x] | [x] | `IMPLEMENTED` | Phase 20 |
-| **Infra** | Scale-Ready Modules (RDS, Redis, ALB) | [x] (disabled)| N/A | [ ] | N/A | `IMPLEMENTED` (base) | Phase 20, Phase 32 |
-| **Infra** | Horizontal Multi-AZ Scaling & Clustering | [ ] | N/A | [ ] | N/A | `DEFERRED` | Phase 32 |
+| **Infra** | Scale-Ready Modules (RDS, Redis, ALB) | [x] (disabled)| N/A | [ ] | N/A | `IMPLEMENTED` (base) | Phase 20, Phase 29 (Old Phase 32) |
+| **Infra** | Horizontal Multi-AZ Scaling & Clustering | [ ] | N/A | [ ] | N/A | `DEFERRED` | Phase 29 (Old Phase 32) |
 | **Security** | Application Security Hardening (OWASP Top 10)| [x] | [x] | [x] | [x] | `IMPLEMENTED` | Phase 18 |
 | **Security** | Cryptographic Anti-Tampering & Signing | [x] | [x] | [x] | [x] | `IMPLEMENTED` | Phase 18 |
 | **Security** | Security Group Isolation (No Public Internal)| [x] | N/A | [x] | [x] | `IMPLEMENTED` | Phase 20 |
-| **UX** | WCAG 2.1 AA Accessibility & Keyboard Nav | [-] | [-] | N/A | [-] | `PARTIALLY IMPLEMENTED` | Phase 10, Phase 30 |
-| **UX** | Unified Design System Tokens & Responsive UI | [x] (base) | [x] (base)| N/A | [-] | `PARTIALLY IMPLEMENTED` | Phase 10, Phase 30 |
+| **UX** | WCAG 2.1 AA Accessibility & Keyboard Nav | [-] | [-] | N/A | [-] | `PARTIALLY IMPLEMENTED` | Phase 10, Phase 28 (Old Phase 30) |
+| **UX** | Unified Design System Tokens & Responsive UI | [x] (base) | [x] (base)| N/A | [-] | `PARTIALLY IMPLEMENTED` | Phase 10, Phase 28 (Old Phase 30) |
 
 ---
 
@@ -1486,35 +1467,35 @@ The ProctorNet frontend is structured across 4 visual density tiers with unified
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Public** | Login Page | `/login` | `LoginForm`, `Input`, `Button`, `Card` | User authentication, token acquisition | `POST /api/v1/auth/login` | Loading, Error, Lockout countdown | `IMPLEMENTED` | Phase 10 |
 | **Public** | Register Page | `/register` | `RegisterForm`, `Input`, `Select` | Candidate self-registration | `POST /api/v1/auth/register` | Loading, Validation errors, Success | `IMPLEMENTED` | Phase 10 |
-| **Student** | Onboarding Wizard | `/candidate/onboarding` | `WizardStep`, `ProgressBar`, `ProfileForm` | Step-by-step profile completion | `PATCH /api/v1/candidate/profile` | Loading, Validation errors, Save success | `PLANNED` | Phase 24 |
-| **Student** | Document Verification | `/candidate/verify-identity` | `DocumentCapture`, `CameraPreview`, `UploadCard`| Government / Student ID upload | `POST /api/v1/candidate/identity/*` | Camera loading, Blur warning, Upload progress | `PLANNED` | Phase 24 |
-| **Student** | Face Enrollment | `/candidate/biometrics/enroll` | `FaceOvalGuide`, `LightingIndicator` | Reference facial embedding capture | `POST /api/v1/candidate/biometrics/*` | Pose feedback, Quality score, Success | `PLANNED` | Phase 25 |
+| **Student** | Onboarding Wizard | `/candidate/onboarding` | `WizardStep`, `ProgressBar`, `ProfileForm` | Step-by-step profile completion | `PATCH /api/v1/candidate/profile` | Loading, Validation errors, Save success | `IMPLEMENTED` | Phase 24 |
+| **Student** | Document Verification | `/candidate/verify-identity` | `DocumentCapture`, `CameraPreview`, `UploadCard`| Government / Student ID upload | `POST /api/v1/candidate/identity/*` | Camera loading, Blur warning, Upload progress | `IMPLEMENTED` | Phase 24 |
+| **Student** | Face Enrollment | `/candidate/biometrics/enroll` | `FaceOvalGuide`, `LightingIndicator` | Reference facial embedding capture | `POST /api/v1/candidate/biometrics/*` | Pose feedback, Quality score, Success | `IMPLEMENTED` | Phase 25 |
 | **Student** | Candidate Dashboard | `/candidate` | `SessionCard`, `StatusBadge`, `Countdown` | View eligible, upcoming, past exams | `GET /api/v1/sessions` | Loading skeleton, Empty list, Error retry | `IMPLEMENTED` | Phase 10 |
-| **Student** | Pre-Exam Readiness | `/candidate/readiness/:id` | `HardwareCheck`, `BiometricGate`, `RulesModal`| Camera/mic test, face verification, launch | `POST /api/v1/sessions/:id/attempts` | Device check spinner, Biometric fail, Ready | `PARTIALLY IMPL`| Phase 10, 24, 25 |
+| **Student** | Pre-Exam Readiness | `/candidate/readiness/:id` | `HardwareCheck`, `BiometricGate`, `RulesModal`| Camera/mic test, face verification, launch | `POST /api/v1/sessions/:id/attempts` | Device check spinner, Biometric fail, Ready | `IMPLEMENTED` | Phase 10, 24, 25 |
 | **Student** | Exam Taking Workspace | `/candidate/attempts/:id` | `QuestionRenderer`, `Timer`, `Autosave`, `Nav` | Question answer, debounced autosave, submit | `PUT /api/v1/attempts/:id/answers/*` | Offline banner, Save spinner, Expiry modal | `IMPLEMENTED` | Phase 10 |
 | **Student** | Candidate Scorecard | `/candidate/attempts/:id/result`| `Scorecard`, `ProgressBar`, `FeedbackCard` | Score inspection, status badges | `GET /api/v1/attempts/:id/result` | Pending release card, Evaluated scorecard | `IMPLEMENTED` | Phase 10 |
 | **Faculty** | Faculty Dashboard | `/faculty` | `ExamTable`, `StatCard`, `ActionMenu` | View authored blueprints and sessions | `GET /api/v1/exams` | Loading skeleton, Empty list, Error banner | `IMPLEMENTED` | Phase 10 |
 | **Faculty** | Exam Editor | `/faculty/exams/:id` | `BlueprintForm`, `TopicRuleBuilder`, `PointsBar`| Author blueprint, topic rules, publish | `POST /api/v1/exams/:id/publish` | Validation errors, Publish confirmation | `IMPLEMENTED` | Phase 10 |
-| **Faculty** | Question Bank Manager | `/faculty/question-bank` | `QuestionTable`, `RichTextEditor`, `MathJax` | Manage reusable question inventory | `GET/POST /api/v1/faculty/question-bank`| Search empty, Formula preview, Save success | `PLANNED` | Phase 26 |
+| **Faculty** | Question Bank Manager | `/faculty/question-bank` | `QuestionTable`, `RichTextEditor`, `MathJax` | Manage reusable question inventory | `GET/POST /api/v1/faculty/question-bank`| Search empty, Formula preview, Save success | `PLANNED` | Phase 26 (Old 26) |
 | **Faculty** | Session Manager | `/faculty/sessions` | `ScheduleForm`, `RoomSelector`, `RosterUpload` | Schedule sessions, assign students/proctors | `POST /api/v1/sessions` | Capacity error, Success modal, Empty rooms | `IMPLEMENTED` | Phase 10 |
-| **Faculty** | Manual Grading Workspace | `/faculty/exams/:id/grading` | `AnswerCompare`, `RubricScorer`, `FeedbackBox` | Review and grade subjective questions | `POST /api/v1/results/:id/manual-grade` | Loading queue, Score validation, Saved toast | `PLANNED` | Phase 26 |
+| **Faculty** | Manual Grading Workspace | `/faculty/exams/:id/grading` | `AnswerCompare`, `RubricScorer`, `FeedbackBox` | Review and grade subjective questions | `POST /api/v1/results/:id/manual-grade` | Loading queue, Score validation, Saved toast | `PLANNED` | Phase 26 (Old 26) |
 | **Faculty** | Results & Analytics | `/faculty/exams/:id/results` | `ResultsTable`, `Histogram`, `ReleaseModal` | Inspect summary KPIs, release policy | `POST /api/v1/exams/:id/results/publish`| Empty results, Policy locked, Export CSV | `IMPLEMENTED` | Phase 10 |
 | **Invigilator**| Invigilator Dashboard | `/invigilator` | `SessionCard`, `ActiveCountBadge` | View assigned active and upcoming sessions | `GET /api/v1/sessions` | Loading skeleton, Empty sessions card | `IMPLEMENTED` | Phase 10 |
-| **Invigilator**| Live Supervision Console | `/invigilator/sessions/:id`| `VideoGrid`, `HealthBadge`, `CandidateDrawer` | 12-stream grid, audio meters, interventions | `POST /api/v1/attempts/:id/pause` | Stream connecting, Video lost, Alert modal | `PARTIALLY IMPL`| Phase 17, 27 |
+| **Invigilator**| Live Supervision Console | `/invigilator/sessions/:id`| `VideoGrid`, `HealthBadge`, `CandidateDrawer` | 12-stream grid, audio meters, interventions | `POST /api/v1/attempts/:id/pause` | Stream connecting, Video lost, Alert modal | `PARTIALLY IMPL`| Phase 17, 26 (Old 27) |
 | **Admin** | Admin Overview | `/admin` | `GlobalKPICards`, `AlertsBanner`, `QuickNav` | High-level system counts and health | `GET /api/v1/exams`, `GET /api/v1/sessions`| Loading skeleton, Alert banner | `IMPLEMENTED` | Phase 10 |
-| **Admin** | User Management Portal | `/admin/users` | `UserTable`, `RoleBadge`, `StatusToggle` | Manage accounts across all 5 roles | `GET/POST/PATCH /api/v1/admin/users` | Search empty, Reset password modal, Save | `PLANNED` | Phase 23 |
-| **Admin** | Create User Screen | `/admin/users/create` | `UserForm`, `RoleSelect`, `PasswordGen` | Direct account creation across all roles | `POST /api/v1/admin/users` | Form validation, Temp password modal, Save | `PLANNED` | Phase 23 |
-| **Admin** | Bulk CSV Import Tool | `/admin/users/bulk-import` | `FileUpload`, `DataGridPreview`, `ErrorTable` | Bulk ingest student/faculty accounts | `POST /api/v1/admin/users/bulk-import` | Parsing progress, Format error report | `PLANNED` | Phase 23 |
-| **Admin** | Organization Settings | `/admin/organization` | `OrgForm`, `PolicyConfig`, `DefaultsCard` | Campus terms, branding, policy defaults | `GET/PUT /api/v1/admin/organization` | Loading settings, Save confirmation toast | `PLANNED` | Phase 23 |
-| **Admin** | Verification Review Queue| `/admin/verifications` | `DocumentViewer`, `SideBySideCompare`, `Action`| Review and approve ID documents | `GET/PATCH /api/v1/admin/verifications` | Empty queue, Rejection modal with reasons | `PLANNED` | Phase 24 |
-| **Admin** | Per-Student Config | `/admin/students/:id` | `ProfileEditor`, `AccommodationForm` | Configure student accommodations/limits | `GET/PATCH /api/v1/admin/students/:id` | Loading profile, Save confirmation toast | `PLANNED` | Phase 24 |
-| **Admin** | Administrative Audit | `/admin/audit` | `AuditTable`, `ActorFilter`, `TargetSelect` | View all administrative operations | `GET /api/v1/admin/audit` | Loading skeleton, Empty filter, Detail drawer| `PLANNED` | Phase 23 |
-| **Developer** | Developer Overview | `/developer/overview` | `SubsystemGrid`, `KPICard`, `AlertBanner` | High-level engineering control plane | `GET /api/v1/developer/overview` | Component badges, Metric summary | `PLANNED` | Phase 28 |
-| **Developer** | Subsystem Health Monitor | `/developer/health` | `HealthMatrix`, `LatencyGauge`, `PoolMeter` | Probe all 12+ components in real time | `GET /api/v1/developer/health` | Live polling spinner, DOWN service alert | `PLANNED` | Phase 28 |
-| **Developer** | Central System Logs | `/developer/logs` | `LogStreamTable`, `FilterBar`, `TraceViewer` | Search structured logs with PII masking | `GET /api/v1/developer/logs` | Real-time stream indicator, Empty search | `PLANNED` | Phase 28 |
-| **Developer** | Technical Audit Stream | `/developer/audit` | `TechnicalAuditTable`, `SeverityTag`, `JSON` | Inspect security and runtime audit events | `GET /api/v1/developer/audit` | Real-time polling, Detail drawer, Trace filter| `PLANNED` | Phase 28 |
-| **Developer** | Infrastructure Topology | `/developer/topology` | `InteractiveServiceMesh`, `ReplicaLag` | Visual topology map of service mesh | `GET /api/v1/developer/topology` | Interactive zoom, Degraded link highlight | `PLANNED` | Phase 28 |
-| **Developer** | Incident Triage & Alerts | `/developer/incidents` | `IncidentFeed`, `FailureTimeline`, `Action` | Surface DOWN/DEGRADED service triage | `GET /api/v1/developer/incidents` | Active incident banners, Triage modal | `PLANNED` | Phase 28 |
+| **Admin** | User Management Portal | `/admin/users` | `UserTable`, `RoleBadge`, `StatusToggle` | Manage accounts across all 5 roles | `GET/POST/PATCH /api/v1/admin/users` | Search empty, Reset password modal, Save | `IMPLEMENTED` | Phase 23 |
+| **Admin** | Create User Screen | `/admin/users/create` | `UserForm`, `RoleSelect`, `PasswordGen` | Direct account creation across all roles | `POST /api/v1/admin/users` | Form validation, Temp password modal, Save | `IMPLEMENTED` | Phase 23 |
+| **Admin** | Bulk CSV Import Tool | `/admin/users/bulk-import` | `FileUpload`, `DataGridPreview`, `ErrorTable` | Bulk ingest student/faculty accounts | `POST /api/v1/admin/users/bulk-import` | Parsing progress, Format error report | `IMPLEMENTED` | Phase 23 |
+| **Admin** | Organization Settings | `/admin/organization` | `OrgForm`, `PolicyConfig`, `DefaultsCard` | Campus terms, branding, policy defaults | `GET/PUT /api/v1/admin/organization` | Loading settings, Save confirmation toast | `IMPLEMENTED` | Phase 23 |
+| **Admin** | Verification Review Queue| `/admin/verifications` | `DocumentViewer`, `SideBySideCompare`, `Action`| Review and approve ID documents | `GET/PATCH /api/v1/admin/verifications` | Empty queue, Rejection modal with reasons | `IMPLEMENTED` | Phase 24 |
+| **Admin** | Per-Student Config | `/admin/students/:id` | `ProfileEditor`, `AccommodationForm` | Configure student accommodations/limits | `GET/PATCH /api/v1/admin/students/:id` | Loading profile, Save confirmation toast | `IMPLEMENTED` | Phase 24 |
+| **Admin** | Administrative Audit | `/admin/audit` | `AuditTable`, `ActorFilter`, `TargetSelect` | View all administrative operations | `GET /api/v1/admin/audit` | Loading skeleton, Empty filter, Detail drawer| `IMPLEMENTED` | Phase 23 |
+| **Developer** | Developer Overview | `/developer/overview` | `SubsystemGrid`, `KPICard`, `AlertBanner` | High-level engineering control plane | `GET /api/v1/developer/overview` | Component badges, Metric summary | `PLANNED` | Phase 27 (Old 28) |
+| **Developer** | Subsystem Health Monitor | `/developer/health` | `HealthMatrix`, `LatencyGauge`, `PoolMeter` | Probe all 12+ components in real time | `GET /api/v1/developer/health` | Live polling spinner, DOWN service alert | `PLANNED` | Phase 27 (Old 28) |
+| **Developer** | Central System Logs | `/developer/logs` | `LogStreamTable`, `FilterBar`, `TraceViewer` | Search structured logs with PII masking | `GET /api/v1/developer/logs` | Real-time stream indicator, Empty search | `PLANNED` | Phase 27 (Old 28) |
+| **Developer** | Technical Audit Stream | `/developer/audit` | `TechnicalAuditTable`, `SeverityTag`, `JSON` | Inspect security and runtime audit events | `GET /api/v1/developer/audit` | Real-time polling, Detail drawer, Trace filter| `PLANNED` | Phase 27 (Old 28) |
+| **Developer** | Infrastructure Topology | `/developer/topology` | `InteractiveServiceMesh`, `ReplicaLag` | Visual topology map of service mesh | `GET /api/v1/developer/topology` | Interactive zoom, Degraded link highlight | `PLANNED` | Phase 27 (Old 28) |
+| **Developer** | Incident Triage & Alerts | `/developer/incidents` | `IncidentFeed`, `FailureTimeline`, `Action` | Surface DOWN/DEGRADED service triage | `GET /api/v1/developer/incidents` | Active incident banners, Triage modal | `PLANNED` | Phase 27 (Old 28) |
 
 ---
 
@@ -1541,79 +1522,72 @@ Every architectural requirement from the foundational specification (Notion Step
 | **13.15** | WebRTC SFU Multi-Party Media Plane | Dedicated mediasoup workers, isolated media gateway, Coturn | Phase 17 | `IMPLEMENTED` | Heavy video/audio forwarding has zero performance impact on core database or autosaves. |
 | **13.16** | Private Object Storage & Evidence | Direct presigned PUT uploads, metadata verification, SHA-256 | Phase 15, 18 | `IMPLEMENTED` | Heavy media uploads bypass application server; file signatures verified via magic bytes. |
 | **13.17** | Defensive Engineering & Auditing | Database-enforced append-only audit logs, W3C trace context | Phase 13, 14, 18 | `IMPLEMENTED` | Prohibited mutations (`UPDATE`, `DELETE`, `TRUNCATE`) on audit logs rejected with SQLSTATE 20000. |
-| **Req-A** | Complete User Administration | Admin account creation across all roles, bulk CSV ingestion | Phase 23 | `PLANNED` | Admins manage user lifecycle; bulk import processes 500+ accounts in atomic transaction. |
-| **Req-B** | Candidate Onboarding & ID Document | Document capture, OCR extraction, verification approval queue | Phase 24 | `PLANNED` | Candidates upload government ID; Admin review queue enables approval/rejection with reasons. |
-| **Req-C** | Biometric Face & Anti-Spoofing | Reference face enrollment, pre-exam verification, liveness | Phase 25 | `PLANNED` | Face matching verifies identity (initial target: sim >= 0.85); presentation attacks rejected by liveness challenge. |
-| **Req-D** | Question Bank & Manual Grading | Reusable question banks, MathJax/code, manual evaluation workspace | Phase 26 | `PLANNED` | Faculty manage question inventories; subjective questions graded with audit rationale. |
-| **Req-E** | Live Proctoring Workstation | 12-stream grid, candidate drawer, direct warning/pause/terminate | Phase 27 | `PLANNED` | Proctors monitor live grid; interventions execute instantaneously over WebSocket control plane. |
-| **Req-F** | Developer Control Plane Portal | Subsystem health matrix, masked system logs, topology map | Phase 28 | `PLANNED` | Live health across all 12+ components; log viewer filters events without PII leakage across all 6 pages. |
-| **Req-G** | WireGuard Management Plane | Dedicated VPN service, peer lifecycle, network segmentation | Phase 29 | `PLANNED` | Port 22 unreachable from public internet; management plane isolated from candidate web traffic. |
-| **Req-H** | Accessible UI/UX & E2E Validation | Full keyboard navigation, WCAG 2.1 AA, complete journey suites | Phase 30 | `PLANNED` | All 5 roles have polished interfaces; automated E2E journey tests pass across all flows. |
-| **Req-I** | Advanced Real-Time AI Proctoring | Client Web Worker AI, gaze tracking, multi-face, voice detect | Phase 31 | `PLANNED` | Client AI runs at >= 15 fps; high-confidence anomalies feed server-authoritative risk score. |
-| **Req-J** | Horizontal Scaling & High Availability| Multi-AZ RDS PostgreSQL, ElastiCache, ALB, SFU clustering | Phase 32 | `PLANNED` | Zero-downtime migration to managed AWS services; multi-AZ failover survives AZ outage. |
-| **Req-K** | Final Security Penetration & ASVS | DAST/SAST, ASVS Level 2, dependency sweeps, compliance | Phase 33 | `PLANNED` | Zero critical/high vulnerabilities; FERPA/GDPR compliance baseline verified. |
-| **Req-L** | Final Documentation & Runbooks | OpenAPI 3.1, operational runbooks, disaster recovery manual | Phase 34 | `PLANNED` | Engineer can set up, deploy, and operate ProctorNet independently from documentation alone. |
+| **Req-A** | Complete User Administration | Admin account creation across all roles, bulk CSV ingestion | Phase 23 | `IMPLEMENTED` | Admins manage user lifecycle; bulk import processes 500+ accounts in atomic transaction. |
+| **Req-B** | Candidate Onboarding & ID Document | Document capture, OCR extraction, verification approval queue | Phase 24 | `IMPLEMENTED` | Candidates upload government ID; Admin review queue enables approval/rejection with reasons. |
+| **Req-C** | Biometric Face & Anti-Spoofing | Reference face enrollment, pre-exam verification, liveness | Phase 25 | `IMPLEMENTED` | Face matching verifies identity (initial target: sim >= 0.85); presentation attacks rejected by liveness challenge. |
+| **Req-D** | Question Bank & Manual Grading | Reusable question banks, MathJax/code, manual evaluation workspace | Phase 26 (Old 26) | `PLANNED` | Faculty manage question inventories; subjective questions graded with audit rationale. |
+| **Req-E** | Live Proctoring Workstation | 12-stream grid, candidate drawer, direct warning/pause/terminate | Phase 26 (Old 27) | `PLANNED` | Proctors monitor live grid; interventions execute instantaneously over WebSocket control plane. |
+| **Req-F** | Developer Control Plane Portal | Subsystem health matrix, masked system logs, topology map | Phase 27 (Old 28) | `PLANNED` | Live health across all 12+ components; log viewer filters events without PII leakage across all 6 pages. |
+| **Req-G** | WireGuard Management Plane | Dedicated VPN service, peer lifecycle, network segmentation | Phase 27 (Old 29) | `PLANNED` | Port 22 unreachable from public internet; management plane isolated from candidate web traffic. |
+| **Req-H** | Accessible UI/UX & E2E Validation | Full keyboard navigation, WCAG 2.1 AA, complete journey suites | Phase 28 (Old 30) | `PLANNED` | All 5 roles have polished interfaces; automated E2E journey tests pass across all flows. |
+| **Req-I** | Advanced Real-Time AI Proctoring | Client Web Worker AI, gaze tracking, multi-face, voice detect | Phase 28 (Old 31) | `PLANNED` | Client AI runs at >= 15 fps; high-confidence anomalies feed server-authoritative risk score. |
+| **Req-J** | Horizontal Scaling & High Availability| Multi-AZ RDS PostgreSQL, ElastiCache, ALB, SFU clustering | Phase 29 (Old 32) | `PLANNED` | Zero-downtime migration to managed AWS services; multi-AZ failover survives AZ outage. |
+| **Req-K** | Final Security Penetration & ASVS | DAST/SAST, ASVS Level 2, dependency sweeps, compliance | Phase 29 (Old 33) | `PLANNED` | Zero critical/high vulnerabilities; FERPA/GDPR compliance baseline verified. |
+| **Req-L** | Final Documentation & Runbooks | OpenAPI 3.1, operational runbooks, disaster recovery manual | Phase 29 (Old 34) | `PLANNED` | Engineer can set up, deploy, and operate ProctorNet independently from documentation alone. |
 
 ---
 
 ## 9. Phase Dependency Rules & Critical Path Analysis
 
-The execution sequence strictly honors technical dependencies to ensure that no feature is prematurely implemented without its foundational prerequisites.
+The execution sequence strictly honors technical dependencies to ensure that no feature is prematurely implemented without its foundational prerequisites. While high-level phases proceed sequentially through authoritative gates, internal workstreams within each phase are designed for maximum parallel execution.
 
 ```
-Phase 20 (AWS Infrastructure Baseline) [COMPLETE]
+Phase 25 (Biometric Face & Anti-Spoofing) [COMPLETE]
   │
   ▼
-Phase 21 (Load Testing & Capacity Benchmarking)
+Phase 26 (Examination & Invigilation) [PENDING]
+[Consolidates Old 26: Faculty Exam Lifecycle & Old 27: Invigilator Workstation]
   │
   ▼
-Phase 22 (Failure, Resilience & Chaos Testing)
-  │
-  ├───────────────────────────────────────────────┐
-  ▼                                               ▼
-Phase 23 (User & Account Administration)      Phase 28 (Developer & System Operations Portal)
-  │                                               │
-  ▼                                               ▼
-Phase 24 (Candidate Onboarding & Documents)   Phase 29 (WireGuard Management Plane)
+Phase 27 (Developer Operations & Secure Management Plane) [PENDING]
+[Consolidates Old 28: Developer Portal & Old 29: WireGuard Management Plane]
   │
   ▼
-Phase 25 (Biometric Face & Anti-Spoofing)
-  │
-  ├───────────────────────────────────────────────┐
-  ▼                                               ▼
-Phase 26 (Faculty Assessment & Question Bank) Phase 27 (Invigilation & Live Workstation)
-  │                                               │
-  └───────────────────────┬───────────────────────┘
-                          ▼
-Phase 30 (End-to-End UX, Accessibility & Design Polish)
+Phase 28 (UX, Accessibility & Advanced AI Proctoring) [PENDING]
+[Consolidates Old 30: UX/Accessibility Polish & Old 31: Advanced Real-Time AI Proctoring]
   │
   ▼
-Phase 31 (Advanced Real-Time AI Proctoring)
-  │
-  ▼
-Phase 32 (Horizontal Scaling & Managed Service Migration) [Triggered by Phase 21 Benchmarks]
-  │
-  ▼
-Phase 33 (Final Security Hardening, Penetration Testing & Compliance)
-  │
-  ▼
-Phase 34 (Final Documentation, Runbooks & Release Handover)
+Phase 29 (HA, Final Security, Compliance & Release) [PENDING]
+[Consolidates Old 32: Scaling/HA, Old 33: Hardening/PenTest & Old 34: Runbooks/Release Handover]
 ```
 
 ### Critical Dependency Constraints:
-1. **Empirical Benchmarks Before Scaling**: Horizontal multi-AZ scaling and managed RDS/ElastiCache migration (Phase 32) depend strictly on empirical bottleneck data obtained from Phase 21 load testing.
-2. **Identity Before Exam Delivery**: ID Document Verification (Phase 24) and Biometric Face Enrollment (Phase 25) must be fully established before final candidate onboarding can be marked complete.
-3. **Device Readiness Before Live Biometrics**: Pre-exam face verification and liveness challenges (Phase 25) depend on the camera and hardware access pipelines established in Phase 17 and Phase 24.
-4. **Control Plane Before Live Workstation**: Invigilator live interventions (Phase 27) depend directly on the WebSocket signaling infrastructure (Phase 16) and WebRTC media streaming (Phase 17).
-5. **Telemetry Before Developer Portal**: Developer health and log inspection (Phase 28) depends directly on the metrics, trace context, and structured logging established in Phase 13.
-6. **Feature Existence Before UX Polish**: Phase 30 (UX, Accessibility & Design System Polish) depends on all preceding functional role portals (Phases 23–29) being fully implemented so that all screens, journeys, and states can be audited, polished, and validated end-to-end.
+1. **Empirical Benchmarks Before Scaling**: Horizontal multi-AZ scaling and managed RDS/ElastiCache migration (in Phase 29) depend strictly on empirical bottleneck data obtained from Phase 21 load testing.
+2. **Authoritative Identity Pre-Requisites**: ID Document Verification (Phase 24) and Biometric Face Enrollment & Verification (Phase 25) are COMPLETE and provide the authoritative identity gates prior to exam entry.
+3. **Media & Signaling Foundation Before Live Workstation**: Invigilator live interventions and 12-stream monitoring in Phase 26 build directly upon the WebSocket signaling infrastructure (Phase 16) and WebRTC media streaming (Phase 17).
+4. **Telemetry Before Developer Portal**: Developer health, log inspection, and topology in Phase 27 depend directly on the metrics, trace context, and structured logging established in Phase 13.
+5. **Functional Role Portals Before Final UX Polish & Continuous AI**: Phase 28 (UX & Advanced AI) builds comprehensive WCAG 2.1 AA accessibility, cross-role design normalization, and continuous AI monitoring on top of the functional role portals (Phases 23–27) and biometric foundations (Phase 25).
+6. **Production Hardening, Scaling, & Release Gate**: Phase 29 consolidates all horizontal scaling, multi-AZ HA, managed AWS migrations, OWASP ASVS Level 2 penetration testing, compliance verification, operational runbooks, and final release handover as the ultimate gate for complete product delivery.
+
+### Parallel Workstream Opportunities Within Phases:
+- **Phase 26 Concurrency**: Track 1 (Faculty Authoring & Grading, Workstreams A–D) executes in parallel with Track 2 (Invigilator Video Grid & Interventions, Workstreams E–H).
+- **Phase 27 Concurrency**: Track 1 (Developer Telemetry & Observability Portal, Workstreams A–F) executes in parallel with Track 2 (WireGuard Network Daemon, IP Allocation & Firewall Rules, Workstreams G–I).
+- **Phase 28 Concurrency**: Track 1 (Universal Design System, Accessibility & Responsive Layouts, Workstreams A–D) executes in parallel with Track 2 (Client-Side Web Worker AI Models & Audio Classifier, Workstreams E–I).
+- **Phase 29 Concurrency**: Track 1 (Managed AWS Multi-AZ & SFU Media Clustering, Workstreams A–C) executes in parallel with Track 2 (Security Hardening, ASVS PenTesting & Privacy Audit, Workstreams D–F) and Track 3 (OpenAPI 3.1, Operations Runbooks & Handover, Workstreams G–J).
 
 ---
 
 ## 10. Testing Strategy & Quality Assurance Framework
 
-Every future phase must execute and document a multi-tier testing regimen prior to commit and PR generation:
+To optimize execution velocity during consolidated multi-workstream delivery while maintaining 100% rigorous quality, the project employs a **5-Level Tiered Test Execution Policy** (less redundant testing, not less testing):
 
+- **LEVEL 1: Fast Static & Syntax Checks**: Linters (`eslint`, `prettier`), syntax validation, TypeScript checks, and schema validation run during active development.
+- **LEVEL 2: Targeted Workstream Tests**: Unit tests and component tests specifically covering the modified domain logic, state machines, or UI elements.
+- **LEVEL 3: Subsystem Tests**: Domain integration tests, database query boundaries, API contract tests, and route validation for the affected subsystem.
+- **LEVEL 4: Cross-Module Integration & Security Tests**: Triggered when cross-module boundaries change (e.g., WebSocket events touching candidate client, RBAC middleware updates, shared auth).
+- **LEVEL 5: Full System Regression**: Mandatory execution at phase completion gates, the final product release gate (Phase 29), and whenever shared infrastructure, dependencies, security boundaries, database migrations, or high-impact architectural changes justify it.
+
+### Required Testing Regimen per Phase:
 1. **Backend Unit Tests**: Pure domain logic, state machines, validation schemas, utility algorithms, and mathematical score calculations isolated from external I/O.
 2. **Integration Tests**: Database query execution against PostgreSQL, Redis cache operations, RabbitMQ message publication and consumption, S3 presigned URL generation, and transactional boundaries.
 3. **Authorization & Security Tests**: Explicit verification of RBAC/ABAC middleware, BOLA defense, role checks (`STUDENT`, `FACULTY`, `INVIGILATOR`, `ADMIN`, `DEVELOPER`), and token validation.

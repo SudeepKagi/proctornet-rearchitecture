@@ -54,3 +54,18 @@ export async function publishExam(id) {
   });
   return result.data?.exam;
 }
+
+export async function validateBlueprint(examId) {
+  const result = await apiClient(`/api/v1/exams/${examId}/blueprint/validate`, {
+    method: 'GET'
+  });
+  return result.data?.validation;
+}
+
+export async function getExamAnalytics(examId, refresh = false) {
+  const result = await apiClient(`/api/v1/exams/${examId}/analytics${refresh ? '?refresh=true' : ''}`, {
+    method: 'GET'
+  });
+  return result.data;
+}
+

@@ -1,6 +1,8 @@
 /**
  * @file FacultyResultsPage.jsx
- * @description Staff results oversight portal with KPI summary cards, candidate scores, publication, and release policy.
+ * @description Staff results portal with KPI summary cards, candidate scores, manual grading entry points,
+ * psychometric analytics (item difficulty P-value, discrimination index Di/r_pbis, 10-bin score histograms),
+ * and release policies. Conforms to Phase 26 Track 1 Workstream D.
  */
 
 import React, { useEffect, useState, useCallback } from 'react';
@@ -20,8 +22,11 @@ export function FacultyResultsPage() {
   const [exam, setExam] = useState(null);
   const [summary, setSummary] = useState(null);
   const [results, setResults] = useState([]);
+  const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(false);
   const [error, setError] = useState('');
+  const [activeTab, setActiveTab] = useState('roster'); // 'roster' | 'analytics'
 
   // Publication Modal
   const [isPublishOpen, setIsPublishOpen] = useState(false);
@@ -56,9 +61,27 @@ export function FacultyResultsPage() {
     }
   }, [examId]);
 
+  const loadAnalytics = useCallback(async () => {
+    try {
+      setLoadingAnalytics(true);
+      const data = await examsApi.getExamAnalytics(examId);
+      setAnalytics(data);
+    } catch (err) {
+      setError(err.message || 'Failed to load psychometric analytics');
+    } finally {
+      setLoadingAnalytics(false);
+    }
+  }, [examId]);
+
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    if (activeTab === 'analytics' && !analytics) {
+      loadAnalytics();
+    }
+  }, [activeTab, analytics, loadAnalytics]);
 
   async function handlePublish() {
     setPublishing(true);
@@ -109,7 +132,7 @@ export function FacultyResultsPage() {
           &larr; Back to Exams
         </Button>
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
               <h1 style={{ fontSize: '1.75rem', fontWeight: 700 }}>{exam?.title || 'Exam Results'}</h1>
@@ -182,49 +205,228 @@ export function FacultyResultsPage() {
         </div>
       )}
 
-      {/* Evaluated Candidate Results Table */}
-      <Card padding="normal">
-        <h3 style={{ fontSize: '1.125rem', marginBottom: '1.25rem' }}>
-          Candidate Performance Records ({results.length})
-        </h3>
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--color-border-subtle)', paddingBottom: '0.5rem' }}>
+        <Button
+          variant={activeTab === 'roster' ? 'primary' : 'secondary'}
+          size="sm"
+          onClick={() => setActiveTab('roster')}
+        >
+          Candidate Records ({results.length})
+        </Button>
+        <Button
+          variant={activeTab === 'analytics' ? 'primary' : 'secondary'}
+          size="sm"
+          onClick={() => setActiveTab('analytics')}
+        >
+          📊 Psychometrics & Histograms
+        </Button>
+      </div>
 
-        {results.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '2rem 0', color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>
-            No evaluated candidate results available for this examination yet.
-          </div>
-        ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
-            <thead>
-              <tr style={{ borderBottom: '2px solid var(--color-border-subtle)', color: 'var(--color-text-muted)' }}>
-                <th style={{ padding: '0.75rem 0.5rem' }}>Candidate</th>
-                <th style={{ padding: '0.75rem 0.5rem' }}>Email</th>
-                <th style={{ padding: '0.75rem 0.5rem' }}>Score</th>
-                <th style={{ padding: '0.75rem 0.5rem' }}>Percentage</th>
-                <th style={{ padding: '0.75rem 0.5rem' }}>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {results.map((r) => (
-                <tr key={r.attempt_id} style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
-                  <td style={{ padding: '0.75rem 0.5rem', fontWeight: 500 }}>{r.student_name || 'Candidate'}</td>
-                  <td style={{ padding: '0.75rem 0.5rem', color: 'var(--color-text-muted)' }}>{r.student_email || '—'}</td>
-                  <td style={{ padding: '0.75rem 0.5rem', fontWeight: 600 }}>
-                    {r.score} / {r.total_marks}
-                  </td>
-                  <td style={{ padding: '0.75rem 0.5rem' }}>
-                    {r.percentage !== undefined ? `${Number(r.percentage).toFixed(2)}%` : '—'}
-                  </td>
-                  <td style={{ padding: '0.75rem 0.5rem' }}>
-                    <Badge variant={r.is_passed ? 'success' : 'danger'} size="sm">
-                      {r.is_passed ? 'PASSED' : 'FAILED'}
-                    </Badge>
-                  </td>
+      {activeTab === 'roster' && (
+        /* Evaluated Candidate Results Table */
+        <Card padding="normal">
+          <h3 style={{ fontSize: '1.125rem', marginBottom: '1.25rem' }}>
+            Candidate Performance Records ({results.length})
+          </h3>
+
+          {results.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '2rem 0', color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>
+              No evaluated candidate results available for this examination yet.
+            </div>
+          ) : (
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid var(--color-border-subtle)', color: 'var(--color-text-muted)' }}>
+                  <th style={{ padding: '0.75rem 0.5rem' }}>Candidate</th>
+                  <th style={{ padding: '0.75rem 0.5rem' }}>Email</th>
+                  <th style={{ padding: '0.75rem 0.5rem' }}>Score</th>
+                  <th style={{ padding: '0.75rem 0.5rem' }}>Percentage</th>
+                  <th style={{ padding: '0.75rem 0.5rem' }}>Status</th>
+                  <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </Card>
+              </thead>
+              <tbody>
+                {results.map((r) => (
+                  <tr key={r.attempt_id} style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
+                    <td style={{ padding: '0.75rem 0.5rem', fontWeight: 500 }}>{r.student_name || 'Candidate'}</td>
+                    <td style={{ padding: '0.75rem 0.5rem', color: 'var(--color-text-muted)' }}>{r.student_email || '—'}</td>
+                    <td style={{ padding: '0.75rem 0.5rem', fontWeight: 600 }}>
+                      {r.score} / {r.total_marks}
+                    </td>
+                    <td style={{ padding: '0.75rem 0.5rem' }}>
+                      {r.percentage !== undefined ? `${Number(r.percentage).toFixed(2)}%` : '—'}
+                    </td>
+                    <td style={{ padding: '0.75rem 0.5rem' }}>
+                      <Badge variant={r.is_passed ? 'success' : 'danger'} size="sm">
+                        {r.is_passed ? 'PASSED' : 'FAILED'}
+                      </Badge>
+                    </td>
+                    <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => navigate(`/faculty/grading/${r.id || r.attempt_id}`)}
+                      >
+                        Grade / Review
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </Card>
+      )}
+
+      {activeTab === 'analytics' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {loadingAnalytics ? (
+            <div style={{ textAlign: 'center', padding: '4rem 0' }}>
+              <Spinner size="lg" label="Computing psychometric analytics..." />
+            </div>
+          ) : !analytics ? (
+            <Card padding="spacious" style={{ textAlign: 'center', color: 'var(--color-text-muted)' }}>
+              No psychometric analytics computed yet.
+            </Card>
+          ) : (
+            <>
+              {/* Timing and Sample Size KPIs */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+                <Card padding="compact">
+                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>ANALYTICS SAMPLE SIZE</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 700, marginTop: '0.25rem' }}>
+                    {analytics.sampleSize} Completed Attempts
+                  </div>
+                </Card>
+                <Card padding="compact">
+                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>MEAN COMPLETION TIME</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 700, marginTop: '0.25rem' }}>
+                    {analytics.completionTimeStats?.meanMinutes ?? '—'} min
+                  </div>
+                </Card>
+                <Card padding="compact">
+                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>MEDIAN COMPLETION TIME</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 700, marginTop: '0.25rem' }}>
+                    {analytics.completionTimeStats?.medianMinutes ?? '—'} min
+                  </div>
+                </Card>
+                <Card padding="compact">
+                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>90TH PERCENTILE (P90)</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 700, marginTop: '0.25rem' }}>
+                    {analytics.completionTimeStats?.p90Minutes ?? '—'} min
+                  </div>
+                </Card>
+              </div>
+
+              {/* 10-Bin Score Histogram */}
+              <Card padding="normal">
+                <h3 style={{ fontSize: '1.125rem', marginBottom: '1rem' }}>
+                  10-Bin Score Distribution Histogram
+                </h3>
+                <div style={{ display: 'flex', alignItems: 'flex-end', height: '180px', gap: '0.5rem', paddingTop: '1.5rem' }}>
+                  {analytics.scoreHistogram?.bins?.map((b) => {
+                    const maxCount = Math.max(1, ...analytics.scoreHistogram.bins.map((x) => x.count));
+                    const heightPct = Math.round((b.count / maxCount) * 100);
+                    return (
+                      <div key={b.bin} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' }}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: '0.25rem' }}>
+                          {b.count}
+                        </span>
+                        <div
+                          style={{
+                            width: '100%',
+                            height: `${Math.max(4, heightPct)}%`,
+                            backgroundColor: b.count > 0 ? 'var(--color-primary)' : 'var(--color-border-subtle)',
+                            borderRadius: '0.25rem 0.25rem 0 0',
+                            transition: 'height 0.3s ease'
+                          }}
+                        />
+                        <span style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)', marginTop: '0.35rem', transform: 'rotate(-20deg)', whiteSpace: 'nowrap' }}>
+                          {b.bin}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+
+              {/* Psychometric Item Metrics Table */}
+              <Card padding="normal">
+                <h3 style={{ fontSize: '1.125rem', marginBottom: '1rem' }}>
+                  Item Difficulty (P-Value) & Upper/Lower 27% Discrimination Index
+                </h3>
+                {analytics.itemMetrics && analytics.itemMetrics.length > 0 ? (
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '2px solid var(--color-border-subtle)', color: 'var(--color-text-muted)' }}>
+                          <th style={{ padding: '0.75rem 0.5rem' }}>Question Prompt</th>
+                          <th style={{ padding: '0.75rem 0.5rem' }}>Difficulty (P-Value)</th>
+                          <th style={{ padding: '0.75rem 0.5rem' }}>Difficulty Rating</th>
+                          <th style={{ padding: '0.75rem 0.5rem' }}>Discrimination (Di)</th>
+                          <th style={{ padding: '0.75rem 0.5rem' }}>Point-Biserial (rpbis)</th>
+                          <th style={{ padding: '0.75rem 0.5rem' }}>Discrimination Rating</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {analytics.itemMetrics.map((item) => (
+                          <tr key={item.questionId} style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
+                            <td style={{ padding: '0.75rem 0.5rem', maxWidth: '300px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {item.prompt}
+                            </td>
+                            <td style={{ padding: '0.75rem 0.5rem', fontWeight: 600 }}>
+                              {item.pValue !== undefined ? Number(item.pValue).toFixed(2) : '—'}
+                            </td>
+                            <td style={{ padding: '0.75rem 0.5rem' }}>
+                              <Badge
+                                variant={
+                                  item.difficultyRating === 'HARD'
+                                    ? 'danger'
+                                    : item.difficultyRating === 'MODERATE'
+                                    ? 'primary'
+                                    : 'success'
+                                }
+                                size="sm"
+                              >
+                                {item.difficultyRating}
+                              </Badge>
+                            </td>
+                            <td style={{ padding: '0.75rem 0.5rem', fontWeight: 600 }}>
+                              {item.discriminationIndex !== undefined ? Number(item.discriminationIndex).toFixed(2) : '—'}
+                            </td>
+                            <td style={{ padding: '0.75rem 0.5rem' }}>
+                              {item.pointBiserial !== undefined ? Number(item.pointBiserial).toFixed(2) : '—'}
+                            </td>
+                            <td style={{ padding: '0.75rem 0.5rem' }}>
+                              <Badge
+                                variant={
+                                  item.discriminationRating === 'EXCELLENT'
+                                    ? 'success'
+                                    : item.discriminationRating === 'GOOD'
+                                    ? 'primary'
+                                    : 'warning'
+                                }
+                                size="sm"
+                              >
+                                {item.discriminationRating}
+                              </Badge>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>
+                    No item difficulty metrics recorded yet.
+                  </p>
+                )}
+              </Card>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Manual Publish Modal */}
       <Modal isOpen={isPublishOpen} onClose={() => setIsPublishOpen(false)} title="Publish Results to Candidates">
@@ -238,29 +440,30 @@ export function FacultyResultsPage() {
                 borderRadius: 'var(--radius-sm)',
                 backgroundColor: 'var(--color-danger-light)',
                 color: 'var(--color-danger)',
-                fontSize: '0.8125rem',
+                fontSize: '0.875rem',
               }}
             >
               {publishMessage}
             </div>
           )}
 
-          <p style={{ fontSize: '0.9375rem', color: 'var(--color-text-body)', lineHeight: 1.6, marginBottom: '1.25rem' }}>
-            Publishing results will immediately transition candidate visibility to <strong>Released</strong>. Candidates enrolled in completed sessions will be able to view their performance metrics and scorecards.
+          <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', marginBottom: '1.5rem', lineHeight: 1.5 }}>
+            Publishing results will make evaluated scores, percentages, and performance breakdowns visible to all candidates
+            who have completed this assessment. This action cannot be undone.
           </p>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
-            <Button variant="secondary" onClick={() => setIsPublishOpen(false)}>
+            <Button variant="outline" size="sm" onClick={() => setIsPublishOpen(false)} disabled={publishing}>
               Cancel
             </Button>
-            <Button variant="primary" loading={publishing} onClick={handlePublish}>
+            <Button variant="primary" size="sm" onClick={handlePublish} loading={publishing}>
               Confirm Publication
             </Button>
           </div>
         </div>
       </Modal>
 
-      {/* Release Policy Configuration Modal */}
+      {/* Policy Configuration Modal */}
       <Modal isOpen={isPolicyOpen} onClose={() => setIsPolicyOpen(false)} title="Configure Result Release Policy">
         <form onSubmit={handleUpdatePolicy}>
           {policyError && (
@@ -272,7 +475,7 @@ export function FacultyResultsPage() {
                 borderRadius: 'var(--radius-sm)',
                 backgroundColor: 'var(--color-danger-light)',
                 color: 'var(--color-danger)',
-                fontSize: '0.8125rem',
+                fontSize: '0.875rem',
               }}
             >
               {policyError}
@@ -280,8 +483,8 @@ export function FacultyResultsPage() {
           )}
 
           <div style={{ marginBottom: '1rem' }}>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: 500 }}>
-              Release Policy Strategy
+            <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.5rem' }}>
+              Release Policy
             </label>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', cursor: 'pointer' }}>
@@ -290,10 +493,9 @@ export function FacultyResultsPage() {
                   name="policyType"
                   value="IMMEDIATE"
                   checked={policyType === 'IMMEDIATE'}
-                  onChange={(e) => setPolicyType(e.target.value)}
-                  style={{ accentColor: 'var(--color-primary)' }}
+                  onChange={() => setPolicyType('IMMEDIATE')}
                 />
-                <strong>IMMEDIATE</strong> — Results released immediately upon evaluation completion
+                Immediate (auto-release on evaluation)
               </label>
               <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', cursor: 'pointer' }}>
                 <input
@@ -301,10 +503,9 @@ export function FacultyResultsPage() {
                   name="policyType"
                   value="SCHEDULED"
                   checked={policyType === 'SCHEDULED'}
-                  onChange={(e) => setPolicyType(e.target.value)}
-                  style={{ accentColor: 'var(--color-primary)' }}
+                  onChange={() => setPolicyType('SCHEDULED')}
                 />
-                <strong>SCHEDULED</strong> — Results withheld until designated timestamp
+                Scheduled (release at specific date/time)
               </label>
               <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', cursor: 'pointer' }}>
                 <input
@@ -312,39 +513,33 @@ export function FacultyResultsPage() {
                   name="policyType"
                   value="MANUAL"
                   checked={policyType === 'MANUAL'}
-                  onChange={(e) => setPolicyType(e.target.value)}
-                  style={{ accentColor: 'var(--color-primary)' }}
+                  onChange={() => setPolicyType('MANUAL')}
                 />
-                <strong>MANUAL</strong> — Results withheld until instructor explicitly triggers release
+                Manual Publish Only
               </label>
             </div>
           </div>
 
           {policyType === 'SCHEDULED' && (
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.375rem', fontSize: '0.875rem', fontWeight: 500 }}>
-                Scheduled Release Timestamp
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.25rem' }}>
+                Scheduled Release Time *
               </label>
               <input
                 type="datetime-local"
+                required
                 value={scheduledTime}
                 onChange={(e) => setScheduledTime(e.target.value)}
-                required={policyType === 'SCHEDULED'}
-                style={{
-                  width: '100%',
-                  padding: '0.5rem 0.75rem',
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--color-border-subtle)',
-                }}
+                style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--color-border-subtle)' }}
               />
             </div>
           )}
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>
-            <Button variant="secondary" onClick={() => setIsPolicyOpen(false)}>
+            <Button variant="outline" size="sm" type="button" onClick={() => setIsPolicyOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit" variant="primary" loading={updatingPolicy}>
+            <Button variant="primary" size="sm" type="submit" loading={updatingPolicy}>
               Save Policy
             </Button>
           </div>
@@ -353,3 +548,5 @@ export function FacultyResultsPage() {
     </div>
   );
 }
+
+export default FacultyResultsPage;

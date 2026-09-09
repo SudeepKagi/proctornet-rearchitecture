@@ -43,14 +43,19 @@ describe('Database Migrations & Schema Integrity', () => {
     'student_configurations',
     'face_biometrics',
     'liveness_challenges',
-    'biometric_verifications'
+    'biometric_verifications',
+    'question_banks',
+    'manual_grades',
+    'manual_grade_audits',
+    'proctor_interventions',
+    'exam_analytics_cache'
   ];
 
   describe('Static Migration File Contract & Sequence', () => {
     it('should contain all expected migration files in sequence', () => {
       const files = fs.readdirSync(migrationsDir).filter((f) => f.endsWith('.js')).sort();
 
-      assert.equal(files.length, 20, 'Expected exactly 20 migration files');
+      assert.equal(files.length, 21, 'Expected exactly 21 migration files');
       assert.match(files[0], /001_extensions\.js$/);
       assert.match(files[1], /002_users_and_roles\.js$/);
       assert.match(files[2], /003_subjects_and_topics\.js$/);
@@ -71,6 +76,7 @@ describe('Database Migrations & Schema Integrity', () => {
       assert.match(files[17], /018_user_administration\.js$/);
       assert.match(files[18], /019_student_documents_and_configurations\.js$/);
       assert.match(files[19], /020_biometric_face_enrollment_and_verification\.js$/);
+      assert.match(files[20], /021_phase26_examination_and_invigilation\.js$/);
     });
 
 

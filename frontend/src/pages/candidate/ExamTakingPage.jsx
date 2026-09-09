@@ -27,6 +27,12 @@ import { OfflineBanner } from '../../components/common/OfflineBanner.jsx';
 import { Button } from '../../components/common/Button.jsx';
 import { Card } from '../../components/common/Card.jsx';
 import { Spinner } from '../../components/common/Spinner.jsx';
+import {
+  CandidatePauseOverlay,
+  CandidateTerminationOverlay,
+  AnnouncementBanner,
+  CandidateDirectMessageToast
+} from '../../components/exam/CandidateInterventionOverlays.jsx';
 
 const OFFLINE_SUBMIT_ERROR = "Submission could not be completed because you're offline. Your unsynchronized answers remain in this tab. Reconnect and try again. Do not close or refresh this tab.";
 
@@ -46,6 +52,14 @@ export function ExamTakingPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionError, setSubmissionError] = useState('');
   const [autoSubmittingBanner, setAutoSubmittingBanner] = useState(false);
+
+  // Intervention states (Workstream G)
+  const [attemptStatus, setAttemptStatus] = useState('ACTIVE');
+  const [pauseReason, setPauseReason] = useState(null);
+  const [terminationReason, setTerminationReason] = useState(null);
+  const [activeAnnouncement, setActiveAnnouncement] = useState(null);
+  const [directMessageData, setDirectMessageData] = useState(null);
+  const [dynamicExpiresAt, setDynamicExpiresAt] = useState(null);
 
   // Logical submission idempotency key: persists across retries of the same logical submission
   const logicalSubmissionKeyRef = useRef(null);
@@ -69,6 +83,17 @@ export function ExamTakingPage() {
         }
 
         setAttempt(attemptData);
+        if (attemptData.status === 'PAUSED') {
+          setAttemptStatus('PAUSED');
+          setPauseReason(attemptData.metadata?.pause_reason || 'Proctor has temporarily paused this examination attempt.');
+        } else if (attemptData.status === 'TERMINATED') {
+          setAttemptStatus('TERMINATED');
+          setTerminationReason(attemptData.metadata?.termination_reason || 'Proctor has terminated this examination attempt.');
+        } else {
+          setAttemptStatus(attemptData.status || 'ACTIVE');
+        }
+        setDynamicExpiresAt(attemptData.expires_at);
+
         if (attemptData.anti_tamper_token) {
           setAntiTamperToken(attemptData.anti_tamper_token);
         }
@@ -133,6 +158,8 @@ export function ExamTakingPage() {
     executeSubmission();
   }, [executeSubmission]);
 
+  const isAttemptPaused = attemptStatus === 'PAUSED' || attemptStatus === 'TERMINATED';
+
   // Visual countdown timer with drift calibration
   const {
     formattedTime,
@@ -141,41 +168,78 @@ export function ExamTakingPage() {
     isUrgent1Min,
   } = useExamTimer({
     serverTime: attempt?.server_time,
-    expiresAt: attempt?.expires_at,
+    expiresAt: dynamicExpiresAt || attempt?.expires_at,
+    isPaused: isAttemptPaused,
     onExpire: handleTimeExpired,
   });
 
   // Candidate background telemetry & proctoring event reporter (Phase 14)
   useProctoringEvents({
     attemptId,
-    isActive: !!attempt && !isExpired && !isSubmitting && !autoSubmittingBanner,
+    isActive: !!attempt && !isExpired && !isSubmitting && !autoSubmittingBanner && !isAttemptPaused,
   });
-
-  // Realtime subscription for candidate warnings, session termination, and 5-second presence pulse
-  const [activeWarning, setActiveWarning] = useState(null);
-
-  const handleCandidateWarning = useCallback((payload) => {
-    setActiveWarning(
-      payload?.message || payload?.warning || 'Invigilator has issued an official warning regarding your exam session.'
-    );
-  }, []);
 
   const handleSessionConcluded = useCallback(() => {
     setAutoSubmittingBanner(true);
     executeSubmission();
   }, [executeSubmission]);
 
-  const realtimeHandlers = useMemo(
+  // Realtime subscription for candidate warnings, interventions, and presence pulse
+  const attemptRealtimeHandlers = useMemo(
     () => ({
-      'candidate:warning': handleCandidateWarning,
+      'candidate:warning': (payload) => {
+        setDirectMessageData({
+          message: payload?.message || payload?.warning || 'Invigilator has issued an official warning regarding your exam session.',
+          reason: payload?.reason,
+          isWarning: true
+        });
+      },
+      'candidate:message': (payload) => {
+        setDirectMessageData({
+          message: payload?.message || 'New message from invigilator.',
+          reason: payload?.reason,
+          isWarning: !!payload?.isWarning
+        });
+      },
+      'candidate:paused': (payload) => {
+        setAttemptStatus('PAUSED');
+        setPauseReason(payload?.reason || 'Examination paused by invigilator.');
+      },
+      'candidate:resumed': (payload) => {
+        setAttemptStatus('ACTIVE');
+        setPauseReason(null);
+        if (payload?.expiresAt) {
+          setDynamicExpiresAt(payload.expiresAt);
+        }
+      },
+      'candidate:terminated': (payload) => {
+        setAttemptStatus('TERMINATED');
+        setTerminationReason(payload?.reason || 'Examination attempt terminated by invigilator.');
+      },
       'session:concluded': handleSessionConcluded
     }),
-    [handleCandidateWarning, handleSessionConcluded]
+    [handleSessionConcluded]
   );
 
   const { sendHeartbeat } = useRealtime(
     attemptId ? `attempt:${attemptId}` : null,
-    realtimeHandlers
+    attemptRealtimeHandlers
+  );
+
+  // Session-wide announcement listener
+  const sessionRealtimeHandlers = useMemo(
+    () => ({
+      'session:announcement': (payload) => {
+        setActiveAnnouncement(payload);
+      },
+      'session:concluded': handleSessionConcluded
+    }),
+    [handleSessionConcluded]
+  );
+
+  useRealtime(
+    attempt?.session_id ? `session:${attempt.session_id}` : null,
+    sessionRealtimeHandlers
   );
 
   // 5-second application presence pulse (stops upon submission/expiry/unmount)
@@ -245,8 +309,8 @@ export function ExamTakingPage() {
     }
   }, [mediaStream]);
 
-  // Input locking if expired
-  const inputsDisabled = isExpired || isSubmitting || autoSubmittingBanner;
+  // Input locking if expired or paused/terminated
+  const inputsDisabled = isExpired || isSubmitting || autoSubmittingBanner || isAttemptPaused;
 
   if (loading) {
     return (
@@ -277,6 +341,7 @@ export function ExamTakingPage() {
     if (!ans) return false;
     if (ans.selected_option_id !== undefined && ans.selected_option_id !== null) return true;
     if (ans.numeric_value !== undefined && ans.numeric_value !== null && ans.numeric_value !== '') return true;
+    if (ans.text_response !== undefined && ans.text_response !== null && ans.text_response !== '') return true;
     return false;
   }).length;
   const unansweredCount = totalQuestions - answeredCount;
@@ -362,29 +427,30 @@ export function ExamTakingPage() {
         </div>
       )}
 
-      {/* Realtime Invigilator Warning Banner */}
-      {activeWarning && (
-        <div
-          role="alert"
-          style={{
-            backgroundColor: 'var(--color-warning-light)',
-            borderBottom: '2px solid var(--color-warning-border)',
-            color: 'var(--color-warning)',
-            padding: '0.75rem 1.5rem',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            fontWeight: 600,
-            fontSize: '0.9375rem',
-            boxShadow: 'var(--shadow-sm)',
-          }}
-        >
-          <span>⚠️ Official Proctor Warning: {activeWarning}</span>
-          <Button variant="secondary" size="sm" onClick={() => setActiveWarning(null)}>
-            Acknowledge
-          </Button>
-        </div>
-      )}
+      {/* Realtime Proctor Announcement Banner */}
+      <AnnouncementBanner
+        announcement={activeAnnouncement}
+        onDismiss={() => setActiveAnnouncement(null)}
+      />
+
+      {/* Direct Invigilator Warning / Message Toast */}
+      <CandidateDirectMessageToast
+        messageData={directMessageData}
+        onDismiss={() => setDirectMessageData(null)}
+      />
+
+      {/* Fullscreen Non-Dismissible Pause Overlay */}
+      <CandidatePauseOverlay
+        isOpen={attemptStatus === 'PAUSED'}
+        reason={pauseReason}
+      />
+
+      {/* Fullscreen Non-Dismissible Termination Overlay */}
+      <CandidateTerminationOverlay
+        isOpen={attemptStatus === 'TERMINATED'}
+        reason={terminationReason}
+        onReturnHome={() => navigate('/candidate')}
+      />
 
       {/* Main Workspace Layout */}
       <main

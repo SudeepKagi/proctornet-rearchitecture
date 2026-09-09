@@ -8,6 +8,9 @@ import { auditRouter } from '../modules/audit/audit.routes.js';
 import { adminRouter, userSelfRouter } from '../modules/users/user.routes.js';
 import { candidateRouter } from '../modules/candidate/candidateIdentity.routes.js';
 import { candidateBiometricsRouter, adminBiometricsRouter } from '../modules/biometrics/biometrics.routes.js';
+import { questionBankRouter } from '../modules/questions/questions.routes.js';
+import { manualGradingRouter } from '../modules/evaluation/manualGrading.routes.js';
+import { interventionsRouter } from '../modules/interventions/interventions.routes.js';
 import { authenticate } from '../middleware/authenticate.js';
 import { requireVerifiedActiveUser } from '../middleware/verificationGate.js';
 
@@ -42,6 +45,9 @@ v1Router.use('/candidate/biometrics', candidateBiometricsRouter);
 v1Router.use('/admin/biometrics', adminBiometricsRouter);
 
 
+// Phase 26: Question Bank & Question Authoring (Gated for verified active faculty/admins)
+v1Router.use('/faculty/question-bank', authenticate, requireVerifiedActiveUser, questionBankRouter);
+
 // Phase 5: Exam Authoring, Topic Rules & Publishing (Gated for verified active users)
 v1Router.use('/exams', authenticate, requireVerifiedActiveUser, examsRouter);
 
@@ -50,6 +56,12 @@ v1Router.use('/sessions', authenticate, requireVerifiedActiveUser, sessionsRoute
 
 // Phase 6: Attempts, Question Mapping & Resumption (Gated for verified active users)
 v1Router.use('/attempts', authenticate, requireVerifiedActiveUser, attemptsRouter);
+
+// Phase 26: Manual Grading Workspace & Subjective Evaluation
+v1Router.use('/results', authenticate, requireVerifiedActiveUser, manualGradingRouter);
+
+// Phase 26: Live Invigilator Realtime Interventions
+v1Router.use('/interventions', authenticate, requireVerifiedActiveUser, interventionsRouter);
 
 // Phase 13: Centralized Audit Logs
 v1Router.use('/audit-logs', auditRouter);

@@ -230,7 +230,7 @@ export async function countExams({ createdBy, status, subjectId }) {
 export async function getTopicRules(examId, client = null) {
   const text = `
     SELECT r.rule_id, r.exam_id, r.topic_id, r.question_count, r.points_per_question,
-           r.created_at, t.name AS topic_name, t.subject_id
+           r.difficulty, r.bloom_level, r.created_at, t.name AS topic_name, t.subject_id
     FROM exam_topic_rules r
     JOIN topics t ON r.topic_id = t.topic_id
     WHERE r.exam_id = $1
@@ -247,22 +247,32 @@ export async function getTopicRules(examId, client = null) {
  * @param {string} rule.topicId
  * @param {number} rule.questionCount
  * @param {number} rule.pointsPerQuestion
+ * @param {string} [rule.difficulty='ANY']
+ * @param {string} [rule.bloomLevel='ANY']
  * @param {object} [client]
  * @returns {Promise<object>}
  */
-export async function addOrUpdateTopicRule(examId, { topicId, questionCount, pointsPerQuestion }, client = null) {
+export async function addOrUpdateTopicRule(
+  examId,
+  { topicId, questionCount, pointsPerQuestion, difficulty = 'ANY', bloomLevel = 'ANY', bloom_level },
+  client = null
+) {
+  const effectiveBloom = bloomLevel || bloom_level || 'ANY';
+  const effectiveDifficulty = difficulty || 'ANY';
   const text = `
-    INSERT INTO exam_topic_rules (exam_id, topic_id, question_count, points_per_question)
-    VALUES ($1, $2, $3, $4)
+    INSERT INTO exam_topic_rules (exam_id, topic_id, question_count, points_per_question, difficulty, bloom_level)
+    VALUES ($1, $2, $3, $4, $5, $6)
     ON CONFLICT (exam_id, topic_id)
     DO UPDATE SET
       question_count = EXCLUDED.question_count,
-      points_per_question = EXCLUDED.points_per_question
-    RETURNING rule_id, exam_id, topic_id, question_count, points_per_question, created_at;
+      points_per_question = EXCLUDED.points_per_question,
+      difficulty = EXCLUDED.difficulty,
+      bloom_level = EXCLUDED.bloom_level
+    RETURNING rule_id, exam_id, topic_id, question_count, points_per_question, difficulty, bloom_level, created_at;
   `;
   const res = client
-    ? await client.query(text, [examId, topicId, questionCount, pointsPerQuestion])
-    : await query(text, [examId, topicId, questionCount, pointsPerQuestion]);
+    ? await client.query(text, [examId, topicId, questionCount, pointsPerQuestion, effectiveDifficulty, effectiveBloom])
+    : await query(text, [examId, topicId, questionCount, pointsPerQuestion, effectiveDifficulty, effectiveBloom]);
   return res.rows[0];
 }
 

@@ -19,6 +19,7 @@ import {
 import { transitionExamState } from '../../domain/exam/examStateMachine.js';
 import * as examsRepo from './exams.repository.js';
 import { cacheService } from '../../infrastructure/redis/cacheService.js';
+import { validateExamBlueprint } from './blueprintValidator.js';
 
 /**
  * Creates a new draft exam.
@@ -265,34 +266,12 @@ export async function publishExam(examId, user, requestId = null) {
     // 2. State Machine Validation: DRAFT -> PUBLISHED
     const nextStatus = transitionExamState(exam.status, ExamStatus.PUBLISHED);
 
-    // 3. Blueprint validation: check topic rules
-    const topicRules = await examsRepo.getTopicRules(examId, client);
-    if (!topicRules || topicRules.length === 0) {
-      throw new BadRequestError('Cannot publish exam: At least one topic rule must be configured');
-    }
-
-    // 4. Blueprint points verification: sum(question_count * points_per_question) === total_marks
-    let computedTotalPoints = 0;
-    for (const rule of topicRules) {
-      computedTotalPoints += Number(rule.question_count) * Number(rule.points_per_question);
-    }
-
-    const examTotalMarks = Number(exam.total_marks);
-    // Allow slight float tolerance (0.01)
-    if (Math.abs(computedTotalPoints - examTotalMarks) > 0.01) {
-      throw new BadRequestError(
-        `Cannot publish exam: Total topic rule points (${computedTotalPoints.toFixed(2)}) does not match exam total marks (${examTotalMarks.toFixed(2)})`
+    // 3. Comprehensive Blueprint & Inventory Validation
+    const validation = await validateExamBlueprint(examId, client);
+    if (!validation.isValid) {
+      throw new ConflictError(
+        `Cannot publish exam: Blueprint validation failed: ${validation.issues.join('; ')}`
       );
-    }
-
-    // 5. Question bank inventory validation: verify sufficient approved questions exist per topic
-    for (const rule of topicRules) {
-      const availableQuestions = await examsRepo.countAvailableQuestionsForTopic(rule.topic_id, client);
-      if (availableQuestions < rule.question_count) {
-        throw new ConflictError(
-          `Cannot publish exam: Topic '${rule.topic_name || rule.topic_id}' has only ${availableQuestions} question(s) in the question bank, but rule requires ${rule.question_count}`
-        );
-      }
     }
 
     // 6. Transition state to PUBLISHED
@@ -306,7 +285,7 @@ export async function publishExam(examId, user, requestId = null) {
         resourceType: 'EXAM',
         resourceId: examId,
         requestId,
-        metadata: { topicRulesCount: topicRules.length, totalMarks: examTotalMarks }
+        metadata: { topicRulesCount: validation.ruleCount, totalMarks: validation.totalMarks }
       },
       client
     );
@@ -364,4 +343,25 @@ export async function listExams(params, user) {
       totalPages
     }
   };
+}
+
+/**
+ * Retrieves blueprint validation details for an exam.
+ * @param {string} examId
+ * @param {object} user
+ * @returns {Promise<object>}
+ */
+export async function getBlueprintValidation(examId, user) {
+  const exam = await examsRepo.findExamById(examId);
+  if (!exam) {
+    throw new NotFoundError(`Exam with ID '${examId}' not found`);
+  }
+
+  const isOwner = exam.created_by === user.userId;
+  const isAdmin = (user.roles || []).includes('ADMIN');
+  if (!isOwner && !isAdmin) {
+    throw new ForbiddenError('Access denied: You do not have permission to inspect this exam blueprint');
+  }
+
+  return validateExamBlueprint(examId);
 }

@@ -35,6 +35,8 @@ import { FacultyDashboardPage } from './pages/faculty/FacultyDashboardPage.jsx';
 import { ExamEditorPage } from './pages/faculty/ExamEditorPage.jsx';
 import { FacultyResultsPage } from './pages/faculty/FacultyResultsPage.jsx';
 import { SessionManagerPage } from './pages/faculty/SessionManagerPage.jsx';
+import { QuestionBankPage } from './pages/faculty/QuestionBankPage.jsx';
+import { ManualGradingPage } from './pages/faculty/ManualGradingPage.jsx';
 
 // Invigilator Pages
 import { InvigilatorDashboardPage } from './pages/invigilator/InvigilatorDashboardPage.jsx';
@@ -252,6 +254,26 @@ export function App() {
               <RoleRoute allowedRoles={['FACULTY', 'ADMIN']}>
                 <VerifiedRoute>
                   <SessionManagerPage />
+                </VerifiedRoute>
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/faculty/question-banks"
+            element={
+              <RoleRoute allowedRoles={['FACULTY', 'ADMIN']}>
+                <VerifiedRoute>
+                  <QuestionBankPage />
+                </VerifiedRoute>
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/faculty/grading/:resultId"
+            element={
+              <RoleRoute allowedRoles={['FACULTY', 'ADMIN']}>
+                <VerifiedRoute>
+                  <ManualGradingPage />
                 </VerifiedRoute>
               </RoleRoute>
             }
