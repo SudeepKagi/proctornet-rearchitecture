@@ -10,7 +10,9 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch --env-file=.env src/server.js",
-    "test": "node --test --test-concurrency=1",
+    "test": "node --test --test-concurrency=1 --test-skip-pattern=\"Live RabbitMQ\"",
+    "test:broker": "node --test --test-concurrency=1 tests/rabbitmq/brokerSemantics.integration.test.js",
+    "test:all": "node --test --test-concurrency=1",
     "test:watch": "node --test --watch",
     "db:migrate": "node src/infrastructure/postgres/migrate.js up",
     "db:rollback": "node src/infrastructure/postgres/migrate.js down",
