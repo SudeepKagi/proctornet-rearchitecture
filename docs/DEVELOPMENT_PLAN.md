@@ -7,7 +7,7 @@
 | Current Phase:     Phase 24                                             |
 | Current Milestone: Candidate Onboarding, Document Verification &        |
 |                    Per-Student Configuration                            |
-| Status:            Implemented & Verified (PR Pending Review)           |
+| Status:            Complete (Merged in PR #22, Merge a08e27d)           |
 | Master Plan:       Reconstructed & Expanded (Phases 0–34)               |
 | Next Milestone:    Phase 25 — Biometric Face Enrollment & Verification  |
 +-------------------------------------------------------------------------+
