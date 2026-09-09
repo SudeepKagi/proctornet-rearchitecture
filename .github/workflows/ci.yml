@@ -264,7 +264,7 @@ jobs:
           node-version: 24
       - name: Run Backend npm audit
         working-directory: backend
-        run: npm audit --omit=dev --audit-level=critical
+        run: npm audit --omit=dev --audit-level=high
       - name: Run Frontend npm audit
         working-directory: frontend
         run: npm audit --omit=dev --audit-level=high
