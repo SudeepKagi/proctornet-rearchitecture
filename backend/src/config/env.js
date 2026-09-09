@@ -202,6 +202,12 @@ const envSchema = z.object({
     .transform(Number)
     .default('900'),
 
+  // Biometric Verification Gate configuration (Phase 25)
+  BIOMETRIC_GATE_ENFORCED: z
+    .union([z.boolean(), z.enum(['true', 'false', '1', '0'])])
+    .default(process.env.NODE_ENV === 'test' ? 'false' : 'true')
+    .transform((val) => (typeof val === 'boolean' ? val : val === 'true' || val === '1')),
+
   // WebSocket Realtime configuration (Phase 16)
   WS_ENABLED: z
     .union([z.boolean(), z.enum(['true', 'false', '1', '0'])])

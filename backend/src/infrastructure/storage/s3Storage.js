@@ -274,3 +274,34 @@ export async function getEvidenceObjectHeader({ bucket, key, byteCount = 16 }) {
   }
 }
 
+/**
+ * Retrieves the full binary content of an S3 object as a Buffer.
+ * Used by the server-side biometric pipeline for face detection, quality analysis, and embedding extraction.
+ *
+ * @param {object} params
+ * @param {string} params.bucket
+ * @param {string} params.key
+ * @returns {Promise<Buffer>}
+ */
+export async function getEvidenceObjectBuffer({ bucket, key }) {
+  const timer = evidenceStorageLatencySeconds.startTimer({ operation: 'get_buffer' });
+  try {
+    const s3 = getS3Client();
+    const command = new GetObjectCommand({
+      Bucket: bucket,
+      Key: key
+    });
+
+    const response = await s3.send(command);
+    const stream = response.Body;
+    const chunks = [];
+    for await (const chunk of stream) {
+      chunks.push(chunk);
+    }
+    return Buffer.concat(chunks);
+  } finally {
+    timer();
+  }
+}
+
+

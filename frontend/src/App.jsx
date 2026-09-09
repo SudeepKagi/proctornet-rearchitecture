@@ -28,6 +28,7 @@ import { CandidateDashboardPage } from './pages/candidate/CandidateDashboardPage
 import { PreExamReadinessPage } from './pages/candidate/PreExamReadinessPage.jsx';
 import { ExamTakingPage } from './pages/candidate/ExamTakingPage.jsx';
 import { CandidateResultPage } from './pages/candidate/CandidateResultPage.jsx';
+import CandidateFaceEnrollmentPage from './pages/candidate/CandidateFaceEnrollmentPage.jsx';
 
 // Faculty Pages
 import { FacultyDashboardPage } from './pages/faculty/FacultyDashboardPage.jsx';
@@ -189,6 +190,16 @@ export function App() {
               <RoleRoute allowedRoles={['STUDENT', 'ADMIN']}>
                 <VerifiedRoute>
                   <PreExamReadinessPage />
+                </VerifiedRoute>
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/candidate/biometrics/enroll"
+            element={
+              <RoleRoute allowedRoles={['STUDENT', 'ADMIN']}>
+                <VerifiedRoute>
+                  <CandidateFaceEnrollmentPage />
                 </VerifiedRoute>
               </RoleRoute>
             }

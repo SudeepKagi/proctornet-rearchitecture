@@ -67,6 +67,13 @@ export class UnprocessableEntityError extends AppError {
   }
 }
 
+export class ValidationError extends UnprocessableEntityError {
+  constructor(message = 'Validation Error', details = null) {
+    super(message, details);
+  }
+}
+
+
 export class RateLimitError extends AppError {
   constructor(message = 'Too Many Requests', details = null) {
     super(message, 429, 'TOO_MANY_REQUESTS', details);

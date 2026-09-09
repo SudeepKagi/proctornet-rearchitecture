@@ -1,17 +1,19 @@
 /**
  * @file PreExamReadinessPage.jsx
- * @description Pre-exam check-in screen with instructions, readiness verification, and attempt launch.
+ * @description Pre-exam check-in screen with instructions, biometric identity verification gate, and attempt launch.
  */
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import * as sessionsApi from '../../api/sessionsApi.js';
+import { getEnrollmentStatus } from '../../api/biometricsApi.js';
 import { Card } from '../../components/common/Card.jsx';
 import { Button } from '../../components/common/Button.jsx';
 import { Badge, getStatusBadgeVariant } from '../../components/common/Badge.jsx';
 import { Spinner } from '../../components/common/Spinner.jsx';
 import { stopMediaStream } from '../../hooks/useMediaCapture.js';
 import { setAntiTamperToken } from '../../api/client.js';
+import BiometricGate from '../../components/biometrics/BiometricGate.jsx';
 
 export function PreExamReadinessPage() {
   const { sessionId } = useParams();
@@ -19,10 +21,15 @@ export function PreExamReadinessPage() {
 
   const [session, setSession] = useState(null);
   const [existingAttempt, setExistingAttempt] = useState(null);
+  const [enrollment, setEnrollment] = useState(null);
   const [loading, setLoading] = useState(true);
   const [starting, setStarting] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState('');
+
+  // Biometric gate state
+  const [biometricVerified, setBiometricVerified] = useState(false);
+  const [biometricLocked, setBiometricLocked] = useState(false);
 
   // Media readiness preview state
   const [previewStream, setPreviewStream] = useState(null);
@@ -34,12 +41,19 @@ export function PreExamReadinessPage() {
     async function loadData() {
       try {
         setLoading(true);
-        const [sessionData, myAttempt] = await Promise.all([
+        const [sessionData, myAttempt, bioStatus] = await Promise.all([
           sessionsApi.getSession(sessionId),
           sessionsApi.getMyAttempt(sessionId).catch(() => null),
+          getEnrollmentStatus().catch(() => null)
         ]);
         setSession(sessionData);
         setExistingAttempt(myAttempt);
+        setEnrollment(bioStatus);
+
+        // If resuming active attempt, biometric check is already passed
+        if (myAttempt?.id && myAttempt.status === 'ACTIVE') {
+          setBiometricVerified(true);
+        }
       } catch (err) {
         setError(err.message || 'Failed to load examination readiness data');
       } finally {
@@ -153,9 +167,10 @@ export function PreExamReadinessPage() {
   }
 
   const isSessionLive = session.status === 'ACTIVE';
+  const isResuming = existingAttempt?.status === 'ACTIVE';
 
   return (
-    <div className="container" style={{ maxWidth: '720px' }}>
+    <div className="container" style={{ maxWidth: '760px', paddingBottom: '3rem' }}>
       <div style={{ marginBottom: '1.5rem' }}>
         <Button variant="secondary" size="sm" onClick={() => navigate('/candidate')} style={{ marginBottom: '1rem' }}>
           &larr; Back to Sessions
@@ -180,15 +195,16 @@ export function PreExamReadinessPage() {
             marginBottom: '1.5rem',
             padding: '1rem',
             borderRadius: 'var(--radius-md)',
-            backgroundColor: 'var(--color-danger-light)',
-            border: '1px solid var(--color-danger-border)',
-            color: 'var(--color-danger)',
+            backgroundColor: 'var(--color-danger-light, rgba(239, 68, 68, 0.1))',
+            border: '1px solid var(--color-danger-border, rgba(239, 68, 68, 0.3))',
+            color: 'var(--color-danger, #ef4444)',
           }}
         >
           {error}
         </div>
       )}
 
+      {/* Step 1: Assessment Specifications */}
       <Card style={{ marginBottom: '1.5rem' }}>
         <h3 style={{ fontSize: '1.125rem', marginBottom: '1rem', color: 'var(--color-text-primary)' }}>
           Assessment Specifications
@@ -213,49 +229,53 @@ export function PreExamReadinessPage() {
         </div>
       </Card>
 
-      <Card style={{ marginBottom: '1.5rem' }}>
-        <h3 style={{ fontSize: '1.125rem', marginBottom: '0.75rem', color: 'var(--color-text-primary)' }}>
-          Hardware Readiness Check (Webcam & Microphone)
-        </h3>
-        <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem', marginBottom: '1rem' }}>
-          This proctored examination requires active video and audio surveillance. Verify that your camera and microphone function properly before starting.
-        </p>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center' }}>
-          {previewStream ? (
-            <div style={{ width: '100%', maxWidth: '400px', aspectRatio: '4/3', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#000' }}>
-              <video ref={previewVideoRef} autoPlay playsInline muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            </div>
-          ) : (
-            <div style={{ width: '100%', maxWidth: '400px', height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--color-bg-subtle, #1e293b)', borderRadius: '8px', color: 'var(--color-text-muted)' }}>
-              {mediaCheckStatus === 'CHECKING' ? 'Requesting Device Access...' : 'Camera Preview Inactive'}
-            </div>
-          )}
-
-          {mediaError && (
-            <div style={{ color: 'var(--color-danger, #ef4444)', fontSize: '0.875rem' }}>
-              {mediaError}
-            </div>
-          )}
-
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <Button
-              variant="secondary"
-              size="sm"
-              loading={mediaCheckStatus === 'CHECKING'}
-              onClick={testCameraAndMic}
-            >
-              {mediaCheckStatus === 'READY' ? 'Re-test Hardware' : 'Test Camera & Microphone'}
-            </Button>
-            {previewStream && (
-              <Button variant="secondary" size="sm" onClick={cleanupPreview}>
-                Turn Off Preview
+      {/* Step 2: Biometric Identity Verification Gate */}
+      {!isResuming && (
+        <div style={{ marginBottom: '1.5rem' }}>
+          {!enrollment?.isEnrolled ? (
+            <Card style={{ textAlign: 'center', padding: '2rem', border: '1px solid #f59e0b' }}>
+              <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📸</div>
+              <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem', color: '#f59e0b' }}>
+                Biometric Enrollment Required
+              </h3>
+              <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem', marginBottom: '1.5rem', maxWidth: '480px', margin: '0 auto 1.5rem' }}>
+                You must complete reference face enrollment before taking proctored exams. Enrollment takes less than a minute.
+              </p>
+              <Button variant="primary" onClick={() => navigate('/candidate/biometrics/enroll')}>
+                Enroll Reference Face Now
               </Button>
-            )}
-          </div>
+            </Card>
+          ) : biometricVerified ? (
+            <Card style={{ padding: '1.25rem', backgroundColor: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.4)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <span style={{ color: '#10b981', fontSize: '1.5rem' }}>✓</span>
+                <div>
+                  <h4 style={{ margin: 0, fontSize: '1rem', color: '#10b981', fontWeight: 600 }}>
+                    Biometric Identity Verified
+                  </h4>
+                  <p style={{ margin: '0.25rem 0 0', fontSize: '0.8125rem', color: 'var(--color-text-muted)' }}>
+                    Your facial identity and anti-spoofing checks have been confirmed for this session.
+                  </p>
+                </div>
+              </div>
+            </Card>
+          ) : (
+            <BiometricGate
+              sessionId={sessionId}
+              onVerified={(result) => {
+                setBiometricVerified(true);
+                setBiometricLocked(false);
+              }}
+              onLocked={() => {
+                setBiometricLocked(true);
+                setBiometricVerified(false);
+              }}
+            />
+          )}
         </div>
-      </Card>
+      )}
 
+      {/* Step 3: Candidate Rules & Integrity Guidelines */}
       <Card style={{ marginBottom: '1.5rem' }}>
         <h3 style={{ fontSize: '1.125rem', marginBottom: '0.75rem', color: 'var(--color-text-primary)' }}>
           Candidate Rules & Integrity Guidelines
@@ -268,7 +288,7 @@ export function PreExamReadinessPage() {
             <strong>Automatic Autosave</strong>: Your responses are continuously debounced and synchronized to the server every second.
           </li>
           <li>
-            <strong>In-Memory Offline Resilience</strong>: If network connection is interrupted, unsaved responses remain in this tab's memory. <em>Do not close or reload this tab</em>.
+            <strong>Continuous Biometric & Media Surveillance</strong>: Video and audio feeds are continuously audited during this attempt.
           </li>
           <li>
             <strong>Irreversible Submission</strong>: Submitting an exam is permanent. Once submitted, answers cannot be edited or rescinded.
@@ -288,6 +308,7 @@ export function PreExamReadinessPage() {
         </div>
       </Card>
 
+      {/* Footer controls */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
         <Button variant="secondary" onClick={() => navigate('/candidate')}>
           Cancel
@@ -295,7 +316,13 @@ export function PreExamReadinessPage() {
         <Button
           variant="primary"
           size="lg"
-          disabled={!agreed || (!isSessionLive && !existingAttempt) || starting}
+          disabled={
+            !agreed ||
+            (!isSessionLive && !existingAttempt) ||
+            (!isResuming && !biometricVerified) ||
+            biometricLocked ||
+            starting
+          }
           loading={starting}
           onClick={handleStartOrResume}
         >
@@ -303,6 +330,10 @@ export function PreExamReadinessPage() {
             ? 'Resume Active Attempt'
             : existingAttempt?.status === 'SUBMITTED'
             ? 'View Submitted Results'
+            : biometricLocked
+            ? 'Biometrics Locked'
+            : !biometricVerified
+            ? 'Biometric Verification Required'
             : isSessionLive
             ? 'Begin Examination'
             : 'Session Not Active'}
@@ -311,3 +342,4 @@ export function PreExamReadinessPage() {
     </div>
   );
 }
+export default PreExamReadinessPage;
