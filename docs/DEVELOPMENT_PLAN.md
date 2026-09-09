@@ -4,12 +4,13 @@
 
 ```
 +-------------------------------------------------------------------------+
-| Current Phase:     Phase 24                                             |
-| Current Milestone: Candidate Onboarding, Document Verification &        |
-|                    Per-Student Configuration                            |
-| Status:            Complete (Merged in PR #22, Merge a08e27d)           |
+| Current Phase:     Phase 25                                             |
+| Current Milestone: Biometric Identity: Face Enrollment, Verification &  |
+|                    Anti-Spoofing                                        |
+| Status:            Complete (Merged in PR #23, Merge 3e45cd1)           |
 | Master Plan:       Reconstructed & Expanded (Phases 0–34)               |
-| Next Milestone:    Phase 25 — Biometric Face Enrollment & Verification  |
+| Next Milestone:    Phase 26 — Complete Faculty Examination & Assessment |
+|                    Lifecycle                                            |
 +-------------------------------------------------------------------------+
 ```
 
@@ -806,7 +807,7 @@ $$\text{Plan} \longrightarrow \text{Implement} \longrightarrow \text{Test} \long
 ---
 
 ### Phase 25 — Biometric Identity: Face Enrollment, Verification & Anti-Spoofing
-- [ ] **Status:** Pending
+- [x] **Status:** Completed (Merged in PR #23)
 - **Objective:** Implement biometric identity verification capabilities including reference face enrollment, pre-exam face verification matching against enrolled reference and ID photo, passive and active liveness detection, and presentation attack mitigation, treating numerical thresholds as calibrated engineering targets.
 - **Dependencies:** Phase 24
 - **Major Tasks:**
