@@ -72,4 +72,5 @@ How will this decision be enforced and validated in testing/CI?
 - [ADR-0008: Application Security Hardening, Cryptographic Anti-Tampering, and Defense-in-Depth](0008-application-security-hardening-cryptographic-anti-tampering.md) — *Accepted (Phase 18)*
 - [ADR-0009: Containerization Topology, Multi-Stage Builds, Host-Networked SFU Media Plane, and Single-Host Delivery Architecture](0009-containerization-topology-multistage-builds-host-networked-sfu-and-single-host-delivery.md) — *Accepted (Phase 19)*
 - [ADR-0010: Declarative AWS Infrastructure, Single-Host EC2 Delivery Baseline, and Managed Service Migration Boundaries](0010-declarative-aws-infrastructure-single-host-delivery-baseline-and-managed-service-migration-boundaries.md) — *Accepted (Phase 20)*
+- [ADR-0011: Developer Operations Telemetry Architecture, Circular Log Ring Buffer Aggregation, and WireGuard Network Segmentation Boundary](0011-developer-operations-telemetry-architecture-circular-log-ring-buffer-aggregation-and-wireguard-network-segmentation-boundary.md) — *Accepted (Phase 27)*
 

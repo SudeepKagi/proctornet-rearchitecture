@@ -17,5 +17,11 @@ variable "vpc_id" {
 variable "admin_cidr" {
   type        = string
   description = "Restricted IPv4 CIDR block for administrative SSH access (e.g. WireGuard VPN gateway). Leave empty or set to /32 for no public SSH."
-  default     = ""
+  default     = "10.100.0.0/24"
+}
+
+variable "wireguard_ingress_cidr" {
+  type        = string
+  description = "IPv4 CIDR block allowed to connect to WireGuard UDP 51820 gateway (defaults to 0.0.0.0/0 for remote developer VPN ingress, or restricted IP range)"
+  default     = "0.0.0.0/0"
 }

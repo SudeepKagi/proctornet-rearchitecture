@@ -11,6 +11,7 @@ import { candidateBiometricsRouter, adminBiometricsRouter } from '../modules/bio
 import { questionBankRouter } from '../modules/questions/questions.routes.js';
 import { manualGradingRouter } from '../modules/evaluation/manualGrading.routes.js';
 import { interventionsRouter } from '../modules/interventions/interventions.routes.js';
+import { developerRouter } from '../modules/developer/developer.routes.js';
 import { authenticate } from '../middleware/authenticate.js';
 import { requireVerifiedActiveUser } from '../middleware/verificationGate.js';
 
@@ -65,6 +66,9 @@ v1Router.use('/interventions', authenticate, requireVerifiedActiveUser, interven
 
 // Phase 13: Centralized Audit Logs
 v1Router.use('/audit-logs', auditRouter);
+
+// Phase 27: Developer Operations & Telemetry Control Plane
+v1Router.use('/developer', developerRouter);
 
 // Mount /api/v1
 rootRouter.use('/api/v1', v1Router);

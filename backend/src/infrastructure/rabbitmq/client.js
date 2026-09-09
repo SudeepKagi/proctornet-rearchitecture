@@ -420,9 +420,11 @@ export async function checkRabbitMQHealth(timeoutMs = 2000) {
 
   const start = process.hrtime.bigint();
   try {
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('RabbitMQ health check timeout')), timeoutMs)
-    );
+    let timerId;
+    const timeoutPromise = new Promise((_, reject) => {
+      timerId = setTimeout(() => reject(new Error('RabbitMQ health check timeout')), timeoutMs);
+      if (typeof timerId.unref === 'function') timerId.unref();
+    });
 
     const probePromise = (async () => {
       const channel = await connectionInstance.createChannel();
@@ -430,6 +432,7 @@ export async function checkRabbitMQHealth(timeoutMs = 2000) {
     })();
 
     await Promise.race([probePromise, timeoutPromise]);
+    clearTimeout(timerId);
 
     const latencyMs = Number(process.hrtime.bigint() - start) / 1e6;
     return {
