@@ -73,4 +73,5 @@ How will this decision be enforced and validated in testing/CI?
 - [ADR-0009: Containerization Topology, Multi-Stage Builds, Host-Networked SFU Media Plane, and Single-Host Delivery Architecture](0009-containerization-topology-multistage-builds-host-networked-sfu-and-single-host-delivery.md) — *Accepted (Phase 19)*
 - [ADR-0010: Declarative AWS Infrastructure, Single-Host EC2 Delivery Baseline, and Managed Service Migration Boundaries](0010-declarative-aws-infrastructure-single-host-delivery-baseline-and-managed-service-migration-boundaries.md) — *Accepted (Phase 20)*
 - [ADR-0011: Developer Operations Telemetry Architecture, Circular Log Ring Buffer Aggregation, and WireGuard Network Segmentation Boundary](0011-developer-operations-telemetry-architecture-circular-log-ring-buffer-aggregation-and-wireguard-network-segmentation-boundary.md) — *Accepted (Phase 27)*
+- [ADR-0012: Client-Side Web Worker Screen AI Inference and Server-Authoritative Telemetry Ingestion Architecture](0012-client-side-web-worker-screen-ai-inference-and-server-authoritative-telemetry-ingestion-architecture.md) — *Accepted (Phase 28)*
 

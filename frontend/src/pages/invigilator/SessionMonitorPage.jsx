@@ -466,9 +466,36 @@ export function SessionMonitorPage() {
                       </td>
                       <td style={{ padding: '0.75rem 0.5rem', color: 'var(--color-text-muted)', fontSize: '0.8125rem' }}>
                         {latestViolation ? (
-                          <span>
-                            <strong>{latestViolation.eventType}</strong> ({latestViolation.severity})
-                          </span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                            <span
+                              style={{
+                                fontSize: '0.7rem',
+                                fontWeight: 700,
+                                padding: '0.1rem 0.35rem',
+                                borderRadius: 'var(--radius-xs, 4px)',
+                                backgroundColor: ['SCREEN_CAPTURE_INTERRUPTED', 'SCREEN_STREAM_DEGRADED'].includes(latestViolation.eventType)
+                                  ? 'var(--badge-technical-bg, #f1f5f9)'
+                                  : ['SCREEN_CONTEXT_CLASSIFICATION', 'REPEATED_CONTEXT_SWITCHING'].includes(latestViolation.eventType)
+                                  ? 'var(--badge-screen-ai-bg, #faf5ff)'
+                                  : 'var(--badge-browser-bg, #eff6ff)',
+                                color: ['SCREEN_CAPTURE_INTERRUPTED', 'SCREEN_STREAM_DEGRADED'].includes(latestViolation.eventType)
+                                  ? 'var(--badge-technical-text, #475569)'
+                                  : ['SCREEN_CONTEXT_CLASSIFICATION', 'REPEATED_CONTEXT_SWITCHING'].includes(latestViolation.eventType)
+                                  ? 'var(--badge-screen-ai-text, #7e22ce)'
+                                  : 'var(--badge-browser-text, #1d4ed8)',
+                                border: '1px solid var(--color-border-subtle)'
+                              }}
+                            >
+                              {['SCREEN_CAPTURE_INTERRUPTED', 'SCREEN_STREAM_DEGRADED'].includes(latestViolation.eventType)
+                                ? '[TECHNICAL]'
+                                : ['SCREEN_CONTEXT_CLASSIFICATION', 'REPEATED_CONTEXT_SWITCHING'].includes(latestViolation.eventType)
+                                ? '[SCREEN AI]'
+                                : '[BROWSER]'}
+                            </span>
+                            <span>
+                              <strong>{latestViolation.eventType}</strong> ({latestViolation.severity})
+                            </span>
+                          </div>
                         ) : (
                           '—'
                         )}
@@ -547,6 +574,7 @@ export function SessionMonitorPage() {
         onOpenTerminate={() => setActiveModal('terminate')}
         onOpenEvidence={() => setActiveModal('evidence')}
         onOpenIncident={() => setActiveModal('incident')}
+        onFlagUpdated={() => loadData(true)}
       />
 
       {/* Realtime Intervention Modals */}

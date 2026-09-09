@@ -60,4 +60,116 @@
   /* Transitions */
   --transition-fast: 150ms ease-in-out;
   --transition-normal: 250ms ease-in-out;
+
+  /* Focus Ring Accessibility Tokens (WCAG 2.1 AA / AAA) */
+  --focus-ring-color: #2563eb;
+  --focus-ring-outline: 3px solid var(--focus-ring-color);
+  --focus-ring-offset: 2px;
+
+  /* Density Tiers (Phase 28 Track 1) */
+  /* Default: Normal Density */
+  --spacing-unit: 4px;
+  --control-height: 36px;
+  --control-height-sm: 30px;
+  --control-height-lg: 42px;
+  --font-size-base: 14px;
+  --padding-control-x: 12px;
+
+  /* Risk Tier Accents (Authoritative 0-100 scale) */
+  --color-risk-low: #16a34a;
+  --color-risk-low-bg: #f0fdf4;
+  --color-risk-medium: #d97706;
+  --color-risk-medium-bg: #fffbeb;
+  --color-risk-elevated: #ea580c;
+  --color-risk-elevated-bg: #fff7ed;
+  --color-risk-high: #dc2626;
+  --color-risk-high-bg: #fef2f2;
+  --color-technical: #475569;
+  --color-technical-bg: #f1f5f9;
+
+  /* Proctoring Telemetry Source Attribution */
+  --badge-browser-bg: #eff6ff;
+  --badge-browser-text: #1d4ed8;
+  --badge-browser-border: #bfdbfe;
+
+  --badge-screen-ai-bg: #faf5ff;
+  --badge-screen-ai-text: #7e22ce;
+  --badge-screen-ai-border: #e9d5ff;
+
+  --badge-technical-bg: #f8fafc;
+  --badge-technical-text: #475569;
+  --badge-technical-border: #cbd5e1;
+}
+
+/* Density Tier Selectors */
+[data-density="compact"] {
+  --spacing-unit: 2px;
+  --control-height: 28px;
+  --control-height-sm: 24px;
+  --control-height-lg: 34px;
+  --font-size-base: 13px;
+  --padding-control-x: 8px;
+}
+
+[data-density="comfortable"] {
+  --spacing-unit: 6px;
+  --control-height: 44px;
+  --control-height-sm: 36px;
+  --control-height-lg: 50px;
+  --font-size-base: 15px;
+  --padding-control-x: 16px;
+}
+
+[data-density="touch"] {
+  --spacing-unit: 8px;
+  --control-height: 48px;
+  --control-height-sm: 40px;
+  --control-height-lg: 56px;
+  --font-size-base: 16px;
+  --padding-control-x: 20px;
+}
+
+/* Dark Theme Support (Invigilator Live Console & Universal) */
+[data-theme="dark"],
+.theme-dark {
+  --color-canvas: #090d16;
+  --color-surface: #131b2e;
+  --color-surface-secondary: #1e293b;
+  --color-surface-tertiary: #334155;
+
+  --color-border-subtle: #1e293b;
+  --color-border-medium: #334155;
+  --color-border-strong: #475569;
+
+  --color-text-primary: #f8fafc;
+  --color-text-body: #cbd5e1;
+  --color-text-muted: #94a3b8;
+  --color-text-subtle: #64748b;
+  --color-text-inverse: #0f172a;
+
+  --focus-ring-color: #60a5fa;
+
+  --color-primary-light: rgba(37, 99, 235, 0.2);
+  --color-primary-border: #1d4ed8;
+
+  --color-success-light: rgba(22, 163, 74, 0.2);
+  --color-success-border: #15803d;
+
+  --color-warning-light: rgba(217, 119, 6, 0.2);
+  --color-warning-border: #b45309;
+
+  --color-danger-light: rgba(220, 38, 38, 0.2);
+  --color-danger-border: #b91c1c;
+
+  --badge-browser-bg: rgba(59, 130, 246, 0.15);
+  --badge-browser-text: #93c5fd;
+  --badge-browser-border: rgba(59, 130, 246, 0.3);
+
+  --badge-screen-ai-bg: rgba(168, 85, 247, 0.15);
+  --badge-screen-ai-text: #d8b4fe;
+  --badge-screen-ai-border: rgba(168, 85, 247, 0.3);
+
+  --badge-technical-bg: rgba(148, 163, 184, 0.15);
+  --badge-technical-text: #cbd5e1;
+  --badge-technical-border: rgba(148, 163, 184, 0.3);
 }

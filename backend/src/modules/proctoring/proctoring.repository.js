@@ -96,7 +96,7 @@ export async function insertViolationEventsBatch(attemptId, events, client) {
     )
     VALUES ${valueClauses.join(', ')}
     ON CONFLICT (attempt_id, client_event_id) DO NOTHING
-    RETURNING violation_id, client_event_id, event_type, severity, server_timestamp;
+    RETURNING violation_id, client_event_id, event_type, severity, server_timestamp, metadata;
   `;
 
   const result = await client.query(sql, values);
@@ -471,4 +471,67 @@ export async function findSessionProctoringSummary(sessionId, client = null) {
   const executor = client ? client.query.bind(client) : query;
   const result = await executor(sql, [sessionId]);
   return result.rows;
+}
+
+/**
+ * Retrieves recent violation events for an attempt within a sliding window (in seconds).
+ *
+ * @param {string} attemptId
+ * @param {number} [windowSeconds=300]
+ * @param {import('pg').PoolClient} [client=null]
+ * @returns {Promise<Array<object>>}
+ */
+export async function getRecentEventsForAttempt(attemptId, windowSeconds = 300, client = null) {
+  const sql = `
+    SELECT violation_id, client_event_id, event_type, severity, server_timestamp, metadata
+    FROM violation_events
+    WHERE attempt_id = $1
+      AND server_timestamp >= NOW() - ($2 || ' seconds')::INTERVAL
+    ORDER BY server_timestamp DESC;
+  `;
+  const executor = client ? client.query.bind(client) : query;
+  const result = await executor(sql, [attemptId, windowSeconds]);
+  return result.rows;
+}
+
+/**
+ * Computes the cumulative technical risk points already accrued by an attempt.
+ *
+ * @param {string} attemptId
+ * @param {import('pg').PoolClient} [client=null]
+ * @returns {Promise<number>}
+ */
+export async function getTechnicalRiskPointsForAttempt(attemptId, client = null) {
+  const sql = `
+    SELECT event_type, metadata
+    FROM violation_events
+    WHERE attempt_id = $1
+      AND event_type IN ('SCREEN_CAPTURE_INTERRUPTED', 'SCREEN_STREAM_DEGRADED');
+  `;
+  const executor = client ? client.query.bind(client) : query;
+  const result = await executor(sql, [attemptId]);
+  let points = 0;
+  for (const row of result.rows) {
+    if (row.event_type === 'SCREEN_CAPTURE_INTERRUPTED') points += 10;
+    if (row.event_type === 'SCREEN_STREAM_DEGRADED') points += 2;
+  }
+  return points;
+}
+
+/**
+ * Retrieves all distinct event types recorded for an attempt.
+ *
+ * @param {string} attemptId
+ * @param {import('pg').PoolClient} [client=null]
+ * @returns {Promise<Array<string>>}
+ */
+export async function getAllEventTypesForAttempt(attemptId, client = null) {
+  const sql = `
+    SELECT DISTINCT event_type
+    FROM violation_events
+    WHERE attempt_id = $1;
+  `;
+  const executor = client ? client.query.bind(client) : query;
+  const result = await executor(sql, [attemptId]);
+  return result.rows.map((r) => r.event_type);
 }

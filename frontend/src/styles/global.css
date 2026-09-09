@@ -13,10 +13,47 @@ body {
   flex-direction: column;
 }
 
-/* Accessible focus styles */
+/* Universal Accessible Focus Styles (WCAG 2.1 AA / AAA 2.4.7 & 2.4.11) */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
 :focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
+  outline: var(--focus-ring-outline);
+  outline-offset: var(--focus-ring-offset);
+}
+
+/* Forced Colors High-Contrast Mode Support */
+@media (forced-colors: active) {
+  :focus-visible {
+    outline: 3px solid CanvasText !important;
+    outline-offset: 2px !important;
+  }
+}
+
+/* 200% Fluid Text Scaling Support (WCAG 1.4.4 Resize Text) */
+html {
+  font-size: 100%;
+}
+
+body {
+  font-size: var(--font-size-base);
+  line-height: 1.5;
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+/* Screen Reader Only Utility */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
 }
 
 /* Common container layouts */
