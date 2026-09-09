@@ -68,14 +68,14 @@ if (!ec2Tf.includes('prevent_destroy = true')) {
 }
 console.log('✅ [PASS] Rule 4: Persistent EBS data volume protected by prevent_destroy = true');
 
-// 5. Assert exactly 17 migrations remain in backend/migrations
+// 5. Assert exactly 21 migrations (001-021) remain in backend/migrations
 const migrationsDir = path.join(ROOT_DIR, 'backend/migrations');
 const migrations = fs.readdirSync(migrationsDir).filter(f => f.endsWith('.js') || f.endsWith('.sql'));
-if (migrations.length !== 17) {
-  console.error(`[FAIL] Expected exactly 17 migrations, found ${migrations.length}`);
+if (migrations.length !== 21) {
+  console.error(`[FAIL] Expected exactly 21 migrations (001-021), found ${migrations.length}`);
   process.exit(1);
 }
-console.log(`✅ [PASS] Rule 5: Migration count verified at exactly 17 (found: ${migrations.length})`);
+console.log(`✅ [PASS] Rule 5: Migration count verified at exactly 21 (found: ${migrations.length})`);
 
 // 6. Assert scale-ready modules default to disabled (false)
 const prodVars = fs.readFileSync(path.join(ROOT_DIR, 'terraform/environments/production/variables.tf'), 'utf8');

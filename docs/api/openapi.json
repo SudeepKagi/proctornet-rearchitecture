@@ -1,0 +1,6096 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "ProctorNet API Specification",
+    "version": "1.0.0",
+    "description": "Authoritative machine-readable OpenAPI 3.1 specification for ProctorNet Modular Monolith examination, proctoring, and evaluation platform.\n\nCovers 100% of REST routes across all five system roles: ADMIN, DEVELOPER, FACULTY, INVIGILATOR, STUDENT.",
+    "contact": {
+      "name": "ProctorNet Engineering",
+      "email": "engineering@proctornet.com"
+    },
+    "license": {
+      "name": "Proprietary"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://exam.proctornet.com",
+      "description": "Production AWS Multi-AZ Environment"
+    },
+    {
+      "url": "http://localhost:4000",
+      "description": "Local Development Environment"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Health & System",
+      "description": "Readiness, liveness, and Prometheus metrics"
+    },
+    {
+      "name": "Authentication & Session",
+      "description": "Dual-JWT authentication, token rotation, and account security"
+    },
+    {
+      "name": "User Administration",
+      "description": "User provisioning, roster management, and institutional settings (ADMIN)"
+    },
+    {
+      "name": "Candidate Identity",
+      "description": "Identity profile onboarding, USN, and document upload (STUDENT, ADMIN)"
+    },
+    {
+      "name": "Biometrics & Anti-Spoofing",
+      "description": "Face enrollment, 128D embedding extraction, and liveness challenges"
+    },
+    {
+      "name": "Question Bank",
+      "description": "Question authoring, cloning, and topic classification (FACULTY, ADMIN)"
+    },
+    {
+      "name": "Exams & Blueprints",
+      "description": "Exam lifecycle, blueprint topic rules, and publication (FACULTY, ADMIN)"
+    },
+    {
+      "name": "Sessions & Scheduling",
+      "description": "Room scheduling, student rosters, and invigilator assignment"
+    },
+    {
+      "name": "Attempts & Taking",
+      "description": "Deterministic question mapping, exam start, and attempt lifecycle (STUDENT)"
+    },
+    {
+      "name": "Answers & Autosave",
+      "description": "Revision-tracked answer saves, batch autosave, and submission idempotency"
+    },
+    {
+      "name": "Results & Manual Grading",
+      "description": "Objective scoring, subjective grading rubrics, and grade publication"
+    },
+    {
+      "name": "Invigilator Interventions",
+      "description": "Real-time announcements, warnings, pauses, and exam termination"
+    },
+    {
+      "name": "Proctoring & Violations",
+      "description": "Telemetry streaming, anomaly flags, and proctoring summaries"
+    },
+    {
+      "name": "Evidence Storage",
+      "description": "Direct S3 pre-signed upload URLs and violation snapshots"
+    },
+    {
+      "name": "Audit Logs",
+      "description": "Immutable audit trail with trigger SQLSTATE 20000 protection"
+    },
+    {
+      "name": "Developer Operations",
+      "description": "13-subsystem health matrix, log buffer (zero PII), and incident management"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "15-minute access token signed with server-authoritative secret"
+      },
+      "RefreshTokenCookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "refreshToken",
+        "description": "7-day rotating refresh token HttpOnly cookie"
+      },
+      "AntiTamperSignature": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Payload-Signature",
+        "description": "HMAC-SHA256 signature protecting candidate mutation payloads"
+      },
+      "ClientTimestamp": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Client-Timestamp",
+        "description": "UNIX epoch millisecond timestamp paired with HMAC signature"
+      },
+      "IdempotencyKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Idempotency-Key",
+        "description": "UUID v4 preventing duplicate submission side-effects"
+      }
+    },
+    "schemas": {
+      "ErrorResponse": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": [
+              "code",
+              "message"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "example": "CONFLICT"
+              },
+              "message": {
+                "type": "string",
+                "example": "Resource already exists"
+              },
+              "details": {
+                "type": "object",
+                "nullable": true
+              }
+            }
+          }
+        }
+      },
+      "HealthStatus": {
+        "type": "object",
+        "required": [
+          "status",
+          "timestamp"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "OK",
+              "DEGRADED",
+              "DOWN"
+            ],
+            "example": "OK"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "uptime": {
+            "type": "number"
+          },
+          "services": {
+            "type": "object"
+          }
+        }
+      },
+      "User": {
+        "type": "object",
+        "required": [
+          "userId",
+          "email",
+          "name",
+          "role"
+        ],
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "STUDENT",
+              "FACULTY",
+              "INVIGILATOR",
+              "ADMIN",
+              "DEVELOPER"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "SUSPENDED",
+              "PENDING_VERIFICATION"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/api/v1": {
+      "get": {
+        "tags": [
+          "General"
+        ],
+        "summary": "GET /api/v1",
+        "description": "Endpoint GET /api/v1",
+        "operationId": "get_api_v1",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/audit": {
+      "get": {
+        "tags": [
+          "User Administration"
+        ],
+        "summary": "GET /api/v1/admin/audit",
+        "description": "Endpoint GET /api/v1/admin/audit",
+        "operationId": "get_api_v1_admin_audit",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/biometrics/override": {
+      "post": {
+        "tags": [
+          "Biometrics & Anti-Spoofing"
+        ],
+        "summary": "POST /api/v1/admin/biometrics/override",
+        "description": "Endpoint POST /api/v1/admin/biometrics/override",
+        "operationId": "post_api_v1_admin_biometrics_override",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/biometrics/sessions/{sessionId}": {
+      "get": {
+        "tags": [
+          "Biometrics & Anti-Spoofing"
+        ],
+        "summary": "GET /api/v1/admin/biometrics/sessions/{sessionId}",
+        "description": "Endpoint GET /api/v1/admin/biometrics/sessions/{sessionId}",
+        "operationId": "get_api_v1_admin_biometrics_sessions_sessionId",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/organization": {
+      "get": {
+        "tags": [
+          "User Administration"
+        ],
+        "summary": "GET /api/v1/admin/organization",
+        "description": "Endpoint GET /api/v1/admin/organization",
+        "operationId": "get_api_v1_admin_organization",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "User Administration"
+        ],
+        "summary": "PUT /api/v1/admin/organization",
+        "description": "Endpoint PUT /api/v1/admin/organization",
+        "operationId": "put_api_v1_admin_organization",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/students/{id}/configuration": {
+      "get": {
+        "tags": [
+          "User Administration"
+        ],
+        "summary": "GET /api/v1/admin/students/{id}/configuration",
+        "description": "Endpoint GET /api/v1/admin/students/{id}/configuration",
+        "operationId": "get_api_v1_admin_students_id_configuration",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "User Administration"
+        ],
+        "summary": "PUT /api/v1/admin/students/{id}/configuration",
+        "description": "Endpoint PUT /api/v1/admin/students/{id}/configuration",
+        "operationId": "put_api_v1_admin_students_id_configuration",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/students/{id}/document-preview": {
+      "get": {
+        "tags": [
+          "User Administration"
+        ],
+        "summary": "GET /api/v1/admin/students/{id}/document-preview",
+        "description": "Endpoint GET /api/v1/admin/students/{id}/document-preview",
+        "operationId": "get_api_v1_admin_students_id_document-preview",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/students/{id}/verification": {
+      "get": {
+        "tags": [
+          "User Administration"
+        ],
+        "summary": "GET /api/v1/admin/students/{id}/verification",
+        "description": "Endpoint GET /api/v1/admin/students/{id}/verification",
+        "operationId": "get_api_v1_admin_students_id_verification",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "User Administration"
+        ],
+        "summary": "PATCH /api/v1/admin/students/{id}/verification",
+        "description": "Endpoint PATCH /api/v1/admin/students/{id}/verification",
+        "operationId": "patch_api_v1_admin_students_id_verification",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/users": {
+      "get": {
+        "tags": [
+          "User Administration"
+        ],
+        "summary": "GET /api/v1/admin/users",
+        "description": "Endpoint GET /api/v1/admin/users",
+        "operationId": "get_api_v1_admin_users",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "User Administration"
+        ],
+        "summary": "POST /api/v1/admin/users",
+        "description": "Endpoint POST /api/v1/admin/users",
+        "operationId": "post_api_v1_admin_users",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/users/bulk-import": {
+      "post": {
+        "tags": [
+          "User Administration"
+        ],
+        "summary": "POST /api/v1/admin/users/bulk-import",
+        "description": "Endpoint POST /api/v1/admin/users/bulk-import",
+        "operationId": "post_api_v1_admin_users_bulk-import",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/users/bulk-import/preview": {
+      "post": {
+        "tags": [
+          "User Administration"
+        ],
+        "summary": "POST /api/v1/admin/users/bulk-import/preview",
+        "description": "Endpoint POST /api/v1/admin/users/bulk-import/preview",
+        "operationId": "post_api_v1_admin_users_bulk-import_preview",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/users/{id}": {
+      "get": {
+        "tags": [
+          "User Administration"
+        ],
+        "summary": "GET /api/v1/admin/users/{id}",
+        "description": "Endpoint GET /api/v1/admin/users/{id}",
+        "operationId": "get_api_v1_admin_users_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "User Administration"
+        ],
+        "summary": "PATCH /api/v1/admin/users/{id}",
+        "description": "Endpoint PATCH /api/v1/admin/users/{id}",
+        "operationId": "patch_api_v1_admin_users_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/users/{id}/reset-password": {
+      "post": {
+        "tags": [
+          "User Administration"
+        ],
+        "summary": "POST /api/v1/admin/users/{id}/reset-password",
+        "description": "Endpoint POST /api/v1/admin/users/{id}/reset-password",
+        "operationId": "post_api_v1_admin_users_id_reset-password",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/users/{id}/revoke-sessions": {
+      "post": {
+        "tags": [
+          "User Administration"
+        ],
+        "summary": "POST /api/v1/admin/users/{id}/revoke-sessions",
+        "description": "Endpoint POST /api/v1/admin/users/{id}/revoke-sessions",
+        "operationId": "post_api_v1_admin_users_id_revoke-sessions",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/users/{id}/roles": {
+      "post": {
+        "tags": [
+          "User Administration"
+        ],
+        "summary": "POST /api/v1/admin/users/{id}/roles",
+        "description": "Endpoint POST /api/v1/admin/users/{id}/roles",
+        "operationId": "post_api_v1_admin_users_id_roles",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/users/{id}/roles/{role}": {
+      "delete": {
+        "tags": [
+          "User Administration"
+        ],
+        "summary": "DELETE /api/v1/admin/users/{id}/roles/{role}",
+        "description": "Endpoint DELETE /api/v1/admin/users/{id}/roles/{role}",
+        "operationId": "delete_api_v1_admin_users_id_roles_role",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/users/{id}/status": {
+      "patch": {
+        "tags": [
+          "User Administration"
+        ],
+        "summary": "PATCH /api/v1/admin/users/{id}/status",
+        "description": "Endpoint PATCH /api/v1/admin/users/{id}/status",
+        "operationId": "patch_api_v1_admin_users_id_status",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/users/{id}/unlock": {
+      "post": {
+        "tags": [
+          "User Administration"
+        ],
+        "summary": "POST /api/v1/admin/users/{id}/unlock",
+        "description": "Endpoint POST /api/v1/admin/users/{id}/unlock",
+        "operationId": "post_api_v1_admin_users_id_unlock",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/users/{id}/verification": {
+      "patch": {
+        "tags": [
+          "User Administration"
+        ],
+        "summary": "PATCH /api/v1/admin/users/{id}/verification",
+        "description": "Endpoint PATCH /api/v1/admin/users/{id}/verification",
+        "operationId": "patch_api_v1_admin_users_id_verification",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/verifications": {
+      "get": {
+        "tags": [
+          "User Administration"
+        ],
+        "summary": "GET /api/v1/admin/verifications",
+        "description": "Endpoint GET /api/v1/admin/verifications",
+        "operationId": "get_api_v1_admin_verifications",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/attempts/start": {
+      "post": {
+        "tags": [
+          "Attempts & Taking"
+        ],
+        "summary": "POST /api/v1/attempts/start",
+        "description": "Endpoint POST /api/v1/attempts/start",
+        "operationId": "post_api_v1_attempts_start",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/attempts/{attemptId}": {
+      "get": {
+        "tags": [
+          "Attempts & Taking"
+        ],
+        "summary": "GET /api/v1/attempts/{attemptId}",
+        "description": "Endpoint GET /api/v1/attempts/{attemptId}",
+        "operationId": "get_api_v1_attempts_attemptId",
+        "parameters": [
+          {
+            "name": "attemptId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/attempts/{attemptId}/answers": {
+      "get": {
+        "tags": [
+          "Answers & Autosave"
+        ],
+        "summary": "GET /api/v1/attempts/{attemptId}/answers",
+        "description": "Endpoint GET /api/v1/attempts/{attemptId}/answers",
+        "operationId": "get_api_v1_attempts_attemptId_answers",
+        "parameters": [
+          {
+            "name": "attemptId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/attempts/{attemptId}/answers/batch": {
+      "post": {
+        "tags": [
+          "Answers & Autosave"
+        ],
+        "summary": "POST /api/v1/attempts/{attemptId}/answers/batch",
+        "description": "Endpoint POST /api/v1/attempts/{attemptId}/answers/batch",
+        "operationId": "post_api_v1_attempts_attemptId_answers_batch",
+        "parameters": [
+          {
+            "name": "attemptId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/attempts/{attemptId}/answers/{attemptQuestionId}": {
+      "delete": {
+        "tags": [
+          "Answers & Autosave"
+        ],
+        "summary": "DELETE /api/v1/attempts/{attemptId}/answers/{attemptQuestionId}",
+        "description": "Endpoint DELETE /api/v1/attempts/{attemptId}/answers/{attemptQuestionId}",
+        "operationId": "delete_api_v1_attempts_attemptId_answers_attemptQuestionId",
+        "parameters": [
+          {
+            "name": "attemptId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "attemptQuestionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Answers & Autosave"
+        ],
+        "summary": "PUT /api/v1/attempts/{attemptId}/answers/{attemptQuestionId}",
+        "description": "Endpoint PUT /api/v1/attempts/{attemptId}/answers/{attemptQuestionId}",
+        "operationId": "put_api_v1_attempts_attemptId_answers_attemptQuestionId",
+        "parameters": [
+          {
+            "name": "attemptId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "attemptQuestionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/attempts/{attemptId}/events": {
+      "get": {
+        "tags": [
+          "Proctoring & Violations"
+        ],
+        "summary": "GET /api/v1/attempts/{attemptId}/events",
+        "description": "Endpoint GET /api/v1/attempts/{attemptId}/events",
+        "operationId": "get_api_v1_attempts_attemptId_events",
+        "parameters": [
+          {
+            "name": "attemptId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Proctoring & Violations"
+        ],
+        "summary": "POST /api/v1/attempts/{attemptId}/events",
+        "description": "Endpoint POST /api/v1/attempts/{attemptId}/events",
+        "operationId": "post_api_v1_attempts_attemptId_events",
+        "parameters": [
+          {
+            "name": "attemptId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/attempts/{attemptId}/evidence": {
+      "get": {
+        "tags": [
+          "Evidence Storage"
+        ],
+        "summary": "GET /api/v1/attempts/{attemptId}/evidence",
+        "description": "Endpoint GET /api/v1/attempts/{attemptId}/evidence",
+        "operationId": "get_api_v1_attempts_attemptId_evidence",
+        "parameters": [
+          {
+            "name": "attemptId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/attempts/{attemptId}/evidence/upload-url": {
+      "post": {
+        "tags": [
+          "Evidence Storage"
+        ],
+        "summary": "POST /api/v1/attempts/{attemptId}/evidence/upload-url",
+        "description": "Endpoint POST /api/v1/attempts/{attemptId}/evidence/upload-url",
+        "operationId": "post_api_v1_attempts_attemptId_evidence_upload-url",
+        "parameters": [
+          {
+            "name": "attemptId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/attempts/{attemptId}/evidence/{evidenceId}": {
+      "delete": {
+        "tags": [
+          "Evidence Storage"
+        ],
+        "summary": "DELETE /api/v1/attempts/{attemptId}/evidence/{evidenceId}",
+        "description": "Endpoint DELETE /api/v1/attempts/{attemptId}/evidence/{evidenceId}",
+        "operationId": "delete_api_v1_attempts_attemptId_evidence_evidenceId",
+        "parameters": [
+          {
+            "name": "attemptId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "evidenceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/attempts/{attemptId}/evidence/{evidenceId}/confirm": {
+      "post": {
+        "tags": [
+          "Evidence Storage"
+        ],
+        "summary": "POST /api/v1/attempts/{attemptId}/evidence/{evidenceId}/confirm",
+        "description": "Endpoint POST /api/v1/attempts/{attemptId}/evidence/{evidenceId}/confirm",
+        "operationId": "post_api_v1_attempts_attemptId_evidence_evidenceId_confirm",
+        "parameters": [
+          {
+            "name": "attemptId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "evidenceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/attempts/{attemptId}/evidence/{evidenceId}/url": {
+      "get": {
+        "tags": [
+          "Evidence Storage"
+        ],
+        "summary": "GET /api/v1/attempts/{attemptId}/evidence/{evidenceId}/url",
+        "description": "Endpoint GET /api/v1/attempts/{attemptId}/evidence/{evidenceId}/url",
+        "operationId": "get_api_v1_attempts_attemptId_evidence_evidenceId_url",
+        "parameters": [
+          {
+            "name": "attemptId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "evidenceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/attempts/{attemptId}/proctoring/flags": {
+      "post": {
+        "tags": [
+          "Proctoring & Violations"
+        ],
+        "summary": "POST /api/v1/attempts/{attemptId}/proctoring/flags",
+        "description": "Endpoint POST /api/v1/attempts/{attemptId}/proctoring/flags",
+        "operationId": "post_api_v1_attempts_attemptId_proctoring_flags",
+        "parameters": [
+          {
+            "name": "attemptId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/attempts/{attemptId}/proctoring/flags/{flagId}": {
+      "patch": {
+        "tags": [
+          "Proctoring & Violations"
+        ],
+        "summary": "PATCH /api/v1/attempts/{attemptId}/proctoring/flags/{flagId}",
+        "description": "Endpoint PATCH /api/v1/attempts/{attemptId}/proctoring/flags/{flagId}",
+        "operationId": "patch_api_v1_attempts_attemptId_proctoring_flags_flagId",
+        "parameters": [
+          {
+            "name": "attemptId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "flagId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/attempts/{attemptId}/questions": {
+      "get": {
+        "tags": [
+          "Attempts & Taking"
+        ],
+        "summary": "GET /api/v1/attempts/{attemptId}/questions",
+        "description": "Endpoint GET /api/v1/attempts/{attemptId}/questions",
+        "operationId": "get_api_v1_attempts_attemptId_questions",
+        "parameters": [
+          {
+            "name": "attemptId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/attempts/{attemptId}/result": {
+      "get": {
+        "tags": [
+          "Attempts & Taking"
+        ],
+        "summary": "GET /api/v1/attempts/{attemptId}/result",
+        "description": "Endpoint GET /api/v1/attempts/{attemptId}/result",
+        "operationId": "get_api_v1_attempts_attemptId_result",
+        "parameters": [
+          {
+            "name": "attemptId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/attempts/{attemptId}/submit": {
+      "post": {
+        "tags": [
+          "Attempts & Taking"
+        ],
+        "summary": "POST /api/v1/attempts/{attemptId}/submit",
+        "description": "Endpoint POST /api/v1/attempts/{attemptId}/submit",
+        "operationId": "post_api_v1_attempts_attemptId_submit",
+        "parameters": [
+          {
+            "name": "attemptId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/audit-logs": {
+      "get": {
+        "tags": [
+          "Audit Logs"
+        ],
+        "summary": "GET /api/v1/audit-logs",
+        "description": "Endpoint GET /api/v1/audit-logs",
+        "operationId": "get_api_v1_audit-logs",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "tags": [
+          "Authentication & Session"
+        ],
+        "summary": "POST /api/v1/auth/login",
+        "description": "Endpoint POST /api/v1/auth/login",
+        "operationId": "post_api_v1_auth_login",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "tags": [
+          "Authentication & Session"
+        ],
+        "summary": "POST /api/v1/auth/logout",
+        "description": "Endpoint POST /api/v1/auth/logout",
+        "operationId": "post_api_v1_auth_logout",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "tags": [
+          "Authentication & Session"
+        ],
+        "summary": "GET /api/v1/auth/me",
+        "description": "Endpoint GET /api/v1/auth/me",
+        "operationId": "get_api_v1_auth_me",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "tags": [
+          "Authentication & Session"
+        ],
+        "summary": "POST /api/v1/auth/refresh",
+        "description": "Endpoint POST /api/v1/auth/refresh",
+        "operationId": "post_api_v1_auth_refresh",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/register": {
+      "post": {
+        "tags": [
+          "Authentication & Session"
+        ],
+        "summary": "POST /api/v1/auth/register",
+        "description": "Endpoint POST /api/v1/auth/register",
+        "operationId": "post_api_v1_auth_register",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/candidate/biometrics/enroll-confirm": {
+      "post": {
+        "tags": [
+          "Biometrics & Anti-Spoofing"
+        ],
+        "summary": "POST /api/v1/candidate/biometrics/enroll-confirm",
+        "description": "Endpoint POST /api/v1/candidate/biometrics/enroll-confirm",
+        "operationId": "post_api_v1_candidate_biometrics_enroll-confirm",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/candidate/biometrics/enroll-url": {
+      "post": {
+        "tags": [
+          "Biometrics & Anti-Spoofing"
+        ],
+        "summary": "POST /api/v1/candidate/biometrics/enroll-url",
+        "description": "Endpoint POST /api/v1/candidate/biometrics/enroll-url",
+        "operationId": "post_api_v1_candidate_biometrics_enroll-url",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/candidate/biometrics/liveness-challenge": {
+      "post": {
+        "tags": [
+          "Biometrics & Anti-Spoofing"
+        ],
+        "summary": "POST /api/v1/candidate/biometrics/liveness-challenge",
+        "description": "Endpoint POST /api/v1/candidate/biometrics/liveness-challenge",
+        "operationId": "post_api_v1_candidate_biometrics_liveness-challenge",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/candidate/biometrics/status": {
+      "get": {
+        "tags": [
+          "Biometrics & Anti-Spoofing"
+        ],
+        "summary": "GET /api/v1/candidate/biometrics/status",
+        "description": "Endpoint GET /api/v1/candidate/biometrics/status",
+        "operationId": "get_api_v1_candidate_biometrics_status",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/candidate/biometrics/verify-face": {
+      "post": {
+        "tags": [
+          "Biometrics & Anti-Spoofing"
+        ],
+        "summary": "POST /api/v1/candidate/biometrics/verify-face",
+        "description": "Endpoint POST /api/v1/candidate/biometrics/verify-face",
+        "operationId": "post_api_v1_candidate_biometrics_verify-face",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/candidate/biometrics/verify-image-url": {
+      "post": {
+        "tags": [
+          "Biometrics & Anti-Spoofing"
+        ],
+        "summary": "POST /api/v1/candidate/biometrics/verify-image-url",
+        "description": "Endpoint POST /api/v1/candidate/biometrics/verify-image-url",
+        "operationId": "post_api_v1_candidate_biometrics_verify-image-url",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/candidate/biometrics/verify-liveness": {
+      "post": {
+        "tags": [
+          "Biometrics & Anti-Spoofing"
+        ],
+        "summary": "POST /api/v1/candidate/biometrics/verify-liveness",
+        "description": "Endpoint POST /api/v1/candidate/biometrics/verify-liveness",
+        "operationId": "post_api_v1_candidate_biometrics_verify-liveness",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/candidate/identity/confirm-document": {
+      "post": {
+        "tags": [
+          "Candidate Identity"
+        ],
+        "summary": "POST /api/v1/candidate/identity/confirm-document",
+        "description": "Endpoint POST /api/v1/candidate/identity/confirm-document",
+        "operationId": "post_api_v1_candidate_identity_confirm-document",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/candidate/identity/document-url": {
+      "post": {
+        "tags": [
+          "Candidate Identity"
+        ],
+        "summary": "POST /api/v1/candidate/identity/document-url",
+        "description": "Endpoint POST /api/v1/candidate/identity/document-url",
+        "operationId": "post_api_v1_candidate_identity_document-url",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/candidate/identity/status": {
+      "get": {
+        "tags": [
+          "Candidate Identity"
+        ],
+        "summary": "GET /api/v1/candidate/identity/status",
+        "description": "Endpoint GET /api/v1/candidate/identity/status",
+        "operationId": "get_api_v1_candidate_identity_status",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/candidate/profile": {
+      "get": {
+        "tags": [
+          "Candidate Identity"
+        ],
+        "summary": "GET /api/v1/candidate/profile",
+        "description": "Endpoint GET /api/v1/candidate/profile",
+        "operationId": "get_api_v1_candidate_profile",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Candidate Identity"
+        ],
+        "summary": "PATCH /api/v1/candidate/profile",
+        "description": "Endpoint PATCH /api/v1/candidate/profile",
+        "operationId": "patch_api_v1_candidate_profile",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/developer/audit": {
+      "get": {
+        "tags": [
+          "Developer Operations"
+        ],
+        "summary": "GET /api/v1/developer/audit",
+        "description": "Endpoint GET /api/v1/developer/audit",
+        "operationId": "get_api_v1_developer_audit",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/developer/health": {
+      "get": {
+        "tags": [
+          "Developer Operations"
+        ],
+        "summary": "GET /api/v1/developer/health",
+        "description": "Endpoint GET /api/v1/developer/health",
+        "operationId": "get_api_v1_developer_health",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/developer/health/{component}": {
+      "get": {
+        "tags": [
+          "Developer Operations"
+        ],
+        "summary": "GET /api/v1/developer/health/{component}",
+        "description": "Endpoint GET /api/v1/developer/health/{component}",
+        "operationId": "get_api_v1_developer_health_component",
+        "parameters": [
+          {
+            "name": "component",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/developer/incidents": {
+      "get": {
+        "tags": [
+          "Developer Operations"
+        ],
+        "summary": "GET /api/v1/developer/incidents",
+        "description": "Endpoint GET /api/v1/developer/incidents",
+        "operationId": "get_api_v1_developer_incidents",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/developer/incidents/{id}/acknowledge": {
+      "post": {
+        "tags": [
+          "Developer Operations"
+        ],
+        "summary": "POST /api/v1/developer/incidents/{id}/acknowledge",
+        "description": "Endpoint POST /api/v1/developer/incidents/{id}/acknowledge",
+        "operationId": "post_api_v1_developer_incidents_id_acknowledge",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/developer/incidents/{id}/resolve": {
+      "post": {
+        "tags": [
+          "Developer Operations"
+        ],
+        "summary": "POST /api/v1/developer/incidents/{id}/resolve",
+        "description": "Endpoint POST /api/v1/developer/incidents/{id}/resolve",
+        "operationId": "post_api_v1_developer_incidents_id_resolve",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/developer/logs": {
+      "get": {
+        "tags": [
+          "Developer Operations"
+        ],
+        "summary": "GET /api/v1/developer/logs",
+        "description": "Endpoint GET /api/v1/developer/logs",
+        "operationId": "get_api_v1_developer_logs",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/developer/overview": {
+      "get": {
+        "tags": [
+          "Developer Operations"
+        ],
+        "summary": "GET /api/v1/developer/overview",
+        "description": "Endpoint GET /api/v1/developer/overview",
+        "operationId": "get_api_v1_developer_overview",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/developer/topology": {
+      "get": {
+        "tags": [
+          "Developer Operations"
+        ],
+        "summary": "GET /api/v1/developer/topology",
+        "description": "Endpoint GET /api/v1/developer/topology",
+        "operationId": "get_api_v1_developer_topology",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/exams": {
+      "get": {
+        "tags": [
+          "Exams & Blueprints"
+        ],
+        "summary": "GET /api/v1/exams",
+        "description": "Endpoint GET /api/v1/exams",
+        "operationId": "get_api_v1_exams",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Exams & Blueprints"
+        ],
+        "summary": "POST /api/v1/exams",
+        "description": "Endpoint POST /api/v1/exams",
+        "operationId": "post_api_v1_exams",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/exams/{examId}/results": {
+      "get": {
+        "tags": [
+          "Exams & Blueprints"
+        ],
+        "summary": "GET /api/v1/exams/{examId}/results",
+        "description": "Endpoint GET /api/v1/exams/{examId}/results",
+        "operationId": "get_api_v1_exams_examId_results",
+        "parameters": [
+          {
+            "name": "examId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/exams/{examId}/results/policy": {
+      "patch": {
+        "tags": [
+          "Exams & Blueprints"
+        ],
+        "summary": "PATCH /api/v1/exams/{examId}/results/policy",
+        "description": "Endpoint PATCH /api/v1/exams/{examId}/results/policy",
+        "operationId": "patch_api_v1_exams_examId_results_policy",
+        "parameters": [
+          {
+            "name": "examId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/exams/{examId}/results/publish": {
+      "post": {
+        "tags": [
+          "Exams & Blueprints"
+        ],
+        "summary": "POST /api/v1/exams/{examId}/results/publish",
+        "description": "Endpoint POST /api/v1/exams/{examId}/results/publish",
+        "operationId": "post_api_v1_exams_examId_results_publish",
+        "parameters": [
+          {
+            "name": "examId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/exams/{examId}/results/summary": {
+      "get": {
+        "tags": [
+          "Exams & Blueprints"
+        ],
+        "summary": "GET /api/v1/exams/{examId}/results/summary",
+        "description": "Endpoint GET /api/v1/exams/{examId}/results/summary",
+        "operationId": "get_api_v1_exams_examId_results_summary",
+        "parameters": [
+          {
+            "name": "examId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/exams/{id}": {
+      "get": {
+        "tags": [
+          "Exams & Blueprints"
+        ],
+        "summary": "GET /api/v1/exams/{id}",
+        "description": "Endpoint GET /api/v1/exams/{id}",
+        "operationId": "get_api_v1_exams_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Exams & Blueprints"
+        ],
+        "summary": "PUT /api/v1/exams/{id}",
+        "description": "Endpoint PUT /api/v1/exams/{id}",
+        "operationId": "put_api_v1_exams_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/exams/{id}/analytics": {
+      "get": {
+        "tags": [
+          "Exams & Blueprints"
+        ],
+        "summary": "GET /api/v1/exams/{id}/analytics",
+        "description": "Endpoint GET /api/v1/exams/{id}/analytics",
+        "operationId": "get_api_v1_exams_id_analytics",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/exams/{id}/blueprint/validate": {
+      "get": {
+        "tags": [
+          "Exams & Blueprints"
+        ],
+        "summary": "GET /api/v1/exams/{id}/blueprint/validate",
+        "description": "Endpoint GET /api/v1/exams/{id}/blueprint/validate",
+        "operationId": "get_api_v1_exams_id_blueprint_validate",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/exams/{id}/publish": {
+      "post": {
+        "tags": [
+          "Exams & Blueprints"
+        ],
+        "summary": "POST /api/v1/exams/{id}/publish",
+        "description": "Endpoint POST /api/v1/exams/{id}/publish",
+        "operationId": "post_api_v1_exams_id_publish",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/exams/{id}/rules": {
+      "post": {
+        "tags": [
+          "Exams & Blueprints"
+        ],
+        "summary": "POST /api/v1/exams/{id}/rules",
+        "description": "Endpoint POST /api/v1/exams/{id}/rules",
+        "operationId": "post_api_v1_exams_id_rules",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/exams/{id}/rules/{ruleId}": {
+      "delete": {
+        "tags": [
+          "Exams & Blueprints"
+        ],
+        "summary": "DELETE /api/v1/exams/{id}/rules/{ruleId}",
+        "description": "Endpoint DELETE /api/v1/exams/{id}/rules/{ruleId}",
+        "operationId": "delete_api_v1_exams_id_rules_ruleId",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ruleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/faculty/question-bank/banks": {
+      "get": {
+        "tags": [
+          "Question Bank"
+        ],
+        "summary": "GET /api/v1/faculty/question-bank/banks",
+        "description": "Endpoint GET /api/v1/faculty/question-bank/banks",
+        "operationId": "get_api_v1_faculty_question-bank_banks",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Question Bank"
+        ],
+        "summary": "POST /api/v1/faculty/question-bank/banks",
+        "description": "Endpoint POST /api/v1/faculty/question-bank/banks",
+        "operationId": "post_api_v1_faculty_question-bank_banks",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/faculty/question-bank/banks/{bankId}": {
+      "delete": {
+        "tags": [
+          "Question Bank"
+        ],
+        "summary": "DELETE /api/v1/faculty/question-bank/banks/{bankId}",
+        "description": "Endpoint DELETE /api/v1/faculty/question-bank/banks/{bankId}",
+        "operationId": "delete_api_v1_faculty_question-bank_banks_bankId",
+        "parameters": [
+          {
+            "name": "bankId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Question Bank"
+        ],
+        "summary": "GET /api/v1/faculty/question-bank/banks/{bankId}",
+        "description": "Endpoint GET /api/v1/faculty/question-bank/banks/{bankId}",
+        "operationId": "get_api_v1_faculty_question-bank_banks_bankId",
+        "parameters": [
+          {
+            "name": "bankId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Question Bank"
+        ],
+        "summary": "PUT /api/v1/faculty/question-bank/banks/{bankId}",
+        "description": "Endpoint PUT /api/v1/faculty/question-bank/banks/{bankId}",
+        "operationId": "put_api_v1_faculty_question-bank_banks_bankId",
+        "parameters": [
+          {
+            "name": "bankId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/faculty/question-bank/questions": {
+      "get": {
+        "tags": [
+          "Question Bank"
+        ],
+        "summary": "GET /api/v1/faculty/question-bank/questions",
+        "description": "Endpoint GET /api/v1/faculty/question-bank/questions",
+        "operationId": "get_api_v1_faculty_question-bank_questions",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Question Bank"
+        ],
+        "summary": "POST /api/v1/faculty/question-bank/questions",
+        "description": "Endpoint POST /api/v1/faculty/question-bank/questions",
+        "operationId": "post_api_v1_faculty_question-bank_questions",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/faculty/question-bank/questions/{id}": {
+      "delete": {
+        "tags": [
+          "Question Bank"
+        ],
+        "summary": "DELETE /api/v1/faculty/question-bank/questions/{id}",
+        "description": "Endpoint DELETE /api/v1/faculty/question-bank/questions/{id}",
+        "operationId": "delete_api_v1_faculty_question-bank_questions_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Question Bank"
+        ],
+        "summary": "GET /api/v1/faculty/question-bank/questions/{id}",
+        "description": "Endpoint GET /api/v1/faculty/question-bank/questions/{id}",
+        "operationId": "get_api_v1_faculty_question-bank_questions_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Question Bank"
+        ],
+        "summary": "PUT /api/v1/faculty/question-bank/questions/{id}",
+        "description": "Endpoint PUT /api/v1/faculty/question-bank/questions/{id}",
+        "operationId": "put_api_v1_faculty_question-bank_questions_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/faculty/question-bank/questions/{id}/clone": {
+      "post": {
+        "tags": [
+          "Question Bank"
+        ],
+        "summary": "POST /api/v1/faculty/question-bank/questions/{id}/clone",
+        "description": "Endpoint POST /api/v1/faculty/question-bank/questions/{id}/clone",
+        "operationId": "post_api_v1_faculty_question-bank_questions_id_clone",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/interventions/attempts/{attemptId}/history": {
+      "get": {
+        "tags": [
+          "Attempts & Taking"
+        ],
+        "summary": "GET /api/v1/interventions/attempts/{attemptId}/history",
+        "description": "Endpoint GET /api/v1/interventions/attempts/{attemptId}/history",
+        "operationId": "get_api_v1_interventions_attempts_attemptId_history",
+        "parameters": [
+          {
+            "name": "attemptId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/interventions/attempts/{attemptId}/message": {
+      "post": {
+        "tags": [
+          "Attempts & Taking"
+        ],
+        "summary": "POST /api/v1/interventions/attempts/{attemptId}/message",
+        "description": "Endpoint POST /api/v1/interventions/attempts/{attemptId}/message",
+        "operationId": "post_api_v1_interventions_attempts_attemptId_message",
+        "parameters": [
+          {
+            "name": "attemptId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/interventions/attempts/{attemptId}/pause": {
+      "post": {
+        "tags": [
+          "Attempts & Taking"
+        ],
+        "summary": "POST /api/v1/interventions/attempts/{attemptId}/pause",
+        "description": "Endpoint POST /api/v1/interventions/attempts/{attemptId}/pause",
+        "operationId": "post_api_v1_interventions_attempts_attemptId_pause",
+        "parameters": [
+          {
+            "name": "attemptId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/interventions/attempts/{attemptId}/resume": {
+      "post": {
+        "tags": [
+          "Attempts & Taking"
+        ],
+        "summary": "POST /api/v1/interventions/attempts/{attemptId}/resume",
+        "description": "Endpoint POST /api/v1/interventions/attempts/{attemptId}/resume",
+        "operationId": "post_api_v1_interventions_attempts_attemptId_resume",
+        "parameters": [
+          {
+            "name": "attemptId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/interventions/attempts/{attemptId}/terminate": {
+      "post": {
+        "tags": [
+          "Attempts & Taking"
+        ],
+        "summary": "POST /api/v1/interventions/attempts/{attemptId}/terminate",
+        "description": "Endpoint POST /api/v1/interventions/attempts/{attemptId}/terminate",
+        "operationId": "post_api_v1_interventions_attempts_attemptId_terminate",
+        "parameters": [
+          {
+            "name": "attemptId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/interventions/sessions/{sessionId}/announcements": {
+      "post": {
+        "tags": [
+          "Sessions & Scheduling"
+        ],
+        "summary": "POST /api/v1/interventions/sessions/{sessionId}/announcements",
+        "description": "Endpoint POST /api/v1/interventions/sessions/{sessionId}/announcements",
+        "operationId": "post_api_v1_interventions_sessions_sessionId_announcements",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/interventions/sessions/{sessionId}/history": {
+      "get": {
+        "tags": [
+          "Sessions & Scheduling"
+        ],
+        "summary": "GET /api/v1/interventions/sessions/{sessionId}/history",
+        "description": "Endpoint GET /api/v1/interventions/sessions/{sessionId}/history",
+        "operationId": "get_api_v1_interventions_sessions_sessionId_history",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/interventions/sessions/{sessionId}/incidents": {
+      "get": {
+        "tags": [
+          "Sessions & Scheduling"
+        ],
+        "summary": "GET /api/v1/interventions/sessions/{sessionId}/incidents",
+        "description": "Endpoint GET /api/v1/interventions/sessions/{sessionId}/incidents",
+        "operationId": "get_api_v1_interventions_sessions_sessionId_incidents",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Sessions & Scheduling"
+        ],
+        "summary": "POST /api/v1/interventions/sessions/{sessionId}/incidents",
+        "description": "Endpoint POST /api/v1/interventions/sessions/{sessionId}/incidents",
+        "operationId": "post_api_v1_interventions_sessions_sessionId_incidents",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/interventions/sessions/{sessionId}/sign-off": {
+      "get": {
+        "tags": [
+          "Sessions & Scheduling"
+        ],
+        "summary": "GET /api/v1/interventions/sessions/{sessionId}/sign-off",
+        "description": "Endpoint GET /api/v1/interventions/sessions/{sessionId}/sign-off",
+        "operationId": "get_api_v1_interventions_sessions_sessionId_sign-off",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Sessions & Scheduling"
+        ],
+        "summary": "POST /api/v1/interventions/sessions/{sessionId}/sign-off",
+        "description": "Endpoint POST /api/v1/interventions/sessions/{sessionId}/sign-off",
+        "operationId": "post_api_v1_interventions_sessions_sessionId_sign-off",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/results/{resultId}/evaluation": {
+      "get": {
+        "tags": [
+          "Results & Manual Grading"
+        ],
+        "summary": "GET /api/v1/results/{resultId}/evaluation",
+        "description": "Endpoint GET /api/v1/results/{resultId}/evaluation",
+        "operationId": "get_api_v1_results_resultId_evaluation",
+        "parameters": [
+          {
+            "name": "resultId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/results/{resultId}/manual-grade": {
+      "post": {
+        "tags": [
+          "Results & Manual Grading"
+        ],
+        "summary": "POST /api/v1/results/{resultId}/manual-grade",
+        "description": "Endpoint POST /api/v1/results/{resultId}/manual-grade",
+        "operationId": "post_api_v1_results_resultId_manual-grade",
+        "parameters": [
+          {
+            "name": "resultId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/results/{resultId}/manual-grade/audits": {
+      "get": {
+        "tags": [
+          "Results & Manual Grading"
+        ],
+        "summary": "GET /api/v1/results/{resultId}/manual-grade/audits",
+        "description": "Endpoint GET /api/v1/results/{resultId}/manual-grade/audits",
+        "operationId": "get_api_v1_results_resultId_manual-grade_audits",
+        "parameters": [
+          {
+            "name": "resultId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions": {
+      "get": {
+        "tags": [
+          "Sessions & Scheduling"
+        ],
+        "summary": "GET /api/v1/sessions",
+        "description": "Endpoint GET /api/v1/sessions",
+        "operationId": "get_api_v1_sessions",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Sessions & Scheduling"
+        ],
+        "summary": "POST /api/v1/sessions",
+        "description": "Endpoint POST /api/v1/sessions",
+        "operationId": "post_api_v1_sessions",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/rooms": {
+      "get": {
+        "tags": [
+          "Sessions & Scheduling"
+        ],
+        "summary": "GET /api/v1/sessions/rooms",
+        "description": "Endpoint GET /api/v1/sessions/rooms",
+        "operationId": "get_api_v1_sessions_rooms",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Sessions & Scheduling"
+        ],
+        "summary": "POST /api/v1/sessions/rooms",
+        "description": "Endpoint POST /api/v1/sessions/rooms",
+        "operationId": "post_api_v1_sessions_rooms",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{id}": {
+      "get": {
+        "tags": [
+          "Sessions & Scheduling"
+        ],
+        "summary": "GET /api/v1/sessions/{id}",
+        "description": "Endpoint GET /api/v1/sessions/{id}",
+        "operationId": "get_api_v1_sessions_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Sessions & Scheduling"
+        ],
+        "summary": "PUT /api/v1/sessions/{id}",
+        "description": "Endpoint PUT /api/v1/sessions/{id}",
+        "operationId": "put_api_v1_sessions_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{id}/attempts": {
+      "post": {
+        "tags": [
+          "Sessions & Scheduling"
+        ],
+        "summary": "POST /api/v1/sessions/{id}/attempts",
+        "description": "Endpoint POST /api/v1/sessions/{id}/attempts",
+        "operationId": "post_api_v1_sessions_id_attempts",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{id}/ice-servers": {
+      "get": {
+        "tags": [
+          "Sessions & Scheduling"
+        ],
+        "summary": "GET /api/v1/sessions/{id}/ice-servers",
+        "description": "Endpoint GET /api/v1/sessions/{id}/ice-servers",
+        "operationId": "get_api_v1_sessions_id_ice-servers",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{id}/invigilators": {
+      "post": {
+        "tags": [
+          "Sessions & Scheduling"
+        ],
+        "summary": "POST /api/v1/sessions/{id}/invigilators",
+        "description": "Endpoint POST /api/v1/sessions/{id}/invigilators",
+        "operationId": "post_api_v1_sessions_id_invigilators",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{id}/invigilators/{userId}": {
+      "delete": {
+        "tags": [
+          "Sessions & Scheduling"
+        ],
+        "summary": "DELETE /api/v1/sessions/{id}/invigilators/{userId}",
+        "description": "Endpoint DELETE /api/v1/sessions/{id}/invigilators/{userId}",
+        "operationId": "delete_api_v1_sessions_id_invigilators_userId",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{id}/my-attempt": {
+      "get": {
+        "tags": [
+          "Sessions & Scheduling"
+        ],
+        "summary": "GET /api/v1/sessions/{id}/my-attempt",
+        "description": "Endpoint GET /api/v1/sessions/{id}/my-attempt",
+        "operationId": "get_api_v1_sessions_id_my-attempt",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{id}/proctoring/summary": {
+      "get": {
+        "tags": [
+          "Sessions & Scheduling"
+        ],
+        "summary": "GET /api/v1/sessions/{id}/proctoring/summary",
+        "description": "Endpoint GET /api/v1/sessions/{id}/proctoring/summary",
+        "operationId": "get_api_v1_sessions_id_proctoring_summary",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{id}/students": {
+      "post": {
+        "tags": [
+          "Sessions & Scheduling"
+        ],
+        "summary": "POST /api/v1/sessions/{id}/students",
+        "description": "Endpoint POST /api/v1/sessions/{id}/students",
+        "operationId": "post_api_v1_sessions_id_students",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{id}/students/{studentId}": {
+      "delete": {
+        "tags": [
+          "Sessions & Scheduling"
+        ],
+        "summary": "DELETE /api/v1/sessions/{id}/students/{studentId}",
+        "description": "Endpoint DELETE /api/v1/sessions/{id}/students/{studentId}",
+        "operationId": "delete_api_v1_sessions_id_students_studentId",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "studentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionId}/ice-servers": {
+      "get": {
+        "tags": [
+          "Sessions & Scheduling"
+        ],
+        "summary": "GET /api/v1/sessions/{sessionId}/ice-servers",
+        "description": "Endpoint GET /api/v1/sessions/{sessionId}/ice-servers",
+        "operationId": "get_api_v1_sessions_sessionId_ice-servers",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionId}/proctoring/summary": {
+      "get": {
+        "tags": [
+          "Sessions & Scheduling"
+        ],
+        "summary": "GET /api/v1/sessions/{sessionId}/proctoring/summary",
+        "description": "Endpoint GET /api/v1/sessions/{sessionId}/proctoring/summary",
+        "operationId": "get_api_v1_sessions_sessionId_proctoring_summary",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/users/me/first-login/change-password": {
+      "post": {
+        "tags": [
+          "General"
+        ],
+        "summary": "POST /api/v1/users/me/first-login/change-password",
+        "description": "Endpoint POST /api/v1/users/me/first-login/change-password",
+        "operationId": "post_api_v1_users_me_first-login_change-password",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/users/me/onboarding": {
+      "post": {
+        "tags": [
+          "General"
+        ],
+        "summary": "POST /api/v1/users/me/onboarding",
+        "description": "Endpoint POST /api/v1/users/me/onboarding",
+        "operationId": "post_api_v1_users_me_onboarding",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/users/me/onboarding-status": {
+      "get": {
+        "tags": [
+          "General"
+        ],
+        "summary": "GET /api/v1/users/me/onboarding-status",
+        "description": "Endpoint GET /api/v1/users/me/onboarding-status",
+        "operationId": "get_api_v1_users_me_onboarding-status",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "Health & System"
+        ],
+        "summary": "GET /health",
+        "description": "Endpoint GET /health",
+        "operationId": "get_health",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/metrics": {
+      "get": {
+        "tags": [
+          "Health & System"
+        ],
+        "summary": "GET /metrics",
+        "description": "Endpoint GET /metrics",
+        "operationId": "get_metrics",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/ready": {
+      "get": {
+        "tags": [
+          "Health & System"
+        ],
+        "summary": "GET /ready",
+        "description": "Endpoint GET /ready",
+        "operationId": "get_ready",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Bad Request / Validation Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid or Expired Token"
+          },
+          "403": {
+            "description": "Forbidden / Role Boundary Violation"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    }
+  }
+}

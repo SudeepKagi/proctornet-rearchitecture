@@ -176,9 +176,9 @@ describe('Attempts Service & Question Mapping Invariants', () => {
     await sessionService.assignStudents(activeSession.session_id, [studentUser1.userId, studentUser2.userId], facultyUser);
     await sessionService.assignInvigilator(activeSession.session_id, { userId: proctorUser.userId, role: 'PRIMARY' }, facultyUser);
 
-    // 6. Schedule Future Session (window not open yet)
-    const startFuture = new Date(now.getTime() + 60 * 60 * 1000);
-    const endFuture = new Date(now.getTime() + 180 * 60 * 1000);
+    // 6. Schedule Future Session (window not open yet, non-overlapping with activeSession)
+    const startFuture = new Date(now.getTime() + 150 * 60 * 1000);
+    const endFuture = new Date(now.getTime() + 270 * 60 * 1000);
     futureSession = await sessionService.createSession({
       exam_id: publishedExam.exam_id,
       scheduled_start_time: startFuture.toISOString(),

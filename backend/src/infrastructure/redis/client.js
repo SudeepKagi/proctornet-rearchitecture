@@ -70,6 +70,7 @@ export function createRedisClient(customConfig = {}) {
     connectTimeout: config.REDIS_CONNECT_TIMEOUT_MS,
     keyPrefix: 'proctornet:',
     enableOfflineQueue: false,
+    ...(config.REDIS_TLS ? { tls: {} } : {}),
     retryStrategy(times) {
       return defaultRetryStrategy(times);
     },

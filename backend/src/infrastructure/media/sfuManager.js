@@ -62,6 +62,80 @@ export function deterministicHash(str) {
   return Math.abs(hash);
 }
 
+let cachedAnnouncedIp = null;
+
+/**
+ * Resets the cached announced IP (useful for unit testing).
+ */
+export function resetAnnouncedIpCache() {
+  cachedAnnouncedIp = null;
+}
+
+/**
+ * Resolves the public announced IPv4 address for WebRTC ICE candidates.
+ * Precedence:
+ * 1. Explicit override option if passed.
+ * 2. Explicit per-instance environment configuration (config.MEDIA_ANNOUNCED_IP).
+ * 3. In-memory cached IP from earlier resolution.
+ * 4. Dynamic AWS IMDSv2 metadata endpoint (http://169.254.169.254) with bounded timeout.
+ * 5. Fallback: undefined (mediasoup binds to local interface without announced public candidate).
+ * @param {object} [options]
+ * @param {string} [options.overrideIp]
+ * @param {number} [options.timeoutMs=1000]
+ * @returns {Promise<string | undefined>}
+ */
+export async function resolveAnnouncedIp({ overrideIp = null, timeoutMs = 1000 } = {}) {
+  if (overrideIp) {
+    return overrideIp;
+  }
+  if (config.MEDIA_ANNOUNCED_IP) {
+    return config.MEDIA_ANNOUNCED_IP;
+  }
+  if (cachedAnnouncedIp) {
+    return cachedAnnouncedIp;
+  }
+
+  // Attempt dynamic resolution via AWS IMDSv2
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    if (typeof timer.unref === 'function') timer.unref();
+
+    const tokenRes = await fetch('http://169.254.169.254/latest/api/token', {
+      method: 'PUT',
+      headers: {
+        'X-aws-ec2-metadata-token-ttl-seconds': '60'
+      },
+      signal: controller.signal
+    });
+
+    if (tokenRes.ok) {
+      const token = (await tokenRes.text()).trim();
+      const ipRes = await fetch('http://169.254.169.254/latest/meta-data/public-ipv4', {
+        headers: {
+          'X-aws-ec2-metadata-token': token
+        },
+        signal: controller.signal
+      });
+
+      if (ipRes.ok) {
+        const publicIp = (await ipRes.text()).trim();
+        if (/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(publicIp)) {
+          cachedAnnouncedIp = publicIp;
+          logger.info({ publicIp }, 'Resolved instance-specific media announced IP via AWS IMDSv2');
+          clearTimeout(timer);
+          return publicIp;
+        }
+      }
+    }
+    clearTimeout(timer);
+  } catch (err) {
+    logger.debug({ err: err.message }, 'AWS IMDSv2 public IP resolution bypassed; defaulting to local interface');
+  }
+
+  return undefined;
+}
+
 export class SfuManager {
   constructor() {
     this.workerContexts = [];
@@ -416,10 +490,12 @@ export class SfuManager {
   async createTransport(sessionId, connectionId, userId, direction) {
     const { router, workerId, workerGeneration } = await this.getOrCreateRouter(sessionId);
 
+    const announcedIp = await resolveAnnouncedIp();
+
     const listenIps = [
       {
         ip: config.MEDIA_LISTEN_IP,
-        announcedIp: config.MEDIA_ANNOUNCED_IP || undefined
+        announcedIp: announcedIp || undefined
       }
     ];
 
@@ -961,6 +1037,33 @@ export class SfuManager {
     } catch (err) {
       logger.warn({ err: err.message }, 'Redis reconciliation warning');
     }
+  }
+
+  /**
+   * Creates an inter-router pipe transport to relay media between worker routers (ADR-0013).
+   * Enables multi-worker horizontal scaling across CPU cores and router boundaries.
+   * @param {string} sourceSessionId
+   * @param {string} targetSessionId
+   * @param {string} producerId
+   * @returns {Promise<{ pipeConsumer: object, pipeProducer: object }>}
+   */
+  async pipeProducerBetweenSessions(sourceSessionId, targetSessionId, producerId) {
+    const sourceSession = this.sessions.get(sourceSessionId);
+    const targetSession = this.sessions.get(targetSessionId);
+    if (!sourceSession || !targetSession) {
+      throw new Error('Source or target session router not initialized');
+    }
+    const producerObj = this.producers.get(producerId);
+    if (!producerObj) {
+      throw new Error(`Producer ${producerId} not found`);
+    }
+
+    const { pipeConsumer, pipeProducer } = await sourceSession.router.pipeToRouter({
+      producerId,
+      router: targetSession.router
+    });
+
+    return { pipeConsumer, pipeProducer };
   }
 
   /**

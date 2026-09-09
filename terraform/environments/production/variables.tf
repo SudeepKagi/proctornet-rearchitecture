@@ -64,6 +64,12 @@ variable "enable_alb" {
   default     = false
 }
 
+variable "certificate_arn" {
+  type        = string
+  description = "ACM Certificate ARN for ALB HTTPS listener termination. Required when enable_alb is true."
+  default     = ""
+}
+
 variable "evidence_noncurrent_version_expiration_days" {
   type        = number
   description = "Days before non-current evidence object versions expire (null = retain indefinitely)"

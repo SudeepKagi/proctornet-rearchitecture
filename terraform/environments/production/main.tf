@@ -120,4 +120,5 @@ module "alb" {
   public_subnet_ids   = module.vpc.public_subnet_ids
   security_group_id   = module.security_groups.ec2_security_group_id
   target_instance_ids = [module.ec2.instance_id]
+  certificate_arn     = var.certificate_arn
 }

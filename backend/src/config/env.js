@@ -60,6 +60,15 @@ const envSchema = z.object({
     .regex(/^\d+$/, { message: 'DB_IDLE_TIMEOUT_MS must be a valid integer' })
     .transform(Number)
     .default('30000'),
+  DB_SSL: z
+    .union([z.boolean(), z.enum(['true', 'false', '1', '0'])])
+    .default('false')
+    .transform((val) => (typeof val === 'boolean' ? val : val === 'true' || val === '1')),
+  DB_SSL_CA: z.string().optional(),
+  DB_SSL_REJECT_UNAUTHORIZED: z
+    .union([z.boolean(), z.enum(['true', 'false', '1', '0'])])
+    .default('true')
+    .transform((val) => (typeof val === 'boolean' ? val : val === 'true' || val === '1')),
 
   // Authentication & Security configuration
   JWT_ACCESS_SECRET: z
@@ -113,6 +122,10 @@ const envSchema = z.object({
     .regex(/^\d+$/, { message: 'REDIS_CONNECT_TIMEOUT_MS must be a valid integer' })
     .transform(Number)
     .default('5000'),
+  REDIS_TLS: z
+    .union([z.boolean(), z.enum(['true', 'false', '1', '0'])])
+    .default('false')
+    .transform((val) => (typeof val === 'boolean' ? val : val === 'true' || val === '1')),
 
   // RabbitMQ configuration
   RABBITMQ_ENABLED: z

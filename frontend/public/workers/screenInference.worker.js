@@ -48,7 +48,10 @@ async function handleInit(payload = {}) {
     }
 
     const jsonText = await response.text();
-    const actualSha256 = await computeSha256(jsonText);
+    let actualSha256 = await computeSha256(jsonText);
+    if (actualSha256.toLowerCase() !== expectedSha256.toLowerCase() && jsonText.includes('\r\n')) {
+      actualSha256 = await computeSha256(jsonText.replace(/\r\n/g, '\n'));
+    }
 
     if (actualSha256.toLowerCase() !== expectedSha256.toLowerCase()) {
       throw new Error(`MODEL_INTEGRITY_MISMATCH: expected ${expectedSha256}, got ${actualSha256}`);
