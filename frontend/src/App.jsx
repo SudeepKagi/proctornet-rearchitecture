@@ -53,6 +53,15 @@ import { UserDetailPage } from './pages/admin/UserDetailPage.jsx';
 import { OrganizationSettingsPage } from './pages/admin/OrganizationSettingsPage.jsx';
 import { AdminAuditPage } from './pages/admin/AdminAuditPage.jsx';
 
+// Developer Operations Pages (Phase 27)
+import { DeveloperLayout } from './components/layout/DeveloperLayout.jsx';
+import { DeveloperOverviewPage } from './pages/developer/DeveloperOverviewPage.jsx';
+import { DeveloperHealthPage } from './pages/developer/DeveloperHealthPage.jsx';
+import { DeveloperLogsPage } from './pages/developer/DeveloperLogsPage.jsx';
+import { DeveloperAuditPage } from './pages/developer/DeveloperAuditPage.jsx';
+import { DeveloperTopologyPage } from './pages/developer/DeveloperTopologyPage.jsx';
+import { DeveloperIncidentsPage } from './pages/developer/DeveloperIncidentsPage.jsx';
+
 function RootRedirect() {
   const { user, isAuthenticated, loading } = useAuth();
   if (loading) return null;
@@ -81,6 +90,7 @@ function RootRedirect() {
   }
 
   if (user?.roles?.includes('ADMIN')) return <Navigate to="/admin" replace />;
+  if (user?.roles?.includes('DEVELOPER')) return <Navigate to="/developer/overview" replace />;
   if (user?.roles?.includes('FACULTY')) return <Navigate to="/faculty" replace />;
   if (user?.roles?.includes('INVIGILATOR')) return <Navigate to="/invigilator" replace />;
   return <Navigate to="/candidate" replace />;
@@ -370,6 +380,24 @@ export function App() {
               </RoleRoute>
             }
           />
+
+          {/* Developer Operations Routes (Phase 27) */}
+          <Route
+            path="/developer"
+            element={
+              <RoleRoute allowedRoles={['DEVELOPER']}>
+                <DeveloperLayout />
+              </RoleRoute>
+            }
+          >
+            <Route index element={<Navigate to="/developer/overview" replace />} />
+            <Route path="overview" element={<DeveloperOverviewPage />} />
+            <Route path="health" element={<DeveloperHealthPage />} />
+            <Route path="logs" element={<DeveloperLogsPage />} />
+            <Route path="audit" element={<DeveloperAuditPage />} />
+            <Route path="topology" element={<DeveloperTopologyPage />} />
+            <Route path="incidents" element={<DeveloperIncidentsPage />} />
+          </Route>
         </Route>
 
         {/* Unmatched routes */}

@@ -185,6 +185,20 @@ export function Navbar() {
                   </Link>
                 </>
               )}
+
+              {user?.roles?.includes('DEVELOPER') && (
+                <Link
+                  to="/developer"
+                  style={{
+                    color: 'var(--color-primary)',
+                    textDecoration: 'none',
+                    fontSize: '0.875rem',
+                    fontWeight: 600,
+                  }}
+                >
+                  Developer Ops
+                </Link>
+              )}
             </nav>
           )}
         </div>

@@ -121,6 +121,21 @@ resource "aws_vpc_security_group_ingress_rule" "ec2_ssh_admin" {
   }
 }
 
+# Ingress: WireGuard VPN Gateway UDP (Phase 27 Management Plane)
+# Allows encrypted UDP tunneling into the ProctorNet Management Plane (10.100.0.0/24)
+resource "aws_vpc_security_group_ingress_rule" "ec2_wireguard_udp" {
+  security_group_id = aws_security_group.ec2.id
+  description       = "Allow inbound UDP for WireGuard VPN management plane gateway"
+  cidr_ipv4         = var.wireguard_ingress_cidr != "" ? var.wireguard_ingress_cidr : "0.0.0.0/0"
+  ip_protocol       = "udp"
+  from_port         = 51820
+  to_port           = 51820
+
+  tags = {
+    Name = "${var.project_name}-${var.environment}-ec2-wireguard-udp"
+  }
+}
+
 # Egress: All outbound traffic
 resource "aws_vpc_security_group_egress_rule" "ec2_egress_all" {
   security_group_id = aws_security_group.ec2.id

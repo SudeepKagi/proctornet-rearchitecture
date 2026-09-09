@@ -84,12 +84,15 @@ export async function query(text, params) {
 export async function checkDatabaseHealth(timeoutMs = 3000) {
   const start = process.hrtime.bigint();
   try {
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Database health check timeout')), timeoutMs)
-    );
+    let timerId;
+    const timeoutPromise = new Promise((_, reject) => {
+      timerId = setTimeout(() => reject(new Error('Database health check timeout')), timeoutMs);
+      if (typeof timerId.unref === 'function') timerId.unref();
+    });
 
     const queryPromise = query('SELECT 1 AS healthy');
     await Promise.race([queryPromise, timeoutPromise]);
+    clearTimeout(timerId);
 
     const latencyMs = Number(process.hrtime.bigint() - start) / 1e6;
     return {
