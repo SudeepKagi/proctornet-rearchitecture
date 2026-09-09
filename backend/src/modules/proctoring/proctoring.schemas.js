@@ -1,13 +1,19 @@
 /**
  * @file proctoring.schemas.js
  * @description Zod validation schemas for proctoring event ingestion, timeline queries, and flag management.
- * Enforces strict input bounds and privacy guarantees.
+ * Enforces strict input bounds, untrusted client boundaries, and privacy guarantees.
  */
 
 import { z } from 'zod';
 import { EVENT_TAXONOMY } from './anomalyScorer.js';
 
-const ALLOWED_EVENT_TYPES = Object.keys(EVENT_TAXONOMY);
+/**
+ * Event types that are permissible for untrusted client submission.
+ * Strictly EXCLUDES server-derived anomalies such as 'REPEATED_CONTEXT_SWITCHING'.
+ */
+export const CLIENT_ALLOWED_EVENT_TYPES = Object.freeze(
+  Object.keys(EVENT_TAXONOMY).filter((type) => type !== 'REPEATED_CONTEXT_SWITCHING')
+);
 
 /**
  * Validates that clientTimestamp is not more than 60 seconds into the future.
@@ -31,14 +37,33 @@ const safeMetadataSchema = z
     target: z.string().max(64).optional(),
     keyCombo: z.string().max(64).optional(),
     displayCount: z.number().int().positive().max(16).optional(),
-    screenState: z.string().max(64).optional()
+    screenState: z.string().max(64).optional(),
+    contextState: z.enum(['EXAM_CONTEXT', 'NON_EXAM_CONTEXT', 'UNKNOWN_CONTEXT']).optional(),
+    confidence: z.number().min(0).max(1).optional(),
+    reason: z.string().max(256).optional(),
+    source: z.string().max(32).optional(),
+    fps: z.number().nonnegative().max(120).optional(),
+    modelId: z.string().max(64).optional(),
+    modelVersion: z.string().max(32).optional()
   })
   .passthrough() // allow other non-sensitive keys but sanitize payload
   .refine(
     (obj) => {
       // Prohibit sensitive keywords in metadata keys or values
       const stringified = JSON.stringify(obj).toLowerCase();
-      const forbidden = ['password', 'passwd', 'clipboardtext', 'keystroke', 'answer', 'token', 'cookie', 'secret'];
+      const forbidden = [
+        'password',
+        'passwd',
+        'clipboardtext',
+        'keystroke',
+        'answer',
+        'token',
+        'cookie',
+        'secret',
+        'riskscore',
+        'risk_score',
+        'severity'
+      ];
       return !forbidden.some((word) => stringified.includes(word));
     },
     { message: 'Metadata contains forbidden sensitive keys or payload content' }
@@ -55,13 +80,15 @@ const safeMetadataSchema = z
 
 /**
  * Schema for a single client-reported telemetry event.
- * Prohibits client-supplied severity, risk score, or reviewer fields.
+ * Prohibits client-supplied severity, risk score, reviewer fields, or server-derived anomalies.
  */
 export const clientEventItemSchema = z
   .object({
     eventId: z.string().uuid({ message: 'eventId must be a valid UUIDv4' }),
-    eventType: z.enum(ALLOWED_EVENT_TYPES, {
-      errorMap: () => ({ message: `eventType must be one of: ${ALLOWED_EVENT_TYPES.join(', ')}` })
+    eventType: z.enum(CLIENT_ALLOWED_EVENT_TYPES, {
+      errorMap: () => ({
+        message: `eventType must be one of: ${CLIENT_ALLOWED_EVENT_TYPES.join(', ')}. Direct client submission of server-derived events (e.g. REPEATED_CONTEXT_SWITCHING) is strictly prohibited.`
+      })
     }),
     clientTimestamp: z
       .string()
@@ -99,7 +126,6 @@ export const createManualFlagSchema = z
     student_id: z.never({ message: 'Client cannot provide student_id. It is derived server-side.' }).optional()
   })
   .strict();
-
 
 /**
  * Schema for updating/reviewing a proctor flag.

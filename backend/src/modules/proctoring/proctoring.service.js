@@ -7,7 +7,7 @@
 
 import { getPool } from '../../infrastructure/postgres/pool.js';
 import * as proctoringRepo from './proctoring.repository.js';
-import { EVENT_TAXONOMY, calculateNewRiskScore, evaluateFlagsToRaise } from './anomalyScorer.js';
+import { EVENT_TAXONOMY, calculateNewRiskScore, evaluateFlagsToRaise, getEventWeight } from './anomalyScorer.js';
 import { insertOutboxEvent } from '../outbox/outbox.repository.js';
 import { triggerOutboxDispatch } from '../outbox/outbox.service.js';
 import { recordAuditEvent } from '../audit/audit.service.js';
@@ -90,14 +90,57 @@ export async function ingestCandidateEvents(attemptId, user, events) {
       if (!taxonomy) {
         throw new BadRequestError(`Invalid event type '${event.eventType}'`);
       }
+      const { effectiveSeverity } = getEventWeight(event);
       return {
         eventId: event.eventId,
         eventType: event.eventType,
-        severity: taxonomy.severity,
+        severity: effectiveSeverity || taxonomy.severity,
         clientTimestamp: event.clientTimestamp,
         metadata: event.metadata || {}
       };
     });
+
+    // Fetch contextual telemetry for sliding-window escalation and correlation
+    const recentEvents = await proctoringRepo.getRecentEventsForAttempt(attemptId, 300, client);
+    const currentTechnicalPoints = await proctoringRepo.getTechnicalRiskPointsForAttempt(attemptId, client);
+    const recentFullscreenCount = recentEvents.filter((e) => e.event_type === 'FULLSCREEN_EXIT').length;
+
+    // STAGE 3: Server-side Correlation for REPEATED_CONTEXT_SWITCHING
+    // Check if client events or recent window show focus/visibility loss coinciding with non-exam context
+    const hasFocusLoss = mappedEvents.some((e) =>
+      ['BROWSER_FOCUS_LOST', 'EXAM_VISIBILITY_LOST', 'WINDOW_BLUR', 'TAB_HIDDEN'].includes(e.eventType)
+    );
+    const hasNonExamContext = mappedEvents.some(
+      (e) => e.eventType === 'SCREEN_CONTEXT_CLASSIFICATION' && e.metadata?.contextState === 'NON_EXAM_CONTEXT'
+    );
+    const recentFocusLoss = recentEvents.some(
+      (e) => ['BROWSER_FOCUS_LOST', 'EXAM_VISIBILITY_LOST', 'WINDOW_BLUR', 'TAB_HIDDEN'].includes(e.event_type) &&
+             (Date.now() - new Date(e.server_timestamp).getTime()) <= 3000
+    );
+    const recentNonExam = recentEvents.some(
+      (e) => e.event_type === 'SCREEN_CONTEXT_CLASSIFICATION' && e.metadata?.contextState === 'NON_EXAM_CONTEXT' &&
+             (Date.now() - new Date(e.server_timestamp).getTime()) <= 3000
+    );
+
+    const isCorrelated = (hasFocusLoss && (hasNonExamContext || recentNonExam)) || (hasNonExamContext && recentFocusLoss);
+    const alreadyDerivedRecently = recentEvents.some(
+      (e) => e.event_type === 'REPEATED_CONTEXT_SWITCHING' &&
+             (Date.now() - new Date(e.server_timestamp).getTime()) <= 10000
+    );
+
+    if (isCorrelated && !alreadyDerivedRecently) {
+      mappedEvents.push({
+        eventId: crypto.randomUUID(),
+        eventType: 'REPEATED_CONTEXT_SWITCHING',
+        severity: 'HIGH',
+        clientTimestamp: new Date().toISOString(),
+        metadata: {
+          reason: 'Server-correlated focus loss coinciding with non-exam visual context',
+          autoDerived: true,
+          source: 'BROWSER'
+        }
+      });
+    }
 
     // 5. Batch insert into violation_events with ON CONFLICT DO NOTHING
     const insertedRows = await proctoringRepo.insertViolationEventsBatch(attemptId, mappedEvents, client);
@@ -110,14 +153,25 @@ export async function ingestCandidateEvents(attemptId, user, events) {
 
     // 6. If new genuine events were accepted, update risk score and evaluate flags
     if (accepted > 0) {
-      newScore = calculateNewRiskScore(currentScore, insertedRows);
+      const allEventsOnAttempt = await proctoringRepo.getAllEventTypesForAttempt(attemptId, client);
+      const hasOnlyTechnicalEvents = allEventsOnAttempt.length > 0 &&
+        allEventsOnAttempt.every((type) => type === 'SCREEN_CAPTURE_INTERRUPTED' || type === 'SCREEN_STREAM_DEGRADED');
+
+      newScore = calculateNewRiskScore(currentScore, insertedRows, {
+        currentTechnicalPoints,
+        recentFullscreenCount,
+        hasOnlyTechnicalEvents
+      });
 
       if (newScore !== currentScore) {
         await proctoringRepo.updateAttemptRiskScore(attemptId, newScore, client);
       }
 
       // Evaluate flag threshold crossings and immediate event overrides
-      const flagsToRaise = evaluateFlagsToRaise(currentScore, newScore, insertedRows);
+      const flagsToRaise = evaluateFlagsToRaise(currentScore, newScore, insertedRows, {
+        hasOnlyTechnicalEvents,
+        recentFullscreenCount
+      });
       const createdFlagsList = [];
 
       for (const flag of flagsToRaise) {

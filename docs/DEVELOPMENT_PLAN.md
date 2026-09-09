@@ -4,12 +4,12 @@
 
 ```
 +-------------------------------------------------------------------------+
-| Current Phase:     Phase 27                                             |
-| Current Milestone: Developer Operations & Secure Management Plane       |
-| Status:            Complete (Tracks 1 & 2 Fully Implemented & Tested)   |
-| Master Plan:       Consolidated Execution Roadmap (Phases 0–29)         |
-| Next Milestone:    Phase 28 — UX, Accessibility & Advanced AI           |
+| Current Phase:     Phase 28                                             |
+| Current Milestone: UX, Accessibility & Screen-Based Advanced AI         |
 |                    Proctoring                                           |
+| Status:            Active (Plan Gate — Ready for Review)                |
+| Master Plan:       Consolidated Execution Roadmap (Phases 0–29)         |
+| Next Milestone:    Phase 29 — HA, Final Security, Compliance & Release  |
 +-------------------------------------------------------------------------+
 ```
 
@@ -921,10 +921,10 @@ $$\text{Plan} \longrightarrow \text{Implement} \longrightarrow \text{Test} \long
 
 ---
 
-### Phase 28 — UX, Accessibility & Advanced AI Proctoring (Consolidating Historical Phases 30 & 31)
-- [ ] **Status:** Pending
-- **Objective:** Perform holistic user experience refinement, responsive layout optimization, WCAG 2.1 AA accessibility compliance, unified design system token standardization, and complete journey testing across all 5 user roles, while implementing client-side and server-assisted AI proctoring models for continuous face presence, gaze tracking, multiple-person detection, background voice classification, and integrated anomaly scoring.
-- **Historical Mapping:** Consolidates **Old Phase 30** (End-to-End User Experience, Accessibility & Design System Polish) and **Old Phase 31** (Advanced Real-Time AI Proctoring & Multi-Modal Anomaly Detection).
+### Phase 28 — UX, Accessibility & Screen-Based Advanced AI Proctoring (Consolidating Historical Phases 30 & 31)
+- [ ] **Status:** Active (Plan Gate — Ready for Review)
+- **Objective:** Perform holistic user experience refinement, responsive layout optimization, WCAG 2.1 AA accessibility compliance, unified design system token standardization, and complete journey testing across all 5 user roles, while implementing a scalable, privacy-preserving client-side screen AI and deterministic browser telemetry proctoring pipeline (with server-authoritative 0–100 risk scoring and zero centralized per-frame server inference).
+- **Historical Mapping:** Consolidates **Old Phase 30** (End-to-End User Experience, Accessibility & Design System Polish) and **Old Phase 31** (Advanced Real-Time AI Proctoring). Continuous camera, face, gaze, and audio AI are explicitly removed from the continuous monitoring scope because the production media architecture streams screen video only; Phase 25 already provides biometric identity and liveness at pre-exam check-in.
 - **Dependencies:** Phase 25, Phase 26, Phase 27
 - **Internal Workstreams & Major Tasks:**
   - **Workstream A: Unified Design System & Density Tier Normalization (Old Phase 30)**:
@@ -938,29 +938,33 @@ $$\text{Plan} \longrightarrow \text{Implement} \longrightarrow \text{Test} \long
     - Implement comprehensive ARIA landmarks, roles, and live regions (`aria-live="polite"`) for real-time timer warnings, proctor alerts, and autosave feedback.
   - **Workstream D: End-to-End User Journey Suites (Old Phase 30)**:
     - Author automated end-to-end user journey test suites using Playwright validating all 5 roles from login through completion.
-  - **Workstream E: Client-Side Web Worker AI Inference Models (Old Phase 31)**:
-    - Implement client-side lightweight AI inference models (TensorFlow.js / ONNX runtime) executing in dedicated Web Workers:
-      - Real-time face presence and bounding box detection
-      - Gaze direction estimation (detecting prolonged off-screen looking)
-      - Multiple face detection in camera view
-      - Inference framerate performance target: >= 15 FPS on standard candidate laptop hardware (engineering benchmark target).
-    - Strict boundary: Continuous proctoring AI is strictly decoupled from the Phase 25 Biometric Identity plane (enrollment, pre-exam verification, and anti-spoofing remain authoritative and separate).
-  - **Workstream F: Multi-Modal Audio Anomaly Classification (Old Phase 31)**:
-    - Implement server-assisted audio anomaly classification on periodic evidence audio snippets (speech detection, whispered voice detection).
-  - **Workstream G: AI Anomaly Ingestion & Scorer Dampening (Old Phase 31)**:
-    - Connect AI detection events to Phase 14 server-authoritative proctoring event ingestion pipeline (`POST /api/v1/attempts/:id/events`) with event types `AI_FACE_ABSENT`, `AI_MULTIPLE_FACES`, `AI_GAZE_OFF_SCREEN`, `AI_VOICE_DETECTED`.
-    - Update Anomaly Scorer to incorporate multi-modal AI signals with configurable confidence weights and server-side dampening to prevent false positive alert storms.
-  - **Workstream H: Invigilator AI Overlays & False-Positive Triage (Old Phase 31)**:
-    - Display real-time AI anomaly markers and confidence scores in the Invigilator Console Candidate Detail Drawer.
-    - Enable proctors to dismiss false-positive AI flags with one click, recording the action in the immutable audit trail.
+  - **Workstream E: Client-Side Web Worker Screen AI Inference (Old Phase 31)**:
+    - Implement client-side lightweight screen classification model (MobileNetV3-Small quantized ONNX via ONNX Runtime Web WASM as recommended initial candidate, subject to benchmark validation) executing in dedicated Web Worker:
+      - Periodic low-frequency sampling (baseline target ~0.25 FPS, downscaled 224x224 RGB)
+      - 3-state screen context classification (`EXAM_CONTEXT`, `NON_EXAM_CONTEXT`, `UNKNOWN_CONTEXT`)
+      - Protection of normal exam actions (question navigation, timer ticks, answer selection, scrolling) from false context anomalies
+      - Stale frame dropping with queue size = 1; zero server-side per-frame AI compute
+    - Explicit architectural boundary: Continuous camera AI, face detection, multi-face tracking, gaze estimation, and audio classification are REMOVED from Phase 28 scope. Phase 25 handles pre-exam biometric verification.
+  - **Workstream F: Deterministic Browser & Media Telemetry (Old Phase 31)**:
+    - Implement deterministic rule-based event detectors: `BROWSER_FOCUS_LOST`, `EXAM_VISIBILITY_LOST`, `FULLSCREEN_EXIT`, `SCREEN_CAPTURE_INTERRUPTED`, `SCREEN_STREAM_DEGRADED`.
+    - Distinguish technical media failures from candidate behavioral anomalies.
+  - **Workstream G: Telemetry Ingestion, Dampening & Authoritative Risk Scoring (Old Phase 31)**:
+    - Connect observation events to server-authoritative proctoring event ingestion pipeline (`POST /api/v1/attempts/:id/events`).
+    - Apply server-side temporal dampening (debouncing, duplicate suppression, cooldowns).
+    - Server-side correlation engine authoritatively derives `REPEATED_CONTEXT_SWITCHING` anomaly.
+    - Update Anomaly Scorer to compute server-authoritative 0–100 risk score (untrusted client cannot set score or severity).
+  - **Workstream H: Invigilator Supervision Console AI Overlays & Auditable Triage (Old Phase 31)**:
+    - Display real-time 0–100 risk badges, anomaly tags (`[BROWSER]` vs `[SCREEN AI]`), and timeline in Invigilator Console.
+    - Enable proctors to acknowledge or dismiss false-positive flags with one click, preserving immutable audit logs and evidence records.
 - **Acceptance Criteria:**
   - Full compliance with WCAG 2.1 AA accessibility standards verified via automated axe-core scans and manual keyboard navigation audits.
-  - All supported user journeys execute end-to-end with zero layout breaks, console errors, or unhandled promise rejections.
+  - All supported user journeys execute end-to-end across all 5 roles with zero layout breaks, console errors, or unhandled promise rejections.
   - All destructive operations (submitting exams, pausing candidates, deleting blueprints, revoking accounts) require explicit two-step confirmation.
-  - Client-side AI runs smoothly in Web Workers without degrading exam countdown timer accuracy or answer input responsiveness (calibrated engineering target: >= 15 fps on standard hardware).
-  - High-confidence AI anomalies feed the server-authoritative risk score and trigger proctor notifications.
-  - Proctors can dismiss false-positive AI flags with one click, feeding the audit trail.
-- **Tests Required:** Playwright E2E journey tests across all 5 roles, axe-core automated accessibility audits, responsive viewport visual regression tests, Web Worker AI inference benchmark tests, anomaly event ingestion integration tests, aggregate scoring calculation tests, Invigilator UI AI overlay tests.
+  - Client-side screen AI runs smoothly in Web Worker at low sampling frequency (~0.25 FPS target) without degrading exam timer accuracy or answer autosaves.
+  - High-confidence screen anomalies and browser rule breaches feed the server-authoritative risk score (0–100) and trigger proctor alerts.
+  - Proctors can dismiss false-positive AI flags without deleting history or purging immutable evidence.
+  - Zero centralized per-frame server inference; 100/500/1000 candidate scaling verified via load test benchmarks (concurrency figures are engineering estimates/targets).
+- **Tests Required:** Playwright E2E journey tests across all 5 roles, axe-core automated accessibility audits, responsive viewport visual regression tests, Web Worker screen AI inference benchmark tests, false-positive control tests for normal exam UI actions, anomaly event ingestion integration tests, aggregate scoring calculation tests, Invigilator UI AI overlay tests.
 
 ---
 
@@ -1068,20 +1072,20 @@ Every product capability is classified into one of six authoritative states:
 | **Proctoring** | Direct Presigned Evidence Upload (S3) | [x] | [x] | [x] | [x] | `IMPLEMENTED` | Phase 15, Phase 24, Phase 25 |
 | **Proctoring** | Realtime WebSocket Signaling & Presence | [x] | [x] | [x] | [x] | `IMPLEMENTED` | Phase 16, Phase 17 |
 | **Proctoring** | WebRTC Multi-Party Video/Audio SFU | [x] | [x] | [x] | [x] | `IMPLEMENTED` | Phase 17 |
-| **Proctoring** | Invigilator Multi-Stream Grid & Detail Drawer | [-] | [-] | [-] | [-] | `PARTIALLY IMPLEMENTED` | Phase 17, Phase 26 (Old Phase 27) |
-| **Proctoring** | Proctor Direct Interventions (Warn/Pause/Kill) | [ ] | [ ] | [ ] | [ ] | `MISSING` | Phase 26 (Old Phase 27) |
-| **Proctoring** | In-Session Evidence Inspection Modal | [ ] | [ ] | [ ] | [ ] | `MISSING` | Phase 26 (Old Phase 27) |
-| **Proctoring** | Advanced AI Gaze & Multi-Face Detection | [ ] | [ ] | [ ] | [ ] | `PLANNED` | Phase 28 (Old Phase 31) |
-| **Operations** | Developer Role in RBAC (`user_roles`) | [ ] | [ ] | [ ] | [ ] | `MISSING` | Phase 27 (Old Phase 28) |
-| **Operations** | Developer Overview (`/developer/overview`) | [ ] | [ ] | [ ] | [ ] | `MISSING` | Phase 27 (Old Phase 28) |
-| **Operations** | Subsystem Health Monitor (`/developer/health`) | [ ] | [ ] | [ ] | [ ] | `MISSING` | Phase 27 (Old Phase 28) |
-| **Operations** | Centralized System Logs Viewer (`/developer/logs`) | [ ] | [ ] | [ ] | [ ] | `MISSING` | Phase 27 (Old Phase 28) |
-| **Operations** | Technical Audit Feed (`/developer/audit`) | [x] (admin) | [ ] | [x] | [ ] | `PARTIALLY IMPLEMENTED` | Phase 13, Phase 27 (Old Phase 28) |
-| **Operations** | Infrastructure Topology Map (`/developer/topology`) | [ ] | [ ] | [ ] | [ ] | `MISSING` | Phase 27 (Old Phase 28) |
-| **Operations** | Incident Triage & Alerts (`/developer/incidents`) | [ ] | [ ] | [ ] | [ ] | `MISSING` | Phase 27 (Old Phase 28) |
-| **Network** | WireGuard VPN Service & Daemon Deployment | [ ] | N/A | [ ] | N/A | `MISSING` | Phase 27 (Old Phase 29) |
-| **Network** | WireGuard Peer Generation & Key Management | [ ] | N/A | [ ] | N/A | `MISSING` | Phase 27 (Old Phase 29) |
-| **Network** | Management vs Exam Network Segmentation | [x] (SG base) | N/A | [ ] | N/A | `PARTIALLY IMPLEMENTED` | Phase 20, Phase 27 (Old Phase 29) |
+| **Proctoring** | Invigilator Multi-Stream Grid & Detail Drawer | [x] | [x] | [x] | [x] | `IMPLEMENTED` | Phase 17, Phase 26 (Old Phase 27) |
+| **Proctoring** | Proctor Direct Interventions (Warn/Pause/Kill) | [x] | [x] | [x] | [x] | `IMPLEMENTED` | Phase 26 (Old Phase 27) |
+| **Proctoring** | In-Session Evidence Inspection Modal | [x] | [x] | [x] | [x] | `IMPLEMENTED` | Phase 26 (Old Phase 27) |
+| **Proctoring** | Screen-Based AI & Browser Telemetry Proctoring | [ ] | [ ] | [ ] | [ ] | `PLANNED` | Phase 28 (Old Phase 31) |
+| **Operations** | Developer Role in RBAC (`user_roles`) | [x] | [x] | [x] | [x] | `IMPLEMENTED` | Phase 27 (Old Phase 28) |
+| **Operations** | Developer Overview (`/developer/overview`) | [x] | [x] | [x] | [x] | `IMPLEMENTED` | Phase 27 (Old Phase 28) |
+| **Operations** | Subsystem Health Monitor (`/developer/health`) | [x] | [x] | [x] | [x] | `IMPLEMENTED` | Phase 27 (Old Phase 28) |
+| **Operations** | Centralized System Logs Viewer (`/developer/logs`) | [x] | [x] | [x] | [x] | `IMPLEMENTED` | Phase 27 (Old Phase 28) |
+| **Operations** | Technical Audit Feed (`/developer/audit`) | [x] | [x] | [x] | [x] | `IMPLEMENTED` | Phase 13, Phase 27 (Old Phase 28) |
+| **Operations** | Infrastructure Topology Map (`/developer/topology`) | [x] | [x] | [x] | [x] | `IMPLEMENTED` | Phase 27 (Old Phase 28) |
+| **Operations** | Incident Triage & Alerts (`/developer/incidents`) | [x] | [x] | [x] | [x] | `IMPLEMENTED` | Phase 27 (Old Phase 28) |
+| **Network** | WireGuard VPN Service & Daemon Deployment | [x] | N/A | [x] | N/A | `IMPLEMENTED` | Phase 27 (Old Phase 29) |
+| **Network** | WireGuard Peer Generation & Key Management | [x] | N/A | [x] | N/A | `IMPLEMENTED` | Phase 27 (Old Phase 29) |
+| **Network** | Management vs Exam Network Segmentation | [x] | N/A | [x] | N/A | `IMPLEMENTED` | Phase 20, Phase 27 (Old Phase 29) |
 | **Infra** | Docker Containerization & Multi-Stage Builds | [x] | [x] | [x] | [x] | `IMPLEMENTED` | Phase 19 |
 | **Infra** | Single-Host EC2 Production Baseline | [x] | N/A | [x] | [x] | `IMPLEMENTED` | Phase 19, Phase 20 |
 | **Infra** | Persistent Encrypted EBS Volume Protection | [x] | N/A | [x] | [x] | `IMPLEMENTED` | Phase 20 |
@@ -1535,7 +1539,7 @@ Every architectural requirement from the foundational specification (Notion Step
 | **Req-F** | Developer Control Plane Portal | Subsystem health matrix, masked system logs, topology map | Phase 27 (Old 28) | `IMPLEMENTED` | Live health across all 13 components; log viewer filters events without PII leakage across all 6 pages. |
 | **Req-G** | WireGuard Management Plane | Dedicated VPN service, peer lifecycle, network segmentation | Phase 27 (Old 29) | `IMPLEMENTED` | Port 22 unreachable from public internet; management plane isolated from candidate web traffic. |
 | **Req-H** | Accessible UI/UX & E2E Validation | Full keyboard navigation, WCAG 2.1 AA, complete journey suites | Phase 28 (Old 30) | `PLANNED` | All 5 roles have polished interfaces; automated E2E journey tests pass across all flows. |
-| **Req-I** | Advanced Real-Time AI Proctoring | Client Web Worker AI, gaze tracking, multi-face, voice detect | Phase 28 (Old 31) | `PLANNED` | Client AI runs at >= 15 fps; high-confidence anomalies feed server-authoritative risk score. |
+| **Req-I** | Screen-Based AI & Browser Telemetry | Client Web Worker screen AI, focus/visibility telemetry, zero server inference | Phase 28 (Old 31) | `PLANNED` | Web Worker screen AI (~0.25 FPS) & browser rules; server-authoritative risk score (0–100). |
 | **Req-J** | Horizontal Scaling & High Availability| Multi-AZ RDS PostgreSQL, ElastiCache, ALB, SFU clustering | Phase 29 (Old 32) | `PLANNED` | Zero-downtime migration to managed AWS services; multi-AZ failover survives AZ outage. |
 | **Req-K** | Final Security Penetration & ASVS | DAST/SAST, ASVS Level 2, dependency sweeps, compliance | Phase 29 (Old 33) | `PLANNED` | Zero critical/high vulnerabilities; FERPA/GDPR compliance baseline verified. |
 | **Req-L** | Final Documentation & Runbooks | OpenAPI 3.1, operational runbooks, disaster recovery manual | Phase 29 (Old 34) | `PLANNED` | Engineer can set up, deploy, and operate ProctorNet independently from documentation alone. |
@@ -1577,7 +1581,7 @@ Phase 29 (HA, Final Security, Compliance & Release) [PENDING]
 ### Parallel Workstream Opportunities Within Phases:
 - **Phase 26 Concurrency**: Track 1 (Faculty Authoring & Grading, Workstreams A–D) executes in parallel with Track 2 (Invigilator Video Grid & Interventions, Workstreams E–H).
 - **Phase 27 Concurrency**: Track 1 (Developer Telemetry & Observability Portal, Workstreams A–F) executes in parallel with Track 2 (WireGuard Network Daemon, IP Allocation & Firewall Rules, Workstreams G–I).
-- **Phase 28 Concurrency**: Track 1 (Universal Design System, Accessibility & Responsive Layouts, Workstreams A–D) executes in parallel with Track 2 (Client-Side Web Worker AI Models & Audio Classifier, Workstreams E–I).
+- **Phase 28 Concurrency**: Track 1 (Universal Design System, Accessibility & Responsive Layouts, Workstreams A–D) executes in parallel with Track 2 (Client-Side Web Worker Screen AI & Browser Telemetry, Workstreams E–H).
 - **Phase 29 Concurrency**: Track 1 (Managed AWS Multi-AZ & SFU Media Clustering, Workstreams A–C) executes in parallel with Track 2 (Security Hardening, ASVS PenTesting & Privacy Audit, Workstreams D–F) and Track 3 (OpenAPI 3.1, Operations Runbooks & Handover, Workstreams G–J).
 
 ---

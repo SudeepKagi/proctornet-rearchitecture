@@ -13,6 +13,7 @@ import { useExamTimer } from '../../hooks/useExamTimer.js';
 import { useAutosave } from '../../hooks/useAutosave.js';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus.js';
 import { useProctoringEvents } from '../../hooks/useProctoringEvents.js';
+import { useScreenAI } from '../../hooks/useScreenAI.js';
 import { useRealtime } from '../../hooks/useRealtime.js';
 import { useMediaCapture } from '../../hooks/useMediaCapture.js';
 import { mediaClient } from '../../services/mediaClient.js';
@@ -173,10 +174,36 @@ export function ExamTakingPage() {
     onExpire: handleTimeExpired,
   });
 
-  // Candidate background telemetry & proctoring event reporter (Phase 14)
-  useProctoringEvents({
+  // Candidate background telemetry & proctoring event reporter (Phase 14 & Phase 28)
+  const {
+    enqueueEvent,
+    recordScreenClassification,
+    recordScreenInterruption,
+    recordScreenDegradation
+  } = useProctoringEvents({
     attemptId,
     isActive: !!attempt && !isExpired && !isSubmitting && !autoSubmittingBanner && !isAttemptPaused,
+  });
+
+  // Candidate WebRTC Media Capture & SFU Publishing (Phase 17 & Phase 28)
+  const { stream: mediaStream, screenStream, isCapturing, startCapture, stopCapture } = useMediaCapture();
+  const [mediaPublishing, setMediaPublishing] = useState(false);
+  const mediaVideoRef = useRef(null);
+
+  // Client-Side Screen AI Hook (Phase 28 Track 2: ~0.25 FPS Web Worker inference)
+  useScreenAI({
+    screenTrack: screenStream?.getVideoTracks()?.[0] || null,
+    isActive: !!attempt && !isExpired && !isSubmitting && !autoSubmittingBanner && !isAttemptPaused,
+    onClassification: (classification) => {
+      recordScreenClassification(classification);
+    },
+    onTechnicalEvent: (eventType, detail) => {
+      if (eventType === 'SCREEN_CAPTURE_INTERRUPTED') {
+        recordScreenInterruption(detail?.reason);
+      } else {
+        recordScreenDegradation(detail?.reason, detail?.fps);
+      }
+    }
   });
 
   const handleSessionConcluded = useCallback(() => {
@@ -257,11 +284,6 @@ export function ExamTakingPage() {
     return () => clearInterval(pulseInterval);
   }, [attempt, isExpired, isSubmitting, autoSubmittingBanner, sendHeartbeat, attemptId]);
 
-  // Candidate WebRTC Media Capture & SFU Publishing (Phase 17)
-  const { stream: mediaStream, isCapturing, startCapture, stopCapture } = useMediaCapture();
-  const [mediaPublishing, setMediaPublishing] = useState(false);
-  const mediaVideoRef = useRef(null);
-
   useEffect(() => {
     const isLive = !!attempt && !isExpired && !isSubmitting && !autoSubmittingBanner;
     if (!isLive || !attempt?.session_id) return;
@@ -270,7 +292,7 @@ export function ExamTakingPage() {
 
     async function initMedia() {
       try {
-        const { stream } = await startCapture({ video: true, audio: true });
+        const { stream, screenStream: displayStream } = await startCapture({ video: true, audio: true, screen: true }).catch(() => ({ stream: null, screenStream: null }));
         if (!isMounted || !stream) return;
 
         await mediaClient.createSendTransport(attempt.session_id);
@@ -283,6 +305,11 @@ export function ExamTakingPage() {
         const audioTrack = stream.getAudioTracks()[0];
         if (audioTrack) {
           await mediaClient.produceTrack(audioTrack, 'microphone', false);
+        }
+
+        const screenTrack = displayStream?.getVideoTracks()[0];
+        if (screenTrack) {
+          await mediaClient.produceTrack(screenTrack, 'screen', false);
         }
 
         if (isMounted) {
