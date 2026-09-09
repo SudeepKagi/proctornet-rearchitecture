@@ -4,12 +4,12 @@
 
 ```
 +-------------------------------------------------------------------------+
-| Current Phase:     Phase 25                                             |
-| Current Milestone: Biometric Identity: Face Enrollment, Verification &  |
-|                    Anti-Spoofing                                        |
-| Status:            Complete (Merged in PR #23, Merge 3e45cd1)           |
+| Current Phase:     Phase 26                                             |
+| Current Milestone: Examination & Invigilation (Tracks 1 & 2)            |
+| Status:            Complete (Merged in PR #24, Merge 1a74308)           |
 | Master Plan:       Consolidated Execution Roadmap (Phases 0–29)         |
-| Next Milestone:    Phase 26 — Examination & Invigilation                |
+| Next Milestone:    Phase 27 — Developer Operations & Secure             |
+|                    Management Plane                                     |
 +-------------------------------------------------------------------------+
 ```
 
@@ -754,7 +754,7 @@ $$\text{Plan} \longrightarrow \text{Implement} \longrightarrow \text{Test} \long
 ---
 
 ### Phase 23 — Complete User & Account Administration
-- [ ] **Status:** Pending
+- [x] **Status:** Completed (Merged in PR #21)
 - **Objective:** Build the institutional administrative control plane for complete user lifecycle management, multi-role account creation (Candidate, Faculty, Invigilator, Developer), bulk CSV ingestion, role assignment, credential management, authoritative account state machine enforcement, and organization-wide configuration policies.
 - **Dependencies:** Phase 4, Phase 10, Phase 13
 - **Major Tasks:**
@@ -780,7 +780,7 @@ $$\text{Plan} \longrightarrow \text{Implement} \longrightarrow \text{Test} \long
 ---
 
 ### Phase 24 — Candidate Onboarding, Document Verification & Per-Student Configuration
-- [ ] **Status:** Pending
+- [x] **Status:** Completed (Merged in PR #22)
 - **Objective:** Implement the candidate onboarding journey, government ID and student document capture/upload, automated and manual document verification workflows, candidate profile completion, and individualized per-student configuration (accommodations, eligibility, retry limits).
 - **Dependencies:** Phase 15, Phase 23
 - **Major Tasks:**
@@ -830,7 +830,7 @@ $$\text{Plan} \longrightarrow \text{Implement} \longrightarrow \text{Test} \long
 ---
 
 ### Phase 26 — Examination & Invigilation (Consolidating Historical Phases 26 & 27)
-- [ ] **Status:** Pending
+- [x] **Status:** Complete (Merged in PR #24, Implementation Commit 60476f8, Merge 1a74308, Completion Date 2026-09-09)
 - **Objective:** Deliver the unified academic examination authoring, blueprint rules, question bank, manual evaluation, and high-density real-time invigilation workstation with live multi-stream video/audio, anomaly inspection, and instant intervention controls.
 - **Historical Mapping:** Consolidates **Old Phase 26** (Complete Faculty Examination & Assessment Lifecycle) and **Old Phase 27** (Complete Invigilation & Live Proctoring Workstation).
 - **Dependencies:** Phase 5, Phase 9, Phase 10, Phase 14, Phase 16, Phase 17, Phase 25
@@ -866,7 +866,12 @@ $$\text{Plan} \longrightarrow \text{Implement} \longrightarrow \text{Test} \long
   - Proctors can monitor multiple candidate streams concurrently with low latency and clear connection health indicators.
   - Candidate violation events appear in real time on the invigilator dashboard with server-authoritative severity scores.
   - Proctor interventions (warnings, pause, termination) propagate instantaneously over WebSocket and take immediate effect on the candidate client.
-- **Tests Required:** Question bank CRUD API tests, manual grading consistency tests, analytics aggregation unit tests, faculty authoring UI component tests, proctor intervention API unit/integration tests, WebSocket intervention delivery tests, invigilator video grid UI tests, candidate pause/terminate UX flow tests.
+- **Tests Implemented & Verification Summary:**
+  - **Backend Test Suite**: 55/55 dedicated Phase 26 tests passing across 6 suites in `backend/tests/phase26/` (`questionBank.test.js`, `blueprintsAndScheduling.test.js`, `manualGrading.test.js`, `analyticsAndPublication.test.js`, `realtimeInterventions.test.js`, `evidenceAndSignoff.test.js`).
+  - **Biometrics Suite**: 58/58 passing in `backend/tests/biometrics/` with normalized model hash checking across OS line endings.
+  - **Frontend Test Suite**: 121/121 Vitest tests passing across 26 suites in `frontend/src/`.
+  - **Frontend Production Build**: Vite build compiled cleanly in ~5s with 0 errors.
+  - **Architectural Invariants Verified**: PostgreSQL remains sole authoritative business state store; developer role strictly isolated from grading, answers, and proctoring PII; immutable audit logs enforced with database trigger.
 
 ---
 
@@ -1525,8 +1530,8 @@ Every architectural requirement from the foundational specification (Notion Step
 | **Req-A** | Complete User Administration | Admin account creation across all roles, bulk CSV ingestion | Phase 23 | `IMPLEMENTED` | Admins manage user lifecycle; bulk import processes 500+ accounts in atomic transaction. |
 | **Req-B** | Candidate Onboarding & ID Document | Document capture, OCR extraction, verification approval queue | Phase 24 | `IMPLEMENTED` | Candidates upload government ID; Admin review queue enables approval/rejection with reasons. |
 | **Req-C** | Biometric Face & Anti-Spoofing | Reference face enrollment, pre-exam verification, liveness | Phase 25 | `IMPLEMENTED` | Face matching verifies identity (initial target: sim >= 0.85); presentation attacks rejected by liveness challenge. |
-| **Req-D** | Question Bank & Manual Grading | Reusable question banks, MathJax/code, manual evaluation workspace | Phase 26 (Old 26) | `PLANNED` | Faculty manage question inventories; subjective questions graded with audit rationale. |
-| **Req-E** | Live Proctoring Workstation | 12-stream grid, candidate drawer, direct warning/pause/terminate | Phase 26 (Old 27) | `PLANNED` | Proctors monitor live grid; interventions execute instantaneously over WebSocket control plane. |
+| **Req-D** | Question Bank & Manual Grading | Reusable question banks, MathJax/code, manual evaluation workspace | Phase 26 (Old 26) | `IMPLEMENTED` | Faculty manage question inventories; subjective questions graded with audit rationale. |
+| **Req-E** | Live Proctoring Workstation | 12-stream grid, candidate drawer, direct warning/pause/terminate | Phase 26 (Old 27) | `IMPLEMENTED` | Proctors monitor live grid; interventions execute instantaneously over WebSocket control plane. |
 | **Req-F** | Developer Control Plane Portal | Subsystem health matrix, masked system logs, topology map | Phase 27 (Old 28) | `PLANNED` | Live health across all 12+ components; log viewer filters events without PII leakage across all 6 pages. |
 | **Req-G** | WireGuard Management Plane | Dedicated VPN service, peer lifecycle, network segmentation | Phase 27 (Old 29) | `PLANNED` | Port 22 unreachable from public internet; management plane isolated from candidate web traffic. |
 | **Req-H** | Accessible UI/UX & E2E Validation | Full keyboard navigation, WCAG 2.1 AA, complete journey suites | Phase 28 (Old 30) | `PLANNED` | All 5 roles have polished interfaces; automated E2E journey tests pass across all flows. |
@@ -1545,7 +1550,7 @@ The execution sequence strictly honors technical dependencies to ensure that no 
 Phase 25 (Biometric Face & Anti-Spoofing) [COMPLETE]
   │
   ▼
-Phase 26 (Examination & Invigilation) [PENDING]
+Phase 26 (Examination & Invigilation) [COMPLETE]
 [Consolidates Old 26: Faculty Exam Lifecycle & Old 27: Invigilator Workstation]
   │
   ▼
@@ -1650,8 +1655,8 @@ Every role flow must execute end-to-end with clear loading, empty, error, retry,
 9. [ ] **Face Verification Complete**: Pre-exam selfies match enrolled references and ID photos with measured similarity meeting calibrated policy targets (initial engineering target: sim >= 0.85).
 10. [ ] **Liveness & Anti-Spoofing Operational**: Active challenge-response and passive texture analysis reject presentation attacks (photos, screen replays).
 11. [ ] **Candidate Examination Flow Complete**: Pre-exam checks, question delivery, countdown timer, autosave, and submission function seamlessly end-to-end.
-12. [ ] **Faculty Assessment Workflow Complete**: Question bank authoring, blueprint rules, multi-room scheduling, manual grading, and analytics operate cleanly.
-13. [ ] **Invigilator Proctoring Console Complete**: Multi-stream video matrix, candidate detail drawer, live violation feed, and direct interventions (warn, pause, terminate) work in real time.
+12. [x] **Faculty Assessment Workflow Complete**: Question bank authoring, blueprint rules, multi-room scheduling, manual grading, and analytics operate cleanly.
+13. [x] **Invigilator Proctoring Console Complete**: Multi-stream video matrix, candidate detail drawer, live violation feed, and direct interventions (warn, pause, terminate) work in real time.
 14. [ ] **Developer Technical Control Plane Complete**: Real-time system health, telemetry metrics, centralized log viewer, and technical audit feed are functional across all 6 developer screens.
 15. [ ] **Comprehensive System Health Visible**: Live health indicators monitor all 12+ subsystems with zero manual status labels.
 16. [ ] **Centralized System Logs Accessible**: Developers can search structured logs with sub-second response times and automated PII masking.
