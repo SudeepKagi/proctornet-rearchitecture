@@ -6,6 +6,7 @@ import { sessionsRouter } from '../modules/sessions/sessions.routes.js';
 import { attemptsRouter } from '../modules/attempts/attempts.routes.js';
 import { auditRouter } from '../modules/audit/audit.routes.js';
 import { adminRouter, userSelfRouter } from '../modules/users/user.routes.js';
+import { candidateRouter } from '../modules/candidate/candidateIdentity.routes.js';
 import { authenticate } from '../middleware/authenticate.js';
 import { requireVerifiedActiveUser } from '../middleware/verificationGate.js';
 
@@ -31,6 +32,9 @@ v1Router.use('/auth', authRouter);
 // Phase 23: User Administration & Institutional Configuration
 v1Router.use('/admin', adminRouter);
 v1Router.use('/users/me', userSelfRouter);
+
+// Phase 24: Candidate Identity Onboarding & Document Verification
+v1Router.use('/candidate', candidateRouter);
 
 // Phase 5: Exam Authoring, Topic Rules & Publishing (Gated for verified active users)
 v1Router.use('/exams', authenticate, requireVerifiedActiveUser, examsRouter);

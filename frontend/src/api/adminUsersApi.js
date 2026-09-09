@@ -140,3 +140,36 @@ export async function fetchAuditLogs(params = {}) {
   const res = await apiClient(`/api/v1/admin/audit${qs ? `?${qs}` : ''}`);
   return res?.data || res;
 }
+
+// ==========================================
+// Phase 24: Student Identity Verification & Accommodations
+// ==========================================
+
+export async function fetchStudentVerificationDossier(studentId) {
+  return await apiClient(`/api/v1/admin/students/${studentId}/verification`);
+}
+
+export async function fetchStudentDocumentPreview(studentId) {
+  return await apiClient(`/api/v1/admin/students/${studentId}/document-preview`);
+}
+
+export async function reviewStudentVerification(studentId, decision, reviewNotes = '') {
+  return await apiClient(`/api/v1/admin/students/${studentId}/verification`, {
+    method: 'PATCH',
+    body: {
+      decision,
+      reviewNotes
+    }
+  });
+}
+
+export async function fetchStudentConfiguration(studentId) {
+  return await apiClient(`/api/v1/admin/students/${studentId}/configuration`);
+}
+
+export async function updateStudentConfiguration(studentId, configData) {
+  return await apiClient(`/api/v1/admin/students/${studentId}/configuration`, {
+    method: 'PUT',
+    body: configData
+  });
+}

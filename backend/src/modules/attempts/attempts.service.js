@@ -16,6 +16,7 @@ import { transitionAttemptState } from '../../domain/attempt/attemptStateMachine
 import { validateAttemptInvariants } from '../../domain/attempt/attemptInvariants.js';
 import { generateSeed, selectQuestionsDeterministically } from './attempts.shuffler.js';
 import * as attemptsRepo from './attempts.repository.js';
+import * as studentConfigRepo from '../candidate/studentConfig.repository.js';
 import { cacheService } from '../../infrastructure/redis/cacheService.js';
 import { config } from '../../config/env.js';
 import { deriveAttemptSigningKey } from '../../utils/antiTamper.js';
@@ -278,8 +279,13 @@ export async function startAttempt(sessionId, user, requestId = null) {
       );
     }
 
-    // 8. Calculate Authoritative Expiration (LEAST(CURRENT_TIMESTAMP + duration, scheduled_end_time))
-    const examDurationMs = Number(exam.duration_minutes) * 60 * 1000;
+    // 8. Calculate Authoritative Expiration (incorporating per-student extra_time_multiplier)
+    const studentConfig = await studentConfigRepo.findConfigurationByStudentId(user.userId, client);
+    const rawMultiplier = studentConfig ? Number(studentConfig.extra_time_multiplier) : 1.0;
+    const extraTimeMultiplier = (!isNaN(rawMultiplier) && rawMultiplier >= 1.0 && rawMultiplier <= 3.0) ? rawMultiplier : 1.0;
+    const baseDurationMinutes = Number(exam.duration_minutes);
+    const effectiveDurationMinutes = Math.round(baseDurationMinutes * extraTimeMultiplier);
+    const examDurationMs = effectiveDurationMinutes * 60 * 1000;
     const durationEnd = new Date(serverNow.getTime() + examDurationMs);
     const expiresAt = durationEnd < endTime ? durationEnd : endTime;
 
@@ -327,6 +333,9 @@ export async function startAttempt(sessionId, user, requestId = null) {
           examId: exam.exam_id,
           totalQuestions: questionMappings.length,
           totalMarks: Number(exam.total_marks),
+          baseDurationMinutes,
+          effectiveDurationMinutes,
+          extraTimeMultiplier,
           expiresAt: attempt.expires_at,
           startedAt: attempt.started_at
         }
@@ -337,7 +346,14 @@ export async function startAttempt(sessionId, user, requestId = null) {
     await client.query('COMMIT');
 
     logger.info(
-      { attemptId: attempt.attempt_id, studentId: user.userId, sessionId, totalQuestions: questionMappings.length },
+      {
+        attemptId: attempt.attempt_id,
+        studentId: user.userId,
+        sessionId,
+        totalQuestions: questionMappings.length,
+        effectiveDurationMinutes,
+        extraTimeMultiplier
+      },
       'Exam attempt successfully created and initialized in ACTIVE status'
     );
 
@@ -352,6 +368,8 @@ export async function startAttempt(sessionId, user, requestId = null) {
       time_remaining_seconds: calculateRemainingSeconds(attempt.expires_at, serverNow),
       total_questions: questionMappings.length,
       total_marks: Number(exam.total_marks),
+      effective_duration_minutes: effectiveDurationMinutes,
+      extra_time_multiplier: extraTimeMultiplier,
       is_new: true,
       anti_tamper_token: deriveAttemptSigningKey(
         config.ANTI_TAMPER_SECRET,

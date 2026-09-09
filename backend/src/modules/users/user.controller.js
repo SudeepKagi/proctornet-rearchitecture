@@ -7,6 +7,7 @@ import * as userService from './user.service.js';
 import * as userRepo from './user.repository.js';
 import * as orgSettingsService from './orgSettings.service.js';
 import { parseUserRoster } from './excelParser.service.js';
+import * as candidateIdentityService from '../candidate/candidateIdentity.service.js';
 import {
   createUserSchema,
   updateUserStatusSchema,
@@ -164,6 +165,39 @@ export async function handleGetVerificationQueue(req, res, next) {
       verification_status: req.query.verification_status || 'PENDING'
     };
     const result = await userService.listUsers(query);
+    res.status(200).json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function handleGetStudentVerificationDossier(req, res, next) {
+  try {
+    const result = await candidateIdentityService.getStudentVerificationDossier(req.params.id);
+    res.status(200).json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function handleGetStudentDocumentPreview(req, res, next) {
+  try {
+    const result = await candidateIdentityService.getDocumentPreviewUrl(req.params.id, req.user.userId);
+    res.status(200).json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function handleReviewStudentVerification(req, res, next) {
+  try {
+    const { decision, reviewNotes } = req.body;
+    const result = await candidateIdentityService.reviewStudentVerification({
+      targetUserId: req.params.id,
+      decision,
+      reviewNotes,
+      actorUserId: req.user.userId
+    });
     res.status(200).json(result);
   } catch (err) {
     next(err);

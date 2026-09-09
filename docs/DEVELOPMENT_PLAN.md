@@ -4,11 +4,12 @@
 
 ```
 +-------------------------------------------------------------------------+
-| Current Phase:     Phase 21                                             |
-| Current Milestone: Load Testing & Concurrency Benchmarking              |
-| Status:            Complete (Merged in PR #19, Merge 32e07a7)           |
+| Current Phase:     Phase 24                                             |
+| Current Milestone: Candidate Onboarding, Document Verification &        |
+|                    Per-Student Configuration                            |
+| Status:            Implemented & Verified (PR Pending Review)           |
 | Master Plan:       Reconstructed & Expanded (Phases 0–34)               |
-| Next Milestone:    Phase 22 — Failure, Resilience & Chaos Testing       |
+| Next Milestone:    Phase 25 — Biometric Face Enrollment & Verification  |
 +-------------------------------------------------------------------------+
 ```
 
@@ -1045,21 +1046,21 @@ Every product capability is classified into one of six authoritative states:
 | **Auth** | Refresh Token Rotation & Cookie Storage | [x] | [x] | [x] | [x] | `IMPLEMENTED` | Phase 4, Phase 10 |
 | **Auth** | Token Blacklist & Session Revocation | [x] | [-] | [x] | [-] | `PARTIALLY IMPLEMENTED` | Phase 11, Phase 23 |
 | **Auth** | Multi-Factor Authentication (MFA) | [ ] | [ ] | [ ] | [ ] | `PLANNED` | Phase 23 |
-| **User Mgmt** | Admin User Management Overview (`/admin/users`) | [ ] | [ ] | [ ] | [ ] | `MISSING` | Phase 23 |
-| **User Mgmt** | Admin Create User Screen (`/admin/users/create`) | [ ] | [ ] | [ ] | [ ] | `MISSING` | Phase 23 |
-| **User Mgmt** | Bulk User CSV Import Tool (`/admin/users/bulk-import`)| [ ] | [ ] | [ ] | [ ] | `MISSING` | Phase 23 |
-| **User Mgmt** | User Search, Filter, Pagination & Status | [ ] | [ ] | [ ] | [ ] | `MISSING` | Phase 23 |
-| **User Mgmt** | Credential Reset & Temporary Password | [ ] | [ ] | [ ] | [ ] | `MISSING` | Phase 23 |
-| **User Mgmt** | Organization Settings (`/admin/organization`) | [ ] | [ ] | [ ] | [ ] | `MISSING` | Phase 23 |
+| **User Mgmt** | Admin User Management Overview (`/admin/users`) | [x] | [x] | [x] | [x] | `IMPLEMENTED` | Phase 23 |
+| **User Mgmt** | Admin Create User Screen (`/admin/users/create`) | [x] | [x] | [x] | [x] | `IMPLEMENTED` | Phase 23 |
+| **User Mgmt** | Bulk User CSV Import Tool (`/admin/users/bulk-import`)| [x] | [x] | [x] | [x] | `IMPLEMENTED` | Phase 23 |
+| **User Mgmt** | User Search, Filter, Pagination & Status | [x] | [x] | [x] | [x] | `IMPLEMENTED` | Phase 23 |
+| **User Mgmt** | Credential Reset & Temporary Password | [x] | [x] | [x] | [x] | `IMPLEMENTED` | Phase 23 |
+| **User Mgmt** | Organization Settings (`/admin/organization`) | [x] | [x] | [x] | [x] | `IMPLEMENTED` | Phase 23 |
 | **User Mgmt** | Administrative Audit Log Viewer (`/admin/audit`) | [x] (api) | [ ] | [x] | [ ] | `PARTIALLY IMPLEMENTED` | Phase 13, Phase 23 |
-| **Student** | Student Profile Completion & Metadata | [x] (schema) | [ ] | [ ] | [ ] | `PARTIALLY IMPLEMENTED` | Phase 2, Phase 24 |
-| **Student** | Per-Student Exam Accommodations (Time Buffer) | [ ] | [ ] | [ ] | [ ] | `MISSING` | Phase 24 |
-| **Student** | Per-Student Config Screen (`/admin/students/:id`) | [ ] | [ ] | [ ] | [ ] | `MISSING` | Phase 24 |
-| **Student** | Per-Student Eligibility & Exam Assignment | [x] | [ ] | [x] | [-] | `PARTIALLY IMPLEMENTED` | Phase 5, Phase 24 |
-| **Identity** | Government / Student ID Document Capture | [ ] | [ ] | [ ] | [ ] | `MISSING` | Phase 24 |
-| **Identity** | Private S3 Encrypted Document Storage | [x] (base) | [ ] | [ ] | [ ] | `PARTIALLY IMPLEMENTED` | Phase 15, Phase 24 |
-| **Identity** | Document OCR & Candidate Matching | [ ] | [ ] | [ ] | [ ] | `MISSING` | Phase 24 |
-| **Identity** | Admin Verification Review Queue (`/admin/verifications`)| [ ] | [ ] | [ ] | [ ] | `MISSING` | Phase 24 |
+| **Student** | Student Profile Completion & Metadata | [x] | [x] | [x] | [x] | `IMPLEMENTED` | Phase 2, Phase 24 |
+| **Student** | Per-Student Exam Accommodations (Time Buffer) | [x] | [x] | [x] | [x] | `IMPLEMENTED` | Phase 24 |
+| **Student** | Per-Student Config Screen (`/admin/students/:id`) | [x] | [x] | [x] | [x] | `IMPLEMENTED` | Phase 24 |
+| **Student** | Per-Student Eligibility & Exam Assignment | [x] | [x] | [x] | [x] | `IMPLEMENTED` | Phase 5, Phase 24 |
+| **Identity** | Government / Student ID Document Capture | [x] | [x] | [x] | [x] | `IMPLEMENTED` | Phase 24 |
+| **Identity** | Private S3 Encrypted Document Storage | [x] | [x] | [x] | [x] | `IMPLEMENTED` | Phase 15, Phase 24 |
+| **Identity** | Document OCR & Candidate Matching | [ ] | [ ] | [ ] | [ ] | `DEFERRED` | Phase 24/25 Boundary |
+| **Identity** | Admin Verification Review Queue (`/admin/verifications`)| [x] | [x] | [x] | [x] | `IMPLEMENTED` | Phase 24 |
 | **Biometrics** | Reference Face Enrollment & Embedding | [ ] | [ ] | [ ] | [ ] | `MISSING` | Phase 25 |
 | **Biometrics** | Pre-Exam Face Verification (Selfie Match) | [ ] | [ ] | [ ] | [ ] | `MISSING` | Phase 25 |
 | **Biometrics** | Passive & Active Liveness / Anti-Spoofing | [ ] | [ ] | [ ] | [ ] | `MISSING` | Phase 25 |
