@@ -1,9 +1,15 @@
 /**
  * @file Modal.jsx
- * @description Accessible modal dialog component with backdrop, keyboard escape, and focus management.
+ * @description Accessible modal dialog component mapped directly to shadcn/ui Dialog.
  */
 
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '../ui/dialog.jsx';
 
 export function Modal({
   isOpen,
@@ -12,108 +18,16 @@ export function Modal({
   children,
   maxWidth = '500px',
 }) {
-  const modalRef = useRef(null);
-
-  useEffect(() => {
-    function handleKeyDown(e) {
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
-      }
-    }
-
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-      window.addEventListener('keydown', handleKeyDown);
-    } else {
-      document.body.style.overflow = '';
-    }
-
-    return () => {
-      document.body.style.overflow = '';
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isOpen, onClose]);
-
-  if (!isOpen) return null;
-
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 50,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: 'rgba(15, 23, 42, 0.5)',
-        backdropFilter: 'blur(2px)',
-        padding: '1rem',
-      }}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) {
-          onClose();
-        }
-      }}
-    >
-      <div
-        ref={modalRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="modal-title"
-        style={{
-          backgroundColor: 'var(--color-surface)',
-          borderRadius: 'var(--radius-lg)',
-          boxShadow: 'var(--shadow-modal)',
-          border: '1px solid var(--color-border-subtle)',
-          width: '100%',
-          maxWidth,
-          display: 'flex',
-          flexDirection: 'column',
-          maxHeight: '90vh',
-          animation: 'fadeIn 0.15s ease-out',
-        }}
-      >
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose?.()}>
+      <DialogContent onClose={onClose} style={{ maxWidth }}>
         {title && (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '1.25rem 1.5rem',
-              borderBottom: '1px solid var(--color-border-subtle)',
-            }}
-          >
-            <h3 id="modal-title" style={{ margin: 0, fontSize: '1.125rem' }}>
-              {title}
-            </h3>
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Close modal"
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'var(--color-text-muted)',
-                cursor: 'pointer',
-                fontSize: '1.25rem',
-                lineHeight: 1,
-                padding: '0.25rem',
-                borderRadius: 'var(--radius-xs)',
-              }}
-            >
-              &times;
-            </button>
-          </div>
+          <DialogHeader>
+            <DialogTitle>{title}</DialogTitle>
+          </DialogHeader>
         )}
-        <div
-          style={{
-            padding: '1.5rem',
-            overflowY: 'auto',
-          }}
-        >
-          {children}
-        </div>
-      </div>
-    </div>
+        <div className="overflow-y-auto max-h-[80vh]">{children}</div>
+      </DialogContent>
+    </Dialog>
   );
 }

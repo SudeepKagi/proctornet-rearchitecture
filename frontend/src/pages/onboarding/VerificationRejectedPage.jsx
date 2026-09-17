@@ -1,15 +1,18 @@
 /**
  * @file VerificationRejectedPage.jsx
  * @description Informs candidate/faculty that their onboarding profile was rejected with review notes, allowing correction and resubmission.
+ * Redesigned with shadcn/ui.
  */
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth.js';
 import * as onboardingApi from '../../api/onboardingApi.js';
-import { Button } from '../../components/common/Button.jsx';
-import { Card } from '../../components/common/Card.jsx';
-import { Alert } from '../../components/common/Alert.jsx';
+import { AlertTriangle, LogOut, ArrowRight, UploadCloud } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../../components/ui/card.jsx';
+import { Button } from '../../components/ui/button.jsx';
+import { Alert, AlertDescription } from '../../components/ui/alert.jsx';
+import { Spinner } from '../../components/ui/spinner.jsx';
 
 export function VerificationRejectedPage() {
   const navigate = useNavigate();
@@ -50,85 +53,74 @@ export function VerificationRejectedPage() {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ color: 'var(--color-text-muted)' }}>Loading verification report...</div>
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+        <Spinner size="lg" />
       </div>
     );
   }
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: 'var(--color-bg-base)',
-      padding: 'var(--space-md)'
-    }}>
-      <Card style={{ maxWidth: '520px', width: '100%', padding: 'var(--space-xl)' }}>
-        <div style={{ textAlign: 'center', marginBottom: 'var(--space-lg)' }}>
-          <div style={{
-            width: '64px',
-            height: '64px',
-            borderRadius: '50%',
-            background: 'rgba(239, 68, 68, 0.1)',
-            color: '#ef4444',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginBottom: 'var(--space-md)'
-          }}>
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="15" y1="9" x2="9" y2="15"></line>
-              <line x1="9" y1="9" x2="15" y2="15"></line>
-            </svg>
-          </div>
+    <div className="min-h-screen flex flex-col justify-center items-center bg-slate-50 dark:bg-slate-950 p-4 sm:p-6 transition-colors">
+      <div className="w-full max-w-md space-y-4">
+        <Card className="shadow-lg border-slate-200/90 dark:border-slate-800 dark:bg-slate-900 text-center">
+          <CardHeader className="space-y-2 pb-4">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400 border border-rose-200 dark:border-rose-900/40 shadow-xs">
+              <AlertTriangle className="h-7 w-7" />
+            </div>
+            <CardTitle className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+              Verification Needs Attention
+            </CardTitle>
+            <CardDescription className="text-xs text-slate-500 dark:text-slate-400">
+              Your institutional profile or uploaded documentation could not be verified by the administrator.
+            </CardDescription>
+          </CardHeader>
 
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 600, color: 'var(--color-text-base)', margin: '0 0 var(--space-xs) 0' }}>
-            Verification Returned
-          </h2>
-          <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem', lineHeight: 1.5, margin: 0 }}>
-            Your submitted onboarding profile could not be verified by the administrator. Please review the notes below, update your details, and resubmit.
-          </p>
-        </div>
+          <CardContent className="space-y-4">
+            <Alert variant="destructive" className="text-left py-3">
+              <div className="font-semibold text-xs mb-1">Administrator Review Notes:</div>
+              <AlertDescription className="text-xs leading-relaxed">
+                {statusData?.verificationNotes ||
+                  'The uploaded documentation or department details did not match official university records. Please review and resubmit.'}
+              </AlertDescription>
+            </Alert>
+          </CardContent>
 
-        <Alert variant="danger" style={{ marginBottom: 'var(--space-lg)' }}>
-          <div style={{ fontWeight: 600, marginBottom: '4px' }}>Administrator Review Notes:</div>
-          <div>{statusData?.verificationNotes || 'Details do not match university registrar records. Please verify and correct your department and affiliation.'}</div>
-        </Alert>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
-          <Button
-            type="button"
-            variant="primary"
-            onClick={handleResubmit}
-            style={{ width: '100%' }}
-          >
-            Update & Resubmit Profile
-          </Button>
-
-          {user?.roles?.includes('STUDENT') && (
+          <CardFooter className="flex flex-col gap-2 pt-0">
             <Button
               type="button"
-              variant="outline"
-              onClick={() => navigate('/onboarding/document-upload')}
-              style={{ width: '100%' }}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium"
+              onClick={handleResubmit}
             >
-              Upload Identity Document
+              <span>Update Profile & Resubmit</span>
+              <ArrowRight className="h-4 w-4 ml-1.5" />
             </Button>
-          )}
 
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={logout}
-            style={{ width: '100%' }}
-          >
-            Sign Out
-          </Button>
-        </div>
-      </Card>
+            {user?.roles?.includes('STUDENT') && (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full border-slate-200 dark:border-slate-800"
+                onClick={() => navigate('/onboarding/document-upload')}
+              >
+                <UploadCloud className="h-4 w-4 mr-1.5" />
+                Upload New Document
+              </Button>
+            )}
+
+            <Button
+              type="button"
+              variant="ghost"
+              className="w-full text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+              onClick={logout}
+            >
+              <LogOut className="h-4 w-4 mr-1.5" />
+              Sign Out
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
     </div>
   );
 }
+
+export default VerificationRejectedPage;

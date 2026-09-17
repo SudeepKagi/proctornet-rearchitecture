@@ -1,74 +1,51 @@
 /**
  * @file Badge.jsx
- * @description Accessible status badge component for lifecycle and state pills.
+ * @description Accessible status badge standardized to shadcn/ui Badge primitive.
  */
 
 import React from 'react';
+import { Badge as ShadcnBadge } from '../ui/badge.jsx';
+import { cn } from '../../utils/cn.js';
 
 export function Badge({
   children,
   variant = 'neutral',
   size = 'md',
   className = '',
-  style = {},
+  style,
   ...props
 }) {
-  const variantStyles = {
-    neutral: {
-      backgroundColor: 'var(--color-surface-secondary)',
-      color: 'var(--color-text-muted)',
-      borderColor: 'var(--color-border-subtle)',
-    },
-    primary: {
-      backgroundColor: 'var(--color-primary-light)',
-      color: 'var(--color-primary)',
-      borderColor: 'var(--color-primary-border)',
-    },
-    success: {
-      backgroundColor: 'var(--color-success-light)',
-      color: 'var(--color-success)',
-      borderColor: 'var(--color-success-border)',
-    },
-    warning: {
-      backgroundColor: 'var(--color-warning-light)',
-      color: 'var(--color-warning)',
-      borderColor: 'var(--color-warning-border)',
-    },
-    danger: {
-      backgroundColor: 'var(--color-danger-light)',
-      color: 'var(--color-danger)',
-      borderColor: 'var(--color-danger-border)',
-    },
+  const variantMap = {
+    neutral: 'secondary',
+    primary: 'default',
+    secondary: 'secondary',
+    outline: 'outline',
+    success: 'success',
+    warning: 'warning',
+    danger: 'destructive',
+    destructive: 'destructive',
+    info: 'info',
   };
 
-  const sizeStyles = {
-    sm: { padding: '0.125rem 0.375rem', fontSize: '0.6875rem' },
-    md: { padding: '0.25rem 0.5rem', fontSize: '0.75rem' },
-    lg: { padding: '0.375rem 0.75rem', fontSize: '0.8125rem' },
+  const sizeMap = {
+    sm: 'sm',
+    md: 'default',
+    lg: 'lg',
   };
 
-  const selectedVariant = variantStyles[variant] || variantStyles.neutral;
-  const selectedSize = sizeStyles[size] || sizeStyles.md;
+  const resolvedVariant = variantMap[variant] || 'secondary';
+  const resolvedSize = sizeMap[size] || 'default';
 
   return (
-    <span
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        fontWeight: 600,
-        textTransform: 'uppercase',
-        letterSpacing: '0.025em',
-        borderRadius: 'var(--radius-full)',
-        border: '1px solid transparent',
-        ...selectedVariant,
-        ...selectedSize,
-        ...style,
-      }}
-      className={`badge badge-${variant} ${className}`}
+    <ShadcnBadge
+      variant={resolvedVariant}
+      size={resolvedSize}
+      className={cn('uppercase font-semibold tracking-wider text-[11px]', className)}
+      style={style}
       {...props}
     >
       {children}
-    </span>
+    </ShadcnBadge>
   );
 }
 
@@ -105,3 +82,5 @@ export function getStatusBadgeVariant(status) {
       return 'neutral';
   }
 }
+
+export default Badge;

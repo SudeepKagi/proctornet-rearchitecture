@@ -1,9 +1,11 @@
 /**
  * @file Card.jsx
- * @description Accessible surface container component with subtle border and crisp shadow.
+ * @description Accessible surface container standardized to shadcn/ui Card.
  */
 
 import React from 'react';
+import { Card as ShadcnCard } from '../ui/card.jsx';
+import { cn } from '../../utils/cn.js';
 
 export function Card({
   children,
@@ -13,34 +15,24 @@ export function Card({
   className = '',
   ...props
 }) {
-  const paddingMap = {
-    none: '0',
-    compact: '1rem',
-    normal: '1.5rem',
-    spacious: '2rem',
+  const paddingClasses = {
+    none: 'p-0',
+    compact: 'p-3 sm:p-4',
+    normal: 'p-5 sm:p-6',
+    spacious: 'p-6 sm:p-8',
   };
 
-  const shadowMap = {
-    none: 'none',
-    card: 'var(--shadow-card)',
-    md: 'var(--shadow-md)',
-    lg: 'var(--shadow-lg)',
-  };
+  const resolvedPadding = paddingClasses[padding] || paddingClasses.normal;
 
   return (
-    <div
-      style={{
-        backgroundColor: 'var(--color-surface)',
-        border: '1px solid var(--color-border-subtle)',
-        borderRadius: 'var(--radius-md)',
-        boxShadow: shadowMap[elevation] || shadowMap.card,
-        padding: paddingMap[padding] || paddingMap.normal,
-        ...style,
-      }}
-      className={`card ${className}`}
+    <ShadcnCard
+      className={cn(resolvedPadding, className)}
+      style={style}
       {...props}
     >
       {children}
-    </div>
+    </ShadcnCard>
   );
 }
+
+export default Card;

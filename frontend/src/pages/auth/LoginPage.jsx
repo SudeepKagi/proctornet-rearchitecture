@@ -1,160 +1,250 @@
 /**
  * @file LoginPage.jsx
- * @description Accessible, responsive sign-in page for ProctorNet personas.
+ * @description Modern, accessible academic authentication portal for ProctorNet built with shadcn/ui.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth.js';
-import { Input } from '../../components/common/Input.jsx';
-import { Button } from '../../components/common/Button.jsx';
-import { Card } from '../../components/common/Card.jsx';
+import { usePageMeta } from '../../hooks/usePageMeta.js';
+import { resolvePostLoginDestination } from '../../routes/roleNavigation.js';
+import {
+  ShieldCheck,
+  Lock,
+  Mail,
+  Eye,
+  EyeOff,
+  ArrowRight,
+  Sparkles,
+  ArrowLeft,
+  AlertCircle,
+} from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui/card.jsx';
+import { Button } from '../../components/ui/button.jsx';
+import { Input } from '../../components/ui/input.jsx';
+import { Alert, AlertDescription } from '../../components/ui/alert.jsx';
+import { Badge } from '../../components/ui/badge.jsx';
+import { useToast } from '../../components/ui/toast.jsx';
 
 export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login } = useAuth();
+  const { login, user: currentUser, isAuthenticated, loading: authLoading } = useAuth();
+  const { toast } = useToast();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  usePageMeta({
+    title: 'Login',
+    description: 'Sign in to your ProctorNet academic examination account.',
+    canonical: '/login',
+  });
+
+  useEffect(() => {
+    if (!authLoading && isAuthenticated && currentUser) {
+      const destination = resolvePostLoginDestination(currentUser, location.state?.from?.pathname);
+      navigate(destination, { replace: true, state: null });
+    }
+  }, [authLoading, isAuthenticated, currentUser, navigate, location.state]);
+
+  const formatErrorMessage = (rawError) => {
+    if (!rawError) return 'Unable to sign in. Please check your credentials and try again.';
+    const str = String(rawError);
+    if (
+      str.toLowerCase().includes('sql') ||
+      str.toLowerCase().includes('connect') ||
+      str.toLowerCase().includes('socket') ||
+      str.toLowerCase().includes('database') ||
+      str.toLowerCase().includes('internal') ||
+      str.includes('500') ||
+      str.includes('ECONNREFUSED')
+    ) {
+      return 'Unable to sign in. Please check your credentials and try again.';
+    }
+    return str;
+  };
+
   async function handleSubmit(e) {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     setError('');
+
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      setError('Please enter your institutional email address or username.');
+      return;
+    }
+    if (!password) {
+      setError('Please enter your password.');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const data = await login({ email, password });
+      const data = await login({ email: trimmedEmail, password });
       const user = data.user;
-
-      // Determine default portal based on primary user role
-      let destination = location.state?.from?.pathname;
-      if (!destination || destination === '/login') {
-        if (user.roles?.includes('ADMIN')) {
-          destination = '/admin';
-        } else if (user.roles?.includes('FACULTY')) {
-          destination = '/faculty';
-        } else if (user.roles?.includes('INVIGILATOR')) {
-          destination = '/invigilator';
-        } else {
-          destination = '/candidate';
-        }
-      }
-
-      navigate(destination, { replace: true });
+      const destination = resolvePostLoginDestination(user, location.state?.from?.pathname);
+      navigate(destination, { replace: true, state: null });
     } catch (err) {
-      setError(err.message || 'Login failed. Please verify your credentials.');
+      const message = formatErrorMessage(err?.message);
+      setError(message);
+      toast({ variant: 'error', title: 'Authentication Failed', description: message });
     } finally {
       setLoading(false);
     }
   }
 
+  const fillDemo = (demoEmail, demoPass) => {
+    setEmail(demoEmail);
+    setPassword(demoPass);
+    setError('');
+  };
+
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '1.5rem',
-        backgroundColor: 'var(--color-canvas)',
-      }}
-    >
-      <div style={{ width: '100%', maxWidth: '420px' }}>
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '48px',
-              height: '48px',
-              borderRadius: 'var(--radius-md)',
-              backgroundColor: 'var(--color-primary-light)',
-              color: 'var(--color-primary)',
-              fontWeight: 700,
-              fontSize: '1.25rem',
-              marginBottom: '0.75rem',
-            }}
+    <div className="min-h-screen flex flex-col justify-center items-center bg-slate-50 dark:bg-slate-950 p-4 sm:p-6 transition-colors">
+      <div className="w-full max-w-md space-y-4">
+        <div className="flex justify-between items-center px-1">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
           >
-            PN
-          </div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>
-            Sign in to ProctorNet
-          </h1>
-          <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem', marginTop: '0.25rem' }}>
-            Secure Online Assessment & Examination Platform
-          </p>
+            <ArrowLeft size={14} />
+            <span>Return to Home</span>
+          </Link>
+          <Badge variant="secondary" className="text-[11px] font-medium">
+            Academic Platform
+          </Badge>
         </div>
 
-        <Card padding="spacious">
-          {error && (
-            <div
-              role="alert"
-              style={{
-                marginBottom: '1.25rem',
-                padding: '0.75rem 1rem',
-                borderRadius: 'var(--radius-sm)',
-                backgroundColor: 'var(--color-danger-light)',
-                border: '1px solid var(--color-danger-border)',
-                color: 'var(--color-danger)',
-                fontSize: '0.875rem',
-              }}
-            >
-              {error}
+        <Card className="shadow-lg border-slate-200/90 dark:border-slate-800 dark:bg-slate-900">
+          <CardHeader className="text-center space-y-2 pb-4">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600 text-white shadow-md">
+              <ShieldCheck className="h-6 w-6" />
             </div>
-          )}
+            <CardTitle className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+              Sign In to ProctorNet
+            </CardTitle>
+            <CardDescription className="text-sm text-slate-500 dark:text-slate-400">
+              Enter your institutional credentials to access your portal.
+            </CardDescription>
+          </CardHeader>
 
-          <form onSubmit={handleSubmit} noValidate>
-            <Input
-              id="email"
-              label="Email Address"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="candidate@proctornet.edu"
-              autoComplete="email"
-              required
-            />
+          <CardContent className="space-y-4">
+            {error && (
+              <Alert variant="destructive" className="py-2.5">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription className="text-xs">{error}</AlertDescription>
+              </Alert>
+            )}
 
-            <Input
-              id="password"
-              label="Password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              autoComplete="current-password"
-              required
-            />
+            <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+              <div className="space-y-1.5 text-left">
+                <label
+                  htmlFor="login-email"
+                  className="text-xs font-medium text-slate-700 dark:text-slate-300"
+                >
+                  Email or Username
+                </label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                  <Input
+                    id="login-email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="name@proctornet.edu"
+                    required
+                    autoComplete="username"
+                    className="pl-9"
+                  />
+                </div>
+              </div>
 
-            <Button
-              type="submit"
-              variant="primary"
-              size="lg"
-              loading={loading}
-              style={{ width: '100%', marginTop: '0.5rem' }}
-            >
-              Sign In
-            </Button>
-          </form>
+              <div className="space-y-1.5 text-left">
+                <div className="flex justify-between items-center">
+                  <label
+                    htmlFor="login-password"
+                    className="text-xs font-medium text-slate-700 dark:text-slate-300"
+                  >
+                    Password
+                  </label>
+                </div>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                  <Input
+                    id="login-password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••••••"
+                    required
+                    autoComplete="current-password"
+                    className="pl-9 pr-9"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
 
-          <div
-            style={{
-              marginTop: '1.5rem',
-              paddingTop: '1.25rem',
-              borderTop: '1px solid var(--color-border-subtle)',
-              textAlign: 'center',
-              fontSize: '0.8125rem',
-              color: 'var(--color-text-muted)',
-            }}
-          >
-            Accounts are provisioned by institutional administrators. Please sign in with your temporary or permanent credentials.
-          </div>
+              <Button
+                type="submit"
+                className="w-full h-10 bg-blue-600 hover:bg-blue-700 text-white font-medium"
+                disabled={loading}
+              >
+                {loading ? 'Authenticating...' : 'Sign In'}
+                {!loading && <ArrowRight className="h-4 w-4 ml-1" />}
+              </Button>
+            </form>
+
+            {/* Quick Demo Credentials */}
+            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
+              <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                <Sparkles size={13} className="text-amber-500" />
+                <span>Quick-Fill Evaluation Accounts</span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                {[
+                  { role: 'Admin', email: 'admin@proctornet.edu', pass: 'Admin#2026_SecureExams!' },
+                  { role: 'Faculty', email: 'faculty@proctornet.edu', pass: 'Faculty#2026_SecureExams!' },
+                  { role: 'Invigilator', email: 'invigilator@proctornet.edu', pass: 'Invigilator#2026_SecureExams!' },
+                  { role: 'Student', email: 'student@proctornet.edu', pass: 'Candidate#2026_SecureExams!' },
+                  { role: 'Developer', email: 'developer@proctornet.edu', pass: 'Dev#2026_SecureExams!' },
+                ].map((demo) => (
+                  <Button
+                    key={demo.role}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fillDemo(demo.email, demo.pass)}
+                    className="text-xs h-7 py-1 px-2 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 font-medium"
+                  >
+                    {demo.role}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </CardContent>
         </Card>
+
+        <div className="text-center text-xs text-slate-500 dark:text-slate-400">
+          Need an account?{' '}
+          <Link to="/register" className="font-semibold text-blue-600 hover:underline dark:text-blue-400">
+            Register for evaluation
+          </Link>
+        </div>
       </div>
     </div>
   );
 }
+
+export default LoginPage;

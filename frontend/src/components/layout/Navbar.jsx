@@ -1,231 +1,159 @@
-/**
- * @file Navbar.jsx
- * @description Accessible header navigation bar with user profile, role pill, and logout.
- */
-
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import {
+  LogOut,
+  Menu,
+  ShieldCheck,
+  Moon,
+  Sun,
+  SlidersHorizontal,
+  ChevronDown,
+} from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth.js';
-import { Badge } from '../common/Badge.jsx';
-import { Button } from '../common/Button.jsx';
+import { useTheme } from '../../hooks/useTheme.js';
+import { Button } from '../ui/button.jsx';
+import { Avatar } from '../ui/avatar.jsx';
+import { Badge } from '../ui/badge.jsx';
+import {
+  DropdownMenu,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from '../ui/dropdown-menu.jsx';
 
-export function Navbar() {
-  const { user, isAuthenticated, logout } = useAuth();
-  const navigate = useNavigate();
+export function Navbar({ onMenuToggle }) {
+  const { user, logout } = useAuth();
+  const { isDark, toggleTheme, density, setDensity } = useTheme();
 
   async function handleLogout() {
     await logout();
-    navigate('/login');
   }
 
-  const primaryRole = user?.roles?.[0] || 'STUDENT';
+  const initials = (user?.name || user?.email || 'U')
+    .split(' ')
+    .filter(Boolean)
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+
+  const isVerified = user?.verificationStatus === 'VERIFIED';
+  const role = user?.roles?.[0] || 'User';
 
   return (
-    <header
-      style={{
-        backgroundColor: 'var(--color-surface)',
-        borderBottom: '1px solid var(--color-border-subtle)',
-        position: 'sticky',
-        top: 0,
-        zIndex: 30,
-      }}
-    >
-      <div
-        className="container"
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          height: '60px',
-        }}
+    <header className="app-topbar bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 h-16 flex items-center gap-3 transition-colors">
+      <button
+        className="app-menu-button md:hidden p-2 rounded-md text-slate-700 hover:text-slate-950 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 cursor-pointer"
+        type="button"
+        onClick={onMenuToggle}
+        aria-label="Toggle navigation menu"
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
-          <Link
-            to="/"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.625rem',
-              textDecoration: 'none',
-              color: 'var(--color-text-primary)',
-              fontWeight: 700,
-              fontSize: '1.125rem',
-            }}
-          >
-            <span
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '32px',
-                height: '32px',
-                borderRadius: 'var(--radius-sm)',
-                backgroundColor: 'var(--color-primary)',
-                color: 'var(--color-text-inverse)',
-                fontSize: '0.875rem',
-                fontWeight: 700,
-              }}
-            >
-              PN
-            </span>
-            ProctorNet
-          </Link>
+        <Menu size={20} />
+      </button>
 
-          {isAuthenticated && (
-            <nav style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-              <Link
-                to="/candidate"
-                style={{
-                  color: 'var(--color-text-body)',
-                  textDecoration: 'none',
-                  fontSize: '0.875rem',
-                  fontWeight: 500,
+      <Link
+        className="app-brand flex items-center gap-2.5 text-slate-900 dark:text-slate-50 font-semibold tracking-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 rounded-md p-1"
+        to="/dashboard"
+        aria-label="ProctorNet dashboard home"
+      >
+        <span className="app-brand-mark flex items-center justify-center w-8 h-8 rounded-lg bg-blue-600 text-white shadow-xs">
+          <ShieldCheck size={18} />
+        </span>
+        <div className="flex flex-col">
+          <span className="text-base font-bold leading-none tracking-tight">ProctorNet</span>
+          <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400">Academic Platform</span>
+        </div>
+      </Link>
+
+      <div className="ml-auto flex items-center gap-2 sm:gap-3">
+        {/* Theme Toggle Button */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={toggleTheme}
+          aria-label={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
+          className="h-8 w-8 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+        >
+          {isDark ? <Sun size={16} /> : <Moon size={16} />}
+        </Button>
+
+        {/* User Dropdown Profile & Controls */}
+        <DropdownMenu
+          trigger={
+            <button
+              type="button"
+              className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+              aria-label="User profile settings menu"
+            >
+              <Avatar className="h-8 w-8 text-xs font-semibold bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                {initials}
+              </Avatar>
+              <div className="hidden sm:flex flex-col text-left">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-semibold text-slate-900 dark:text-slate-100 max-w-[120px] truncate">
+                    {user?.name || 'User'}
+                  </span>
+                  {isVerified && (
+                    <Badge variant="success" size="sm" className="px-1 py-0 text-[9px] leading-tight">
+                      ✓
+                    </Badge>
+                  )}
+                </div>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                  {role}
+                </span>
+              </div>
+              <ChevronDown size={14} className="text-slate-400 dark:text-slate-500 hidden sm:inline" />
+            </button>
+          }
+        >
+          {({ close }) => (
+            <>
+              <DropdownMenuLabel>
+                <div className="font-medium text-slate-900 dark:text-slate-100">{user?.name}</div>
+                <div className="text-[11px] text-slate-500 truncate font-normal">{user?.email}</div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+
+              <DropdownMenuLabel>
+                <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
+                  <SlidersHorizontal size={13} />
+                  <span>Display Density</span>
+                </div>
+              </DropdownMenuLabel>
+              <div className="px-2 py-1 grid grid-cols-3 gap-1">
+                {['compact', 'comfortable', 'touch'].map((d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => {
+                      setDensity(d);
+                    }}
+                    className={`text-[11px] py-1 px-1.5 rounded-sm capitalize font-medium transition-colors cursor-pointer ${
+                      density === d
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300'
+                    }`}
+                  >
+                    {d}
+                  </button>
+                ))}
+              </div>
+
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                destructive
+                icon={LogOut}
+                onClick={() => {
+                  close();
+                  handleLogout();
                 }}
               >
-                Candidate Portal
-              </Link>
-
-              {user?.roles?.some((r) => ['FACULTY', 'ADMIN'].includes(r)) && (
-                <>
-                  <Link
-                    to="/faculty"
-                    style={{
-                      color: 'var(--color-text-body)',
-                      textDecoration: 'none',
-                      fontSize: '0.875rem',
-                      fontWeight: 500,
-                    }}
-                  >
-                    Faculty Exams
-                  </Link>
-                  <Link
-                    to="/faculty/sessions"
-                    style={{
-                      color: 'var(--color-text-body)',
-                      textDecoration: 'none',
-                      fontSize: '0.875rem',
-                      fontWeight: 500,
-                    }}
-                  >
-                    Sessions
-                  </Link>
-                </>
-              )}
-
-              {user?.roles?.some((r) => ['INVIGILATOR', 'ADMIN'].includes(r)) && (
-                <Link
-                  to="/invigilator"
-                  style={{
-                    color: 'var(--color-text-body)',
-                    textDecoration: 'none',
-                    fontSize: '0.875rem',
-                    fontWeight: 500,
-                  }}
-                >
-                  Invigilator
-                </Link>
-              )}
-
-              {user?.roles?.includes('ADMIN') && (
-                <>
-                  <Link
-                    to="/admin"
-                    style={{
-                      color: 'var(--color-text-body)',
-                      textDecoration: 'none',
-                      fontSize: '0.875rem',
-                      fontWeight: 500,
-                    }}
-                  >
-                    Overview
-                  </Link>
-                  <Link
-                    to="/admin/users"
-                    style={{
-                      color: 'var(--color-text-body)',
-                      textDecoration: 'none',
-                      fontSize: '0.875rem',
-                      fontWeight: 500,
-                    }}
-                  >
-                    Users
-                  </Link>
-                  <Link
-                    to="/admin/verifications"
-                    style={{
-                      color: 'var(--color-text-body)',
-                      textDecoration: 'none',
-                      fontSize: '0.875rem',
-                      fontWeight: 500,
-                    }}
-                  >
-                    Verifications
-                  </Link>
-                  <Link
-                    to="/admin/settings"
-                    style={{
-                      color: 'var(--color-text-body)',
-                      textDecoration: 'none',
-                      fontSize: '0.875rem',
-                      fontWeight: 500,
-                    }}
-                  >
-                    Settings
-                  </Link>
-                  <Link
-                    to="/admin/audit"
-                    style={{
-                      color: 'var(--color-text-body)',
-                      textDecoration: 'none',
-                      fontSize: '0.875rem',
-                      fontWeight: 500,
-                    }}
-                  >
-                    Audit
-                  </Link>
-                </>
-              )}
-
-              {user?.roles?.includes('DEVELOPER') && (
-                <Link
-                  to="/developer"
-                  style={{
-                    color: 'var(--color-primary)',
-                    textDecoration: 'none',
-                    fontSize: '0.875rem',
-                    fontWeight: 600,
-                  }}
-                >
-                  Developer Ops
-                </Link>
-              )}
-            </nav>
-          )}
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          {isAuthenticated ? (
-            <>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--color-text-primary)' }}>
-                  {user.name || user.email}
-                </span>
-                <Badge variant="primary" size="sm">
-                  {primaryRole}
-                </Badge>
-              </div>
-              <Button variant="secondary" size="sm" onClick={handleLogout}>
-                Sign Out
-              </Button>
+                Sign out
+              </DropdownMenuItem>
             </>
-          ) : (
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <Button variant="primary" size="sm" onClick={() => navigate('/login')}>
-                Sign In
-              </Button>
-            </div>
           )}
-        </div>
+        </DropdownMenu>
       </div>
     </header>
   );

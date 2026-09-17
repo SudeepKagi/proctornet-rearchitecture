@@ -1,9 +1,11 @@
 /**
  * @file OfflineBanner.jsx
  * @description Floating amber banner notifying candidates of network loss and in-memory buffering.
+ * Accessible across all viewports per shadcn/ui and WCAG specifications.
  */
 
 import React from 'react';
+import { WifiOff } from 'lucide-react';
 
 export function OfflineBanner({ isOffline }) {
   if (!isOffline) return null;
@@ -12,45 +14,14 @@ export function OfflineBanner({ isOffline }) {
     <div
       role="alert"
       aria-live="assertive"
-      style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 100,
-        backgroundColor: 'var(--color-warning-light)',
-        borderBottom: '1px solid var(--color-warning-border)',
-        color: '#92400e',
-        padding: '0.625rem 1.5rem',
-        fontSize: '0.875rem',
-        fontWeight: 500,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '0.5rem',
-        boxShadow: 'var(--shadow-sm)',
-      }}
+      className="sticky top-0 z-50 flex items-center justify-center gap-2.5 border-b border-amber-300 bg-amber-50 px-4 py-2.5 text-sm font-medium text-amber-900 shadow-xs dark:border-amber-800/80 dark:bg-amber-950/90 dark:text-amber-200 animate-in slide-in-from-top duration-200"
     >
-      <svg
-        width="18"
-        height="18"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden="true"
-      >
-        <line x1="1" y1="1" x2="23" y2="23"></line>
-        <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"></path>
-        <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"></path>
-        <path d="M10.71 5.05A16 16 0 0 1 22.58 9"></path>
-        <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"></path>
-        <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
-        <line x1="12" y1="20" x2="12.01" y2="20"></line>
-      </svg>
+      <WifiOff className="h-4 w-4 shrink-0 text-amber-700 dark:text-amber-400" aria-hidden="true" />
       <span>
-        <strong>Connection lost:</strong> Unsynchronized answers are kept in this tab's memory only. Do not close or refresh this tab.
+        <strong className="font-semibold">Connection lost:</strong> Unsynchronized answers remain in this tab only. Do not close or refresh this tab.
       </span>
     </div>
   );
 }
+
+export default OfflineBanner;

@@ -1,18 +1,21 @@
 /**
  * @file VerificationPendingPage.jsx
  * @description Informs candidate/faculty that their submitted onboarding profile is pending administrative approval.
+ * Redesigned with shadcn/ui.
  */
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth.js';
 import * as onboardingApi from '../../api/onboardingApi.js';
-import { Button } from '../../components/common/Button.jsx';
-import { Card } from '../../components/common/Card.jsx';
+import { Clock, RefreshCw, LogOut } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../../components/ui/card.jsx';
+import { Button } from '../../components/ui/button.jsx';
+import { Badge } from '../../components/ui/badge.jsx';
 
 export function VerificationPendingPage() {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, logout, refreshUser } = useAuth();
   const [checking, setChecking] = useState(false);
   const [statusData, setStatusData] = useState(null);
 
@@ -22,6 +25,9 @@ export function VerificationPendingPage() {
       const data = await onboardingApi.getOnboardingStatus();
       setStatusData(data);
       if (data.verificationStatus === 'VERIFIED') {
+        if (refreshUser) {
+          await refreshUser();
+        }
         if (user?.roles?.includes('FACULTY')) {
           navigate('/faculty', { replace: true });
         } else {
@@ -44,93 +50,72 @@ export function VerificationPendingPage() {
   }, []);
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: 'var(--color-bg-base)',
-      padding: 'var(--space-md)'
-    }}>
-      <Card style={{ maxWidth: '480px', width: '100%', padding: 'var(--space-xl)', textAlign: 'center' }}>
-        <div style={{
-          width: '64px',
-          height: '64px',
-          borderRadius: '50%',
-          background: 'rgba(234, 179, 8, 0.1)',
-          color: '#ca8a04',
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginBottom: 'var(--space-md)'
-        }}>
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="12" cy="12" r="10"></circle>
-            <polyline points="12 6 12 12 16 14"></polyline>
-          </svg>
-        </div>
-
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 600, color: 'var(--color-text-base)', margin: '0 0 var(--space-xs) 0' }}>
-          Verification Pending
-        </h2>
-        <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem', lineHeight: 1.5, margin: 0 }}>
-          Your profile details have been submitted and are currently under administrative review. Once verified by your institution, you will gain access to your dashboard and examination schedule.
-        </p>
-
-        {statusData && (
-          <div style={{
-            margin: 'var(--space-lg) 0',
-            textAlign: 'left',
-            background: 'var(--color-bg-surface)',
-            padding: 'var(--space-md)',
-            borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--color-border-subtle)',
-            fontSize: '0.8125rem'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-              <span style={{ color: 'var(--color-text-muted)' }}>Status:</span>
-              <span style={{ fontWeight: 600, color: '#ca8a04' }}>UNDER REVIEW</span>
+    <div className="min-h-screen flex flex-col justify-center items-center bg-slate-50 dark:bg-slate-950 p-4 sm:p-6 transition-colors">
+      <div className="w-full max-w-md space-y-4">
+        <Card className="shadow-lg border-slate-200/90 dark:border-slate-800 dark:bg-slate-900 text-center">
+          <CardHeader className="space-y-2 pb-4">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400 border border-amber-200 dark:border-amber-900/40 shadow-xs">
+              <Clock className="h-7 w-7 animate-pulse" />
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-              <span style={{ color: 'var(--color-text-muted)' }}>Department:</span>
-              <span style={{ fontWeight: 500 }}>{statusData.department || '—'}</span>
-            </div>
-            {statusData.semester && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                <span style={{ color: 'var(--color-text-muted)' }}>Semester:</span>
-                <span style={{ fontWeight: 500 }}>Semester {statusData.semester}</span>
+            <CardTitle className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+              Identity Verification Pending
+            </CardTitle>
+            <CardDescription className="text-xs text-slate-500 dark:text-slate-400">
+              Your profile has been submitted and is awaiting administrative approval from your institution.
+            </CardDescription>
+          </CardHeader>
+
+          <CardContent className="space-y-4">
+            {statusData && (
+              <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 p-3.5 text-xs text-left space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500 dark:text-slate-400 font-medium">Review Status:</span>
+                  <Badge variant="warning">Under Review</Badge>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500 dark:text-slate-400 font-medium">Department:</span>
+                  <span className="font-semibold text-slate-900 dark:text-slate-100">{statusData.department || '—'}</span>
+                </div>
+                {statusData.semester && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-500 dark:text-slate-400 font-medium">Semester:</span>
+                    <span className="font-semibold text-slate-900 dark:text-slate-100">Semester {statusData.semester}</span>
+                  </div>
+                )}
+                {statusData.designation && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-500 dark:text-slate-400 font-medium">Designation:</span>
+                    <span className="font-semibold text-slate-900 dark:text-slate-100">{statusData.designation}</span>
+                  </div>
+                )}
               </div>
             )}
-            {statusData.designation && (
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: 'var(--color-text-muted)' }}>Designation:</span>
-                <span style={{ fontWeight: 500 }}>{statusData.designation}</span>
-              </div>
-            )}
-          </div>
-        )}
+          </CardContent>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
-          <Button
-            type="button"
-            variant="primary"
-            loading={checking}
-            onClick={checkStatus}
-            style={{ width: '100%' }}
-          >
-            Check Status Now
-          </Button>
-
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={logout}
-            style={{ width: '100%' }}
-          >
-            Sign Out
-          </Button>
-        </div>
-      </Card>
+          <CardFooter className="flex flex-col gap-2 pt-0">
+            <Button
+              type="button"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium"
+              disabled={checking}
+              onClick={checkStatus}
+            >
+              <RefreshCw className={`h-4 w-4 mr-1.5 ${checking ? 'animate-spin' : ''}`} />
+              {checking ? 'Checking Status...' : 'Check Status Now'}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full border-slate-200 dark:border-slate-800"
+              onClick={logout}
+            >
+              <LogOut className="h-4 w-4 mr-1.5" />
+              Sign Out
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
     </div>
   );
 }
+
+export default VerificationPendingPage;

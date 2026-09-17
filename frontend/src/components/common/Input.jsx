@@ -1,43 +1,45 @@
 /**
  * @file Input.jsx
- * @description Accessible form input component with label, error feedback, and focus ring.
+ * @description Accessible form input component standardized to shadcn/ui Input primitive.
  */
 
 import React from 'react';
+import { Input as ShadcnInput } from '../ui/input.jsx';
+import { cn } from '../../utils/cn.js';
 
-export function Input({
-  label,
-  id,
-  type = 'text',
-  value,
-  onChange,
-  placeholder,
-  error,
-  required = false,
-  disabled = false,
-  autoComplete,
-  className = '',
-  helperText,
-  ...props
-}) {
+export const Input = React.forwardRef(function Input(
+  {
+    label,
+    id,
+    type = 'text',
+    value,
+    onChange,
+    placeholder,
+    error,
+    required = false,
+    disabled = false,
+    autoComplete,
+    className = '',
+    helperText,
+    style,
+    ...props
+  },
+  ref
+) {
   const inputId = id || (label ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
 
   return (
-    <div style={{ marginBottom: '1rem', display: 'flex', flexDirection: 'column' }} className={className}>
+    <div className={cn('flex flex-col space-y-1.5 text-left', className)} style={style}>
       {label && (
         <label
           htmlFor={inputId}
-          style={{
-            marginBottom: '0.375rem',
-            fontSize: '0.875rem',
-            fontWeight: 500,
-            color: 'var(--color-text-primary)',
-          }}
+          className="text-xs font-medium text-slate-700 select-none"
         >
-          {label} {required && <span style={{ color: 'var(--color-danger)' }}>*</span>}
+          {label} {required && <span className="text-red-500">*</span>}
         </label>
       )}
-      <input
+      <ShadcnInput
+        ref={ref}
         id={inputId}
         type={type}
         value={value}
@@ -48,43 +50,22 @@ export function Input({
         autoComplete={autoComplete}
         aria-invalid={!!error}
         aria-describedby={error ? `${inputId}-error` : undefined}
-        style={{
-          width: '100%',
-          padding: '0.5rem 0.75rem',
-          fontSize: '0.9375rem',
-          color: 'var(--color-text-primary)',
-          backgroundColor: disabled ? 'var(--color-surface-secondary)' : 'var(--color-surface)',
-          border: `1px solid ${error ? 'var(--color-danger)' : 'var(--color-border-subtle)'}`,
-          borderRadius: 'var(--radius-sm)',
-          boxShadow: 'var(--shadow-sm)',
-          transition: 'border-color var(--transition-fast)',
-        }}
+        className={cn(error ? 'border-red-300 focus-visible:ring-red-500' : '')}
         {...props}
       />
       {error && (
-        <span
-          id={`${inputId}-error`}
-          role="alert"
-          style={{
-            marginTop: '0.375rem',
-            fontSize: '0.8125rem',
-            color: 'var(--color-danger)',
-          }}
-        >
+        <span id={`${inputId}-error`} className="text-xs font-medium text-red-600">
           {error}
         </span>
       )}
       {helperText && !error && (
-        <span
-          style={{
-            marginTop: '0.375rem',
-            fontSize: '0.8125rem',
-            color: 'var(--color-text-muted)',
-          }}
-        >
+        <span className="text-xs text-slate-500">
           {helperText}
         </span>
       )}
     </div>
   );
-}
+});
+
+Input.displayName = 'Input';
+export default Input;

@@ -2,8 +2,8 @@
  * @file GlobalErrorBoundary.jsx
  * @description Application-wide React Error Boundary.
  * Catches unhandled runtime render exceptions, prevents white-screen crashes,
- * displays an accessible recovery interface with a safe reference ID, and provides
- * Retry and Return Home actions.
+ * displays an accessible light-theme recovery interface, and provides
+ * Try Again, Go to Dashboard, and Go to Home actions.
  */
 
 import React from 'react';
@@ -14,26 +14,23 @@ export class GlobalErrorBoundary extends React.Component {
     this.state = {
       hasError: false,
       error: null,
-      referenceId: null
+      referenceId: null,
     };
   }
 
   static getDerivedStateFromError(error) {
-    // Generate a safe, pseudorandom incident reference ID for telemetry tracking
     const referenceId = `ERR-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
     return {
       hasError: true,
       error,
-      referenceId
+      referenceId,
     };
   }
 
   componentDidCatch(error, errorInfo) {
-    // Safely log diagnostic details without candidate PII or sensitive tokens
     const safeMessage = error?.message || 'Unknown render exception';
     const componentStack = errorInfo?.componentStack || '';
-    
-    // Log in development or telemetry buffer
+
     if (process.env.NODE_ENV !== 'production') {
       console.error(
         `[GlobalErrorBoundary] Caught unhandled exception [${this.state.referenceId}]:`,
@@ -50,7 +47,12 @@ export class GlobalErrorBoundary extends React.Component {
     }
   };
 
-  handleReturnHome = () => {
+  handleGoDashboard = () => {
+    this.setState({ hasError: false, error: null, referenceId: null });
+    window.location.href = '/dashboard';
+  };
+
+  handleGoHome = () => {
     this.setState({ hasError: false, error: null, referenceId: null });
     window.location.href = '/';
   };
@@ -69,21 +71,21 @@ export class GlobalErrorBoundary extends React.Component {
             alignItems: 'center',
             justifyContent: 'center',
             padding: '2rem 1.5rem',
-            backgroundColor: 'var(--color-bg-base, #0b0f19)',
-            color: 'var(--color-text-base, #f8fafc)',
-            fontFamily: 'var(--font-sans, system-ui, -apple-system, sans-serif)'
+            backgroundColor: 'var(--color-canvas, #f8fafc)',
+            color: 'var(--color-text-primary, #0f172a)',
+            fontFamily: 'var(--font-family-sans, system-ui, -apple-system, sans-serif)',
           }}
         >
           <div
             style={{
-              maxWidth: '560px',
+              maxWidth: '520px',
               width: '100%',
-              backgroundColor: 'var(--color-bg-surface, #131b2e)',
-              border: '1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.1))',
+              backgroundColor: '#ffffff',
+              border: '1px solid var(--color-border-subtle, #e2e8f0)',
               borderRadius: 'var(--radius-lg, 12px)',
               padding: '2.5rem 2rem',
               textAlign: 'center',
-              boxShadow: 'var(--shadow-xl, 0 20px 25px -5px rgba(0, 0, 0, 0.5))'
+              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05)',
             }}
           >
             {/* Warning Shield Graphic */}
@@ -92,15 +94,14 @@ export class GlobalErrorBoundary extends React.Component {
               style={{
                 width: '56px',
                 height: '56px',
-                margin: '0 auto 1.5rem auto',
+                margin: '0 auto 1.25rem auto',
                 borderRadius: '50%',
-                backgroundColor: 'rgba(239, 68, 68, 0.15)',
-                border: '1px solid rgba(239, 68, 68, 0.3)',
+                backgroundColor: 'var(--color-danger-light, #fef2f2)',
+                border: '1px solid var(--color-danger-border, #fecaca)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontSize: '1.75rem',
-                color: '#ef4444'
               }}
             >
               ⚠️
@@ -110,22 +111,22 @@ export class GlobalErrorBoundary extends React.Component {
               style={{
                 fontSize: '1.5rem',
                 fontWeight: 700,
-                margin: '0 0 0.75rem 0',
-                color: 'var(--color-text-base, #ffffff)'
+                margin: '0 0 0.5rem 0',
+                color: 'var(--color-text-primary, #0f172a)',
               }}
             >
-              Something went wrong
+              Something went wrong.
             </h1>
 
             <p
               style={{
-                fontSize: '0.9375rem',
-                lineHeight: 1.6,
-                color: 'var(--color-text-muted, #94a3b8)',
-                margin: '0 0 1.5rem 0'
+                fontSize: '1rem',
+                lineHeight: 1.5,
+                color: 'var(--color-text-body, #334155)',
+                margin: '0 0 1.5rem 0',
               }}
             >
-              An unexpected error interrupted the application interface. No exam data or security state was compromised.
+              ProctorNet could not load this page.
             </p>
 
             {referenceId && (
@@ -134,27 +135,27 @@ export class GlobalErrorBoundary extends React.Component {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '0.5rem',
-                  padding: '0.5rem 1rem',
-                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  padding: '0.375rem 0.75rem',
+                  backgroundColor: 'var(--color-surface-secondary, #f1f5f9)',
+                  border: '1px solid var(--color-border-subtle, #e2e8f0)',
                   borderRadius: 'var(--radius-sm, 6px)',
-                  fontSize: '0.8125rem',
+                  fontSize: '0.75rem',
                   fontFamily: 'monospace',
-                  color: 'var(--color-text-secondary, #cbd5e1)',
-                  marginBottom: '2rem'
+                  color: 'var(--color-text-muted, #64748b)',
+                  marginBottom: '1.75rem',
                 }}
               >
-                <span>Reference ID:</span>
-                <strong style={{ color: '#60a5fa' }}>{referenceId}</strong>
+                <span>Diagnostic Reference:</span>
+                <strong>{referenceId}</strong>
               </div>
             )}
 
             <div
               style={{
                 display: 'flex',
-                gap: '1rem',
+                gap: '0.75rem',
                 justifyContent: 'center',
-                flexWrap: 'wrap'
+                flexWrap: 'wrap',
               }}
             >
               <button
@@ -162,39 +163,59 @@ export class GlobalErrorBoundary extends React.Component {
                 onClick={this.handleRetry}
                 style={{
                   padding: '0.625rem 1.25rem',
-                  borderRadius: 'var(--radius-md, 8px)',
-                  backgroundColor: 'var(--color-primary, #3b82f6)',
+                  borderRadius: 'var(--radius-sm, 6px)',
+                  backgroundColor: 'var(--color-primary, #2563eb)',
                   color: '#ffffff',
                   fontWeight: 600,
                   fontSize: '0.875rem',
                   border: 'none',
                   cursor: 'pointer',
-                  transition: 'background-color 150ms ease'
+                  transition: 'background-color 150ms ease',
                 }}
-                onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#2563eb')}
-                onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-primary, #3b82f6)')}
+                onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#1d4ed8')}
+                onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-primary, #2563eb)')}
               >
-                Try Again
+                Try again
               </button>
 
               <button
                 type="button"
-                onClick={this.handleReturnHome}
+                onClick={this.handleGoDashboard}
                 style={{
                   padding: '0.625rem 1.25rem',
-                  borderRadius: 'var(--radius-md, 8px)',
-                  backgroundColor: 'transparent',
-                  color: 'var(--color-text-base, #f8fafc)',
+                  borderRadius: 'var(--radius-sm, 6px)',
+                  backgroundColor: '#ffffff',
+                  color: 'var(--color-text-body, #334155)',
                   fontWeight: 600,
                   fontSize: '0.875rem',
-                  border: '1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.2))',
+                  border: '1px solid var(--color-border-medium, #cbd5e1)',
                   cursor: 'pointer',
-                  transition: 'border-color 150ms ease'
+                  transition: 'background-color 150ms ease',
                 }}
-                onMouseOver={(e) => (e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.4)')}
-                onMouseOut={(e) => (e.currentTarget.style.borderColor = 'var(--color-border-subtle, rgba(255, 255, 255, 0.2))')}
+                onMouseOver={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-surface-secondary, #f1f5f9)')}
+                onMouseOut={(e) => (e.currentTarget.style.backgroundColor = '#ffffff')}
               >
-                Return Home
+                Go to Dashboard
+              </button>
+
+              <button
+                type="button"
+                onClick={this.handleGoHome}
+                style={{
+                  padding: '0.625rem 1.25rem',
+                  borderRadius: 'var(--radius-sm, 6px)',
+                  backgroundColor: 'transparent',
+                  color: 'var(--color-text-muted, #64748b)',
+                  fontWeight: 500,
+                  fontSize: '0.875rem',
+                  border: '1px solid transparent',
+                  cursor: 'pointer',
+                  transition: 'color 150ms ease',
+                }}
+                onMouseOver={(e) => (e.currentTarget.style.color = '#0f172a')}
+                onMouseOut={(e) => (e.currentTarget.style.color = 'var(--color-text-muted, #64748b)')}
+              >
+                Go to Home
               </button>
             </div>
           </div>
