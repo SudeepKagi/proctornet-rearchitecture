@@ -8,13 +8,32 @@ import React, { useState, useEffect } from 'react';
 import {
   getDeveloperIncidents,
   acknowledgeDeveloperIncident,
-  resolveDeveloperIncident
+  resolveDeveloperIncident,
 } from '../../api/developerApi.js';
-import { Card } from '../../components/common/Card.jsx';
-import { Badge } from '../../components/common/Badge.jsx';
-import { Button } from '../../components/common/Button.jsx';
-import { Input } from '../../components/common/Input.jsx';
-import { Spinner } from '../../components/common/Spinner.jsx';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import {
+  ShieldAlert,
+  AlertTriangle,
+  CheckCircle2,
+  Clock,
+  RefreshCw,
+  MessageSquare,
+  AlertCircle,
+  Activity,
+  Check,
+} from 'lucide-react';
 
 const STATUS_TABS = ['ALL', 'TRIGGERED', 'ACKNOWLEDGED', 'RESOLVED'];
 
@@ -78,262 +97,252 @@ export function DeveloperIncidentsPage() {
   function getSeverityBadge(sev) {
     switch (sev?.toUpperCase()) {
       case 'CRITICAL':
-        return <Badge variant="danger">CRITICAL</Badge>;
+        return <Badge variant="destructive" className="text-xs font-mono">CRITICAL</Badge>;
       case 'HIGH':
-        return <Badge variant="warning">HIGH</Badge>;
+        return <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300 text-xs font-mono">HIGH</Badge>;
       case 'MEDIUM':
-        return <Badge variant="primary">MEDIUM</Badge>;
+        return <Badge variant="default" className="text-xs font-mono">MEDIUM</Badge>;
       default:
-        return <Badge variant="neutral">LOW</Badge>;
+        return <Badge variant="outline" className="text-xs font-mono text-muted-foreground">LOW</Badge>;
     }
   }
 
   function getStatusBadge(status) {
     switch (status?.toUpperCase()) {
       case 'TRIGGERED':
-        return <Badge variant="danger">TRIGGERED</Badge>;
+        return <Badge variant="destructive" className="text-xs">TRIGGERED</Badge>;
       case 'ACKNOWLEDGED':
-        return <Badge variant="warning">ACKNOWLEDGED</Badge>;
+        return <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300 text-xs">ACKNOWLEDGED</Badge>;
       case 'RESOLVED':
-        return <Badge variant="success">RESOLVED</Badge>;
+        return <Badge variant="default" className="bg-emerald-600 hover:bg-emerald-700 text-xs">RESOLVED</Badge>;
       default:
-        return <Badge variant="neutral">{status}</Badge>;
+        return <Badge variant="outline" className="text-xs">{status}</Badge>;
     }
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-      {/* Header & Status Filters */}
-      <Card>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            {STATUS_TABS.map((tab) => (
-              <button
-                key={tab}
-                type="button"
-                onClick={() => setStatusFilter(tab)}
-                style={{
-                  padding: '0.375rem 0.75rem',
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--color-border-subtle)',
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  backgroundColor:
-                    statusFilter === tab
-                      ? 'var(--color-primary)'
-                      : 'var(--color-surface)',
-                  color:
-                    statusFilter === tab
-                      ? 'var(--color-text-inverse)'
-                      : 'var(--color-text-secondary)'
-                }}
-              >
-                {tab}
-              </button>
-            ))}
-          </div>
+    <div className="container mx-auto px-4 py-8 max-w-7xl space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+          <ShieldAlert className="h-7 w-7 text-primary" />
+          Technical Incident Triage & Alerts
+        </h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Surfaces operational service degradations with formal acknowledge and resolve workflows.
+        </p>
+      </div>
 
-          <Button variant="secondary" size="sm" onClick={loadIncidents}>
-            Refresh Incidents
-          </Button>
-        </div>
+      {/* Header & Status Filters */}
+      <Card className="shadow-xs border-border/80">
+        <CardContent className="p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex flex-wrap gap-1.5">
+              {STATUS_TABS.map((tab) => {
+                const isSelected = statusFilter === tab;
+                return (
+                  <Button
+                    key={tab}
+                    type="button"
+                    variant={isSelected ? 'default' : 'outline'}
+                    size="sm"
+                    className="h-7 text-xs font-mono px-3"
+                    onClick={() => setStatusFilter(tab)}
+                  >
+                    {tab}
+                  </Button>
+                );
+              })}
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={loadIncidents}
+              className="h-8 text-xs flex items-center gap-1.5 self-end sm:self-auto"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              <span>Refresh Incidents</span>
+            </Button>
+          </div>
+        </CardContent>
       </Card>
 
       {error && (
-        <div style={{ padding: '0.75rem 1rem', backgroundColor: 'var(--color-danger-subtle)', color: 'var(--color-danger)', borderRadius: 'var(--radius-sm)' }}>
-          {error}
-        </div>
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Incident Ingestion Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
 
       {/* Incidents List */}
-      <Card>
-        {loading ? (
-          <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem 0' }}>
-            <Spinner size="md" />
-          </div>
-        ) : incidents.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '3rem 0', color: 'var(--color-text-muted)' }}>
-            No operational incidents matching the selected status. All systems normal.
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
-            {incidents.map((inc) => (
-              <div
-                key={inc.id}
-                style={{
-                  border: '1px solid var(--color-border-subtle)',
-                  borderRadius: 'var(--radius-sm)',
-                  padding: '1rem',
-                  backgroundColor: 'var(--color-surface)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '0.75rem'
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-                    {getSeverityBadge(inc.severity)}
-                    {getStatusBadge(inc.status)}
-                    <span style={{ fontWeight: 600, fontSize: '0.9375rem' }}>
-                      {inc.component}
-                    </span>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontFamily: 'monospace' }}>
-                      ({inc.id})
-                    </span>
-                  </div>
-
-                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
-                    Triggered: {new Date(inc.triggeredAt).toLocaleString()}
-                    {inc.occurrenceCount > 1 && ` (Seen ${inc.occurrenceCount}x)`}
-                  </div>
-                </div>
-
-                <div style={{ fontSize: '0.875rem', color: 'var(--color-text-primary)' }}>
-                  {inc.message}
-                </div>
-
-                {/* Status Metadata & Actions */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid var(--color-border-subtle)' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
-                    {inc.acknowledgedBy && (
-                      <span style={{ marginRight: '1rem' }}>
-                        Ack by: <strong>{inc.acknowledgedBy}</strong> at {new Date(inc.acknowledgedAt).toLocaleTimeString()}
+      <Card className="shadow-xs border-border/80 overflow-hidden">
+        <CardContent className="p-4">
+          {loading ? (
+            <div className="flex h-[240px] items-center justify-center">
+              <Spinner size="md" className="text-primary" />
+              <span className="ml-3 text-sm text-muted-foreground">Loading active operational incidents...</span>
+            </div>
+          ) : incidents.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground text-sm space-y-1">
+              <CheckCircle2 className="h-8 w-8 text-emerald-500 mx-auto mb-2 opacity-80" />
+              <p className="font-medium text-foreground">All systems operational.</p>
+              <p className="text-xs text-muted-foreground">No operational incidents matching the selected status.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {incidents.map((inc) => (
+                <div
+                  key={inc.id}
+                  className="rounded-xl border border-border/70 bg-card p-4 space-y-3 transition-colors hover:border-border"
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {getSeverityBadge(inc.severity)}
+                      {getStatusBadge(inc.status)}
+                      <span className="font-bold text-foreground text-sm">
+                        {inc.component}
                       </span>
-                    )}
-                    {inc.resolvedBy && (
-                      <span>
-                        Resolved by: <strong>{inc.resolvedBy}</strong> at {new Date(inc.resolvedAt).toLocaleTimeString()}
+                      <span className="text-xs text-muted-foreground font-mono">
+                        ({inc.id})
                       </span>
-                    )}
+                    </div>
+
+                    <div className="text-xs text-muted-foreground flex items-center gap-1.5">
+                      <Clock className="h-3.5 w-3.5" />
+                      <span>Triggered: {new Date(inc.triggeredAt).toLocaleString()}</span>
+                      {inc.occurrenceCount > 1 && (
+                        <span className="font-semibold text-foreground">
+                          (Seen {inc.occurrenceCount}x)
+                        </span>
+                      )}
+                    </div>
                   </div>
 
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    {inc.status === 'TRIGGERED' && (
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => {
-                          setActiveModal({ type: 'ACK', incidentId: inc.id });
-                          setActionNotes('');
-                        }}
-                      >
-                        Acknowledge
-                      </Button>
-                    )}
-                    {inc.status !== 'RESOLVED' && (
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={() => {
-                          setActiveModal({ type: 'RESOLVE', incidentId: inc.id });
-                          setActionNotes('');
-                        }}
-                      >
-                        Mark Resolved
-                      </Button>
-                    )}
+                  <div className="text-xs text-foreground font-medium">
+                    {inc.message}
                   </div>
-                </div>
 
-                {/* Notes History */}
-                {inc.notes && inc.notes.length > 0 && (
-                  <div style={{ marginTop: '0.25rem', padding: '0.5rem', backgroundColor: 'var(--color-surface-sunken)', borderRadius: 'var(--radius-sm)', fontSize: '0.75rem' }}>
-                    <strong>Investigation Notes:</strong>
-                    {inc.notes.map((note, idx) => (
-                      <div key={idx} style={{ marginTop: '0.25rem', color: 'var(--color-text-secondary)' }}>
-                        &bull; [{new Date(note.timestamp).toLocaleTimeString()}] {note.author}: {note.text}
+                  {/* Status Metadata & Actions */}
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pt-2 border-t border-border/60 text-xs">
+                    <div className="text-muted-foreground">
+                      {inc.acknowledgedBy && (
+                        <span className="mr-3">
+                          Ack by: <strong className="text-foreground">{inc.acknowledgedBy}</strong> at {new Date(inc.acknowledgedAt).toLocaleTimeString()}
+                        </span>
+                      )}
+                      {inc.resolvedBy && (
+                        <span>
+                          Resolved by: <strong className="text-foreground">{inc.resolvedBy}</strong> at {new Date(inc.resolvedAt).toLocaleTimeString()}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2 self-end sm:self-auto">
+                      {inc.status === 'TRIGGERED' && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 text-xs"
+                          onClick={() => {
+                            setActiveModal({ type: 'ACK', incidentId: inc.id });
+                            setActionNotes('');
+                          }}
+                        >
+                          Acknowledge
+                        </Button>
+                      )}
+                      {inc.status !== 'RESOLVED' && (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1"
+                          onClick={() => {
+                            setActiveModal({ type: 'RESOLVE', incidentId: inc.id });
+                            setActionNotes('');
+                          }}
+                        >
+                          <Check className="h-3.5 w-3.5" />
+                          Mark Resolved
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Notes History */}
+                  {inc.notes && inc.notes.length > 0 && (
+                    <div className="rounded-lg bg-muted/30 border border-border/60 p-3 text-xs space-y-1.5">
+                      <div className="font-semibold text-foreground flex items-center gap-1.5">
+                        <MessageSquare className="h-3.5 w-3.5 text-primary" />
+                        Investigation Notes:
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
+                      {inc.notes.map((note, idx) => (
+                        <div key={idx} className="text-muted-foreground pl-5 border-l-2 border-primary/40 text-[11px]">
+                          <span className="font-mono text-[10px] text-muted-foreground mr-1.5">
+                            [{new Date(note.timestamp).toLocaleTimeString()}]
+                          </span>
+                          <strong className="text-foreground">{note.author}:</strong> {note.text}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
       </Card>
 
-      {/* Action Dialog / Modal */}
-      {activeModal && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 50,
-            padding: '1rem'
-          }}
-        >
-          <div
-            style={{
-              backgroundColor: 'var(--color-surface)',
-              borderRadius: 'var(--radius-md)',
-              padding: '1.5rem',
-              maxWidth: '480px',
-              width: '100%',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '1rem',
-              boxShadow: 'var(--shadow-lg)'
-            }}
-          >
-            <h3 style={{ fontSize: '1.125rem', fontWeight: 700, margin: 0 }}>
-              {activeModal.type === 'ACK' ? 'Acknowledge Incident' : 'Resolve Incident'}
-            </h3>
-            <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>
-              Incident: <strong>{activeModal.incidentId}</strong>
-            </p>
+      {/* Action Dialog */}
+      <Dialog open={Boolean(activeModal)} onOpenChange={(open) => !open && setActiveModal(null)}>
+        <DialogContent className="sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle>
+              {activeModal?.type === 'ACK' ? 'Acknowledge Operational Incident' : 'Mark Incident Resolved'}
+            </DialogTitle>
+            <DialogDescription>
+              Incident ID: <span className="font-mono font-semibold text-foreground">{activeModal?.incidentId}</span>
+            </DialogDescription>
+          </DialogHeader>
 
-            <div>
-              <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.375rem' }}>
-                Operational Notes / Root Cause (Optional)
-              </label>
-              <textarea
-                rows={3}
-                style={{
-                  width: '100%',
-                  padding: '0.5rem',
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--color-border-subtle)',
-                  backgroundColor: 'var(--color-surface)',
-                  color: 'var(--color-text-primary)',
-                  fontSize: '0.875rem',
-                  fontFamily: 'inherit'
-                }}
-                placeholder="Enter triage diagnosis, mitigation steps, or root-cause details..."
-                value={actionNotes}
-                onChange={(e) => setActionNotes(e.target.value)}
-              />
-            </div>
+          <div className="space-y-3 pt-2">
+            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block">
+              Operational Notes / Root Cause (Optional)
+            </label>
+            <textarea
+              rows={4}
+              placeholder="Enter triage diagnosis, mitigation steps, or root-cause details..."
+              value={actionNotes}
+              onChange={(e) => setActionNotes(e.target.value)}
+              className="w-full p-3 rounded-md border border-input bg-background text-foreground text-xs font-mono shadow-xs focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            />
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+            <DialogFooter className="pt-2">
               <Button
-                variant="secondary"
-                size="sm"
+                type="button"
+                variant="outline"
                 disabled={submitting}
                 onClick={() => setActiveModal(null)}
               >
                 Cancel
               </Button>
               <Button
-                variant="primary"
-                size="sm"
+                type="button"
                 disabled={submitting}
+                className={activeModal?.type === 'RESOLVE' ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : ''}
                 onClick={() =>
-                  activeModal.type === 'ACK'
+                  activeModal?.type === 'ACK'
                     ? handleAcknowledge(activeModal.incidentId)
                     : handleResolve(activeModal.incidentId)
                 }
               >
                 {submitting ? 'Submitting...' : 'Confirm Action'}
               </Button>
-            </div>
+            </DialogFooter>
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

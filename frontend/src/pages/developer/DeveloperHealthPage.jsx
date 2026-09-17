@@ -6,10 +6,27 @@
 
 import React, { useState, useEffect } from 'react';
 import { getDeveloperHealth } from '../../api/developerApi.js';
-import { Card } from '../../components/common/Card.jsx';
-import { Badge } from '../../components/common/Badge.jsx';
-import { Button } from '../../components/common/Button.jsx';
-import { Spinner } from '../../components/common/Spinner.jsx';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Spinner } from '@/components/ui/spinner';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import {
+  Activity,
+  RefreshCw,
+  CheckCircle2,
+  AlertTriangle,
+  XCircle,
+  ChevronDown,
+  ChevronUp,
+  Server,
+  Database,
+  Radio,
+  Layers,
+  Cpu,
+  ShieldCheck,
+} from 'lucide-react';
 
 const SUBSYSTEM_METADATA = {
   node_api: { label: 'Node.js Backend API', category: 'Application Runtime' },
@@ -24,7 +41,7 @@ const SUBSYSTEM_METADATA = {
   evaluation_consumer: { label: 'Evaluation Async Consumer', category: 'Background Worker' },
   s3_storage: { label: 'AWS S3 Evidence Storage', category: 'Object Storage' },
   backup_service: { label: 'Automated Backup Engine', category: 'Maintenance' },
-  wireguard: { label: 'WireGuard Management VPN', category: 'Secure Management' }
+  wireguard: { label: 'WireGuard Management VPN', category: 'Secure Management' },
 };
 
 export function DeveloperHealthPage() {
@@ -59,8 +76,9 @@ export function DeveloperHealthPage() {
 
   if (loading && !health) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem 0' }}>
-        <Spinner size="lg" />
+      <div className="flex h-[60vh] items-center justify-center">
+        <Spinner size="lg" className="text-primary" />
+        <span className="ml-3 text-sm text-muted-foreground">Probing subsystem health matrix...</span>
       </div>
     );
   }
@@ -68,103 +86,106 @@ export function DeveloperHealthPage() {
   const subsystems = health?.subsystems || {};
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+    <div className="container mx-auto px-4 py-8 max-w-7xl space-y-6">
       {/* Top Controls */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0 }}>
-            Comprehensive 13-Subsystem Health Matrix
-          </h2>
-          <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)' }}>
-            Last checked: {health?.timestamp ? new Date(health.timestamp).toLocaleTimeString() : 'N/A'} {health?.cached && '(cached)'}
-          </span>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+            <Activity className="h-7 w-7 text-primary" />
+            13-Subsystem Health Telemetry Matrix
+          </h1>
+          <p className="text-xs text-muted-foreground mt-1">
+            Last checked: {health?.timestamp ? new Date(health.timestamp).toLocaleTimeString() : 'N/A'}{' '}
+            {health?.cached && '(cached response)'}
+          </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', cursor: 'pointer' }}>
-            <input
-              type="checkbox"
+        <div className="flex items-center gap-4">
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="auto-refresh-health"
               checked={autoRefresh}
-              onChange={(e) => setAutoRefresh(e.target.checked)}
+              onCheckedChange={(checked) => setAutoRefresh(Boolean(checked))}
             />
-            Auto-refresh (5s)
-          </label>
+            <label htmlFor="auto-refresh-health" className="text-xs font-medium text-foreground cursor-pointer">
+              Auto-refresh (5s)
+            </label>
+          </div>
           <Button
-            variant="secondary"
+            variant="outline"
             size="sm"
             disabled={refreshing}
             onClick={() => loadHealth(true)}
+            className="h-8 text-xs flex items-center gap-1.5"
           >
-            {refreshing ? 'Probing...' : 'Force Probe Refresh'}
+            <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+            <span>{refreshing ? 'Probing...' : 'Force Probe Refresh'}</span>
           </Button>
         </div>
       </div>
 
       {error && (
-        <div style={{ padding: '0.75rem 1rem', backgroundColor: 'var(--color-danger-subtle)', color: 'var(--color-danger)', borderRadius: 'var(--radius-sm)' }}>
-          {error}
-        </div>
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Probe Failure</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
 
       {/* Health Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '1rem' }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {Object.entries(subsystems).map(([key, sub]) => {
           const meta = SUBSYSTEM_METADATA[key] || { label: key, category: 'Subsystem' };
           const isExpanded = expandedKey === key;
           const badgeVariant =
-            sub.status === 'UP' ? 'success' : sub.status === 'DEGRADED' ? 'warning' : 'danger';
+            sub.status === 'UP' ? 'default' : sub.status === 'DEGRADED' ? 'secondary' : 'destructive';
 
           return (
-            <Card key={key}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>
-                    {meta.category}
-                  </span>
-                  <div style={{ fontSize: '1.125rem', fontWeight: 600, marginTop: '0.125rem' }}>
-                    {meta.label}
+            <Card key={key} className="shadow-xs border-border/80 transition-all hover:border-border">
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                      {meta.category}
+                    </span>
+                    <h3 className="font-semibold text-foreground text-sm mt-0.5">{meta.label}</h3>
                   </div>
+                  <Badge
+                    variant={badgeVariant}
+                    className={sub.status === 'UP' ? 'bg-emerald-600 hover:bg-emerald-700 text-xs' : 'text-xs'}
+                  >
+                    {sub.status}
+                  </Badge>
                 </div>
-                <Badge variant={badgeVariant}>{sub.status}</Badge>
-              </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', fontSize: '0.8125rem' }}>
-                <span style={{ color: 'var(--color-text-muted)' }}>
-                  Latency: <strong>{sub.latencyMs !== undefined ? `${sub.latencyMs} ms` : 'N/A'}</strong>
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setExpandedKey(isExpanded ? null : key)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--color-primary)',
-                    fontSize: '0.8125rem',
-                    cursor: 'pointer',
-                    textDecoration: 'underline'
-                  }}
-                >
-                  {isExpanded ? 'Hide Details ▲' : 'Inspect Telemetry ▼'}
-                </button>
-              </div>
-
-              {isExpanded && sub.details && (
-                <div
-                  style={{
-                    marginTop: '0.75rem',
-                    padding: '0.75rem',
-                    backgroundColor: 'var(--color-surface-sunken)',
-                    borderRadius: 'var(--radius-sm)',
-                    fontSize: '0.75rem',
-                    fontFamily: 'monospace',
-                    overflowX: 'auto',
-                    whiteSpace: 'pre-wrap',
-                    color: 'var(--color-text-primary)'
-                  }}
-                >
-                  {JSON.stringify(sub.details, null, 2)}
+                <div className="flex items-center justify-between text-xs pt-1 border-t border-border/50">
+                  <span className="text-muted-foreground">
+                    Latency:{' '}
+                    <strong className="text-foreground font-mono">
+                      {sub.latencyMs !== undefined ? `${sub.latencyMs} ms` : 'N/A'}
+                    </strong>
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs px-2 text-primary hover:text-primary"
+                    onClick={() => setExpandedKey(isExpanded ? null : key)}
+                  >
+                    <span>{isExpanded ? 'Hide' : 'Inspect'}</span>
+                    {isExpanded ? (
+                      <ChevronUp className="h-3 w-3 ml-1" />
+                    ) : (
+                      <ChevronDown className="h-3 w-3 ml-1" />
+                    )}
+                  </Button>
                 </div>
-              )}
+
+                {isExpanded && sub.details && (
+                  <div className="rounded-md bg-muted/40 border border-border/80 p-3 text-[11px] font-mono text-foreground overflow-x-auto max-h-[180px]">
+                    <pre className="m-0 whitespace-pre-wrap">{JSON.stringify(sub.details, null, 2)}</pre>
+                  </div>
+                )}
+              </CardContent>
             </Card>
           );
         })}

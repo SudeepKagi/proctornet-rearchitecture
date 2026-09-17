@@ -7,10 +7,23 @@
 
 import React, { useState, useEffect } from 'react';
 import { getDeveloperTopology } from '../../api/developerApi.js';
-import { Card } from '../../components/common/Card.jsx';
-import { Badge } from '../../components/common/Badge.jsx';
-import { Button } from '../../components/common/Button.jsx';
-import { Spinner } from '../../components/common/Spinner.jsx';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import {
+  Network,
+  RefreshCw,
+  Server,
+  CheckCircle2,
+  AlertTriangle,
+  XCircle,
+  ShieldCheck,
+  Cpu,
+  Layers,
+  Info,
+} from 'lucide-react';
 
 export function DeveloperTopologyPage() {
   const [topology, setTopology] = useState(null);
@@ -37,8 +50,9 @@ export function DeveloperTopologyPage() {
 
   if (loading && !topology) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem 0' }}>
-        <Spinner size="lg" />
+      <div className="flex h-[60vh] items-center justify-center">
+        <Spinner size="lg" className="text-primary" />
+        <span className="ml-3 text-sm text-muted-foreground">Mapping infrastructure service mesh...</span>
       </div>
     );
   }
@@ -53,40 +67,42 @@ export function DeveloperTopologyPage() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+    <div className="container mx-auto px-4 py-8 max-w-7xl space-y-6">
       {/* Topology Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0 }}>
-            System Topology &amp; Network Segmentation
-          </h2>
-          <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)' }}>
-            Interactive SVG service mesh with live health overlays. Select any component to inspect telemetry.
-          </span>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+            <Network className="h-7 w-7 text-primary" />
+            Infrastructure Topology & Network Mesh
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Interactive SVG service mesh with real-time health overlays. Select any service node to inspect network boundaries.
+          </p>
         </div>
-        <Button variant="secondary" size="sm" onClick={loadTopology}>
-          Refresh Topology
+        <Button variant="outline" size="sm" onClick={loadTopology} className="h-8 text-xs flex items-center gap-1.5">
+          <RefreshCw className="h-3.5 w-3.5" />
+          <span>Refresh Topology</span>
         </Button>
       </div>
 
-      {/* Main Grid: SVG Map on Left (70%), Details Panel on Right (30%) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(280px, 1fr)', gap: '1.25rem' }}>
+      {error && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Topology Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* Main Grid: SVG Map on Left, Details Panel on Right */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* SVG Service Mesh Viewport */}
-        <Card>
-          <div
-            style={{
-              width: '100%',
-              backgroundColor: '#0f172a',
-              borderRadius: 'var(--radius-sm)',
-              padding: '1rem',
-              overflowX: 'auto'
-            }}
-          >
+        <Card className="lg:col-span-8 shadow-xs border-border/80 overflow-hidden">
+          <CardContent className="p-3 bg-slate-950 rounded-xl overflow-x-auto">
             <svg
               viewBox="0 0 880 500"
               width="100%"
               height="500"
-              style={{ display: 'block' }}
+              className="block min-w-[700px]"
               role="img"
               aria-label="ProctorNet System Topology Map"
             >
@@ -105,33 +121,33 @@ export function DeveloperTopologyPage() {
               </defs>
 
               {/* Public Client Zone */}
-              <rect x="20" y="40" width="180" height="420" rx="6" fill="#1e293b" stroke="#334155" strokeWidth="1.5" />
+              <rect x="20" y="40" width="180" height="420" rx="8" fill="#1e293b" stroke="#334155" strokeWidth="1.5" />
               <text x="110" y="65" fill="#f8fafc" fontSize="11" fontWeight="700" textAnchor="middle">
                 PUBLIC INTERNET (0.0.0.0/0)
               </text>
 
               <g
                 transform="translate(35, 90)"
-                style={{ cursor: 'pointer' }}
+                className="cursor-pointer"
                 onClick={() => setSelectedNodeId('candidate_clients')}
               >
-                <rect x="0" y="0" width="150" height="60" rx="4" fill="#0f172a" stroke="#38bdf8" strokeWidth="1" />
+                <rect x="0" y="0" width="150" height="60" rx="6" fill="#0f172a" stroke="#38bdf8" strokeWidth="1" />
                 <text x="75" y="25" fill="#38bdf8" fontSize="11" fontWeight="600" textAnchor="middle">Candidate Clients</text>
                 <text x="75" y="45" fill="#94a3b8" fontSize="9" textAnchor="middle">HTTPS / WSS / WebRTC</text>
               </g>
 
               <g
                 transform="translate(35, 170)"
-                style={{ cursor: 'pointer' }}
+                className="cursor-pointer"
                 onClick={() => setSelectedNodeId('faculty_clients')}
               >
-                <rect x="0" y="0" width="150" height="60" rx="4" fill="#0f172a" stroke="#a7f3d0" strokeWidth="1" />
+                <rect x="0" y="0" width="150" height="60" rx="6" fill="#0f172a" stroke="#a7f3d0" strokeWidth="1" />
                 <text x="75" y="25" fill="#a7f3d0" fontSize="11" fontWeight="600" textAnchor="middle">Faculty &amp; Proctors</text>
                 <text x="75" y="45" fill="#94a3b8" fontSize="9" textAnchor="middle">Web App Dashboards</text>
               </g>
 
               <g transform="translate(35, 270)">
-                <rect x="0" y="0" width="150" height="160" rx="4" fill="#2d1215" stroke="#e11d48" strokeWidth="1" />
+                <rect x="0" y="0" width="150" height="160" rx="6" fill="#2d1215" stroke="#e11d48" strokeWidth="1" />
                 <text x="75" y="25" fill="#f43f5e" fontSize="10" fontWeight="700" textAnchor="middle">PUBLIC BLOCKED</text>
                 <text x="75" y="55" fill="#fca5a5" fontSize="9" textAnchor="middle">SSH Port 22 (DROP)</text>
                 <text x="75" y="85" fill="#fca5a5" fontSize="9" textAnchor="middle">Developer Plane (403)</text>
@@ -139,10 +155,10 @@ export function DeveloperTopologyPage() {
                 <text x="75" y="145" fill="#fca5a5" fontSize="9" textAnchor="middle">RabbitMQ (DROP)</text>
               </g>
 
-              {/* WireGuard Management Zone (Center-Top) */}
+              {/* WireGuard Management Zone */}
               <g
                 transform="translate(240, 40)"
-                style={{ cursor: 'pointer' }}
+                className="cursor-pointer"
                 onClick={() => setSelectedNodeId('wireguard')}
               >
                 <rect
@@ -150,12 +166,12 @@ export function DeveloperTopologyPage() {
                   y="0"
                   width="220"
                   height="120"
-                  rx="6"
+                  rx="8"
                   fill="#1e293b"
                   stroke={selectedNodeId === 'wireguard' ? '#8b5cf6' : '#6d28d9'}
                   strokeWidth="2"
                 />
-                <rect x="0" y="0" width="220" height="26" rx="6" fill="#6d28d9" />
+                <rect x="0" y="0" width="220" height="26" rx="8" fill="#6d28d9" />
                 <text x="110" y="18" fill="#ffffff" fontSize="11" fontWeight="700" textAnchor="middle">
                   WireGuard Network (10.100.0.0/24)
                 </text>
@@ -172,7 +188,7 @@ export function DeveloperTopologyPage() {
               {/* Nginx Edge */}
               <g
                 transform="translate(240, 200)"
-                style={{ cursor: 'pointer' }}
+                className="cursor-pointer"
                 onClick={() => setSelectedNodeId('nginx_edge')}
               >
                 <rect
@@ -180,7 +196,7 @@ export function DeveloperTopologyPage() {
                   y="0"
                   width="220"
                   height="70"
-                  rx="6"
+                  rx="8"
                   fill="#1e293b"
                   stroke={selectedNodeId === 'nginx_edge' ? '#38bdf8' : '#2563eb'}
                   strokeWidth="2"
@@ -198,7 +214,7 @@ export function DeveloperTopologyPage() {
               {/* Node.js Modular Monolith */}
               <g
                 transform="translate(240, 310)"
-                style={{ cursor: 'pointer' }}
+                className="cursor-pointer"
                 onClick={() => setSelectedNodeId('node_api')}
               >
                 <rect
@@ -206,12 +222,12 @@ export function DeveloperTopologyPage() {
                   y="0"
                   width="220"
                   height="150"
-                  rx="6"
+                  rx="8"
                   fill="#1e293b"
                   stroke={selectedNodeId === 'node_api' ? '#a78bfa' : '#7c3aed'}
                   strokeWidth="2"
                 />
-                <rect x="0" y="0" width="220" height="26" rx="6" fill="#7c3aed" />
+                <rect x="0" y="0" width="220" height="26" rx="8" fill="#7c3aed" />
                 <text x="110" y="18" fill="#ffffff" fontSize="11" fontWeight="700" textAnchor="middle">
                   Node.js Modular Monolith
                 </text>
@@ -233,8 +249,8 @@ export function DeveloperTopologyPage() {
                 </text>
               </g>
 
-              {/* Data Plane / Internal Services (Right Column) */}
-              <rect x="500" y="40" width="360" height="420" rx="6" fill="#1e293b" stroke="#334155" strokeWidth="1.5" />
+              {/* Isolated Data Plane */}
+              <rect x="500" y="40" width="360" height="420" rx="8" fill="#1e293b" stroke="#334155" strokeWidth="1.5" />
               <text x="680" y="65" fill="#f8fafc" fontSize="11" fontWeight="700" textAnchor="middle">
                 ISOLATED DATA &amp; WORKER PLANE
               </text>
@@ -242,7 +258,7 @@ export function DeveloperTopologyPage() {
               {/* PostgreSQL Primary */}
               <g
                 transform="translate(520, 80)"
-                style={{ cursor: 'pointer' }}
+                className="cursor-pointer"
                 onClick={() => setSelectedNodeId('postgres_primary')}
               >
                 <rect
@@ -250,7 +266,7 @@ export function DeveloperTopologyPage() {
                   y="0"
                   width="160"
                   height="65"
-                  rx="4"
+                  rx="6"
                   fill="#0f172a"
                   stroke={selectedNodeId === 'postgres_primary' ? '#38bdf8' : '#334155'}
                   strokeWidth="1.5"
@@ -264,7 +280,7 @@ export function DeveloperTopologyPage() {
               {/* PostgreSQL Replica */}
               <g
                 transform="translate(690, 80)"
-                style={{ cursor: 'pointer' }}
+                className="cursor-pointer"
                 onClick={() => setSelectedNodeId('postgres_replica')}
               >
                 <rect
@@ -272,7 +288,7 @@ export function DeveloperTopologyPage() {
                   y="0"
                   width="155"
                   height="65"
-                  rx="4"
+                  rx="6"
                   fill="#0f172a"
                   stroke={selectedNodeId === 'postgres_replica' ? '#38bdf8' : '#334155'}
                   strokeWidth="1.5"
@@ -286,7 +302,7 @@ export function DeveloperTopologyPage() {
               {/* Redis */}
               <g
                 transform="translate(520, 160)"
-                style={{ cursor: 'pointer' }}
+                className="cursor-pointer"
                 onClick={() => setSelectedNodeId('redis')}
               >
                 <rect
@@ -294,7 +310,7 @@ export function DeveloperTopologyPage() {
                   y="0"
                   width="160"
                   height="65"
-                  rx="4"
+                  rx="6"
                   fill="#0f172a"
                   stroke={selectedNodeId === 'redis' ? '#f87171' : '#334155'}
                   strokeWidth="1.5"
@@ -308,7 +324,7 @@ export function DeveloperTopologyPage() {
               {/* RabbitMQ */}
               <g
                 transform="translate(690, 160)"
-                style={{ cursor: 'pointer' }}
+                className="cursor-pointer"
                 onClick={() => setSelectedNodeId('rabbitmq')}
               >
                 <rect
@@ -316,7 +332,7 @@ export function DeveloperTopologyPage() {
                   y="0"
                   width="155"
                   height="65"
-                  rx="4"
+                  rx="6"
                   fill="#0f172a"
                   stroke={selectedNodeId === 'rabbitmq' ? '#fbbf24' : '#334155'}
                   strokeWidth="1.5"
@@ -330,7 +346,7 @@ export function DeveloperTopologyPage() {
               {/* Outbox Poller & Evaluation Consumer */}
               <g
                 transform="translate(520, 240)"
-                style={{ cursor: 'pointer' }}
+                className="cursor-pointer"
                 onClick={() => setSelectedNodeId('outbox_poller')}
               >
                 <rect
@@ -338,7 +354,7 @@ export function DeveloperTopologyPage() {
                   y="0"
                   width="160"
                   height="65"
-                  rx="4"
+                  rx="6"
                   fill="#0f172a"
                   stroke={selectedNodeId === 'outbox_poller' ? '#a7f3d0' : '#334155'}
                   strokeWidth="1.5"
@@ -351,7 +367,7 @@ export function DeveloperTopologyPage() {
 
               <g
                 transform="translate(690, 240)"
-                style={{ cursor: 'pointer' }}
+                className="cursor-pointer"
                 onClick={() => setSelectedNodeId('evaluation_consumer')}
               >
                 <rect
@@ -359,7 +375,7 @@ export function DeveloperTopologyPage() {
                   y="0"
                   width="155"
                   height="65"
-                  rx="4"
+                  rx="6"
                   fill="#0f172a"
                   stroke={selectedNodeId === 'evaluation_consumer' ? '#a7f3d0' : '#334155'}
                   strokeWidth="1.5"
@@ -373,7 +389,7 @@ export function DeveloperTopologyPage() {
               {/* SFU & Coturn */}
               <g
                 transform="translate(520, 320)"
-                style={{ cursor: 'pointer' }}
+                className="cursor-pointer"
                 onClick={() => setSelectedNodeId('sfu')}
               >
                 <rect
@@ -381,7 +397,7 @@ export function DeveloperTopologyPage() {
                   y="0"
                   width="160"
                   height="65"
-                  rx="4"
+                  rx="6"
                   fill="#0f172a"
                   stroke={selectedNodeId === 'sfu' ? '#c084fc' : '#334155'}
                   strokeWidth="1.5"
@@ -394,7 +410,7 @@ export function DeveloperTopologyPage() {
 
               <g
                 transform="translate(690, 320)"
-                style={{ cursor: 'pointer' }}
+                className="cursor-pointer"
                 onClick={() => setSelectedNodeId('coturn')}
               >
                 <rect
@@ -402,7 +418,7 @@ export function DeveloperTopologyPage() {
                   y="0"
                   width="155"
                   height="65"
-                  rx="4"
+                  rx="6"
                   fill="#0f172a"
                   stroke={selectedNodeId === 'coturn' ? '#c084fc' : '#334155'}
                   strokeWidth="1.5"
@@ -413,10 +429,10 @@ export function DeveloperTopologyPage() {
                 <text x="15" y="55" fill="#64748b" fontSize="8">Ephemeral HMAC</text>
               </g>
 
-              {/* AWS S3 Storage & Backup */}
+              {/* AWS S3 Storage */}
               <g
                 transform="translate(520, 395)"
-                style={{ cursor: 'pointer' }}
+                className="cursor-pointer"
                 onClick={() => setSelectedNodeId('s3_storage')}
               >
                 <rect
@@ -424,7 +440,7 @@ export function DeveloperTopologyPage() {
                   y="0"
                   width="325"
                   height="50"
-                  rx="4"
+                  rx="6"
                   fill="#0f172a"
                   stroke={selectedNodeId === 's3_storage' ? '#f59e0b' : '#334155'}
                   strokeWidth="1.5"
@@ -434,7 +450,7 @@ export function DeveloperTopologyPage() {
                 <text x="26" y="42" fill="#94a3b8" fontSize="8">Evidence Presigned PUT/GET | AES256 Cloud Sync</text>
               </g>
 
-              {/* Connections / Lines */}
+              {/* Connections */}
               <line x1="185" y1="120" x2="240" y2="225" stroke="#38bdf8" strokeWidth="1.5" strokeDasharray="4" markerEnd="url(#arrow)" />
               <line x1="185" y1="200" x2="240" y2="240" stroke="#38bdf8" strokeWidth="1.5" strokeDasharray="4" markerEnd="url(#arrow)" />
               <line x1="350" y1="160" x2="350" y2="310" stroke="#a78bfa" strokeWidth="2" markerEnd="url(#arrow)" />
@@ -443,84 +459,84 @@ export function DeveloperTopologyPage() {
               <line x1="460" y1="370" x2="520" y2="190" stroke="#64748b" strokeWidth="1.5" markerEnd="url(#arrow)" />
               <line x1="460" y1="390" x2="690" y2="190" stroke="#64748b" strokeWidth="1.5" markerEnd="url(#arrow)" />
             </svg>
-          </div>
+          </CardContent>
         </Card>
 
         {/* Selected Component Telemetry Inspection Drawer */}
-        <Card title="Component Telemetry">
-          {selectedNode ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem', fontSize: '0.8125rem' }}>
-              <div>
-                <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>
-                  Component ID
-                </span>
-                <div style={{ fontSize: '1rem', fontWeight: 700, marginTop: '0.125rem' }}>
-                  {selectedNode.label || selectedNode.id}
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ color: 'var(--color-text-muted)' }}>Status:</span>
-                <Badge
-                  variant={selectedNode.status === 'UP' ? 'success' : selectedNode.status === 'DEGRADED' ? 'warning' : 'danger'}
-                >
-                  {selectedNode.status || 'UP'}
-                </Badge>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: 'var(--color-text-muted)' }}>Type:</span>
-                <strong>{selectedNode.type || 'RUNTIME'}</strong>
-              </div>
-
-              {selectedNode.protocol && (
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: 'var(--color-text-muted)' }}>Protocol:</span>
-                  <strong>{selectedNode.protocol}</strong>
-                </div>
-              )}
-
-              {selectedNode.ports && (
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: 'var(--color-text-muted)' }}>Ports:</span>
-                  <strong>{selectedNode.ports.join(', ')}</strong>
-                </div>
-              )}
-
-              {selectedNode.subnet && (
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: 'var(--color-text-muted)' }}>Subnet:</span>
-                  <strong>{selectedNode.subnet}</strong>
-                </div>
-              )}
-
-              {selectedNode.details && (
-                <div style={{ marginTop: '0.5rem' }}>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>
-                    Live Details
+        <Card className="lg:col-span-4 shadow-xs border-border/80">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+              <Server className="h-4 w-4 text-primary" />
+              Component Telemetry
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {selectedNode ? (
+              <div className="space-y-3 text-xs">
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    Selected Node
                   </span>
-                  <div
-                    style={{
-                      marginTop: '0.25rem',
-                      padding: '0.5rem',
-                      backgroundColor: 'var(--color-surface-sunken)',
-                      borderRadius: 'var(--radius-sm)',
-                      fontSize: '0.75rem',
-                      fontFamily: 'monospace',
-                      maxHeight: '180px',
-                      overflowY: 'auto'
-                    }}
-                  >
-                    {JSON.stringify(selectedNode.details, null, 2)}
+                  <div className="text-base font-bold text-foreground mt-0.5">
+                    {selectedNode.label || selectedNode.id}
                   </div>
                 </div>
-              )}
-            </div>
-          ) : (
-            <div style={{ textAlign: 'center', padding: '2rem 0', color: 'var(--color-text-muted)' }}>
-              Select any node in the SVG diagram to view its real-time telemetry.
-            </div>
-          )}
+
+                <div className="flex justify-between items-center py-1.5 border-b border-border/50">
+                  <span className="text-muted-foreground">Status:</span>
+                  <Badge
+                    variant={selectedNode.status === 'UP' ? 'default' : selectedNode.status === 'DEGRADED' ? 'secondary' : 'destructive'}
+                    className={selectedNode.status === 'UP' ? 'bg-emerald-600 hover:bg-emerald-700' : ''}
+                  >
+                    {selectedNode.status || 'UP'}
+                  </Badge>
+                </div>
+
+                <div className="flex justify-between items-center py-1.5 border-b border-border/50">
+                  <span className="text-muted-foreground">Type:</span>
+                  <strong className="text-foreground font-mono">{selectedNode.type || 'RUNTIME'}</strong>
+                </div>
+
+                {selectedNode.protocol && (
+                  <div className="flex justify-between items-center py-1.5 border-b border-border/50">
+                    <span className="text-muted-foreground">Protocol:</span>
+                    <strong className="text-foreground font-mono">{selectedNode.protocol}</strong>
+                  </div>
+                )}
+
+                {selectedNode.ports && (
+                  <div className="flex justify-between items-center py-1.5 border-b border-border/50">
+                    <span className="text-muted-foreground">Ports:</span>
+                    <strong className="text-foreground font-mono">{selectedNode.ports.join(', ')}</strong>
+                  </div>
+                )}
+
+                {selectedNode.subnet && (
+                  <div className="flex justify-between items-center py-1.5 border-b border-border/50">
+                    <span className="text-muted-foreground">Subnet:</span>
+                    <strong className="text-foreground font-mono">{selectedNode.subnet}</strong>
+                  </div>
+                )}
+
+                {selectedNode.details && (
+                  <div className="pt-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1">
+                      Live Telemetry Payload
+                    </span>
+                    <div className="p-3 rounded-lg bg-muted/40 border border-border/80 font-mono text-[11px] max-h-[220px] overflow-y-auto">
+                      <pre className="m-0 whitespace-pre-wrap text-foreground">
+                        {JSON.stringify(selectedNode.details, null, 2)}
+                      </pre>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-12 text-muted-foreground text-xs">
+                Select any node in the topology diagram to view real-time telemetry.
+              </div>
+            )}
+          </CardContent>
         </Card>
       </div>
     </div>

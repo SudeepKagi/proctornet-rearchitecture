@@ -6,11 +6,24 @@
 
 import React, { useState, useEffect } from 'react';
 import { getDeveloperLogs } from '../../api/developerApi.js';
-import { Card } from '../../components/common/Card.jsx';
-import { Badge } from '../../components/common/Badge.jsx';
-import { Button } from '../../components/common/Button.jsx';
-import { Input } from '../../components/common/Input.jsx';
-import { Spinner } from '../../components/common/Spinner.jsx';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Spinner } from '@/components/ui/spinner';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import {
+  Terminal,
+  Search,
+  RefreshCw,
+  Clock,
+  ShieldCheck,
+  ChevronDown,
+  ChevronUp,
+  AlertCircle,
+  FileCode2,
+} from 'lucide-react';
 
 const LEVELS = ['ALL', 'FATAL', 'ERROR', 'WARN', 'INFO', 'DEBUG'];
 
@@ -55,196 +68,195 @@ export function DeveloperLogsPage() {
     return () => clearInterval(interval);
   }, [autoRefresh, selectedLevel, search, traceId]);
 
-  function getLevelBadgeVariant(lvl) {
+  function getLevelBadge(lvl) {
     switch (lvl?.toLowerCase()) {
       case 'fatal':
       case 'error':
-        return 'danger';
+        return <Badge variant="destructive" className="text-[10px] font-mono font-bold">ERROR</Badge>;
       case 'warn':
-        return 'warning';
+        return <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300 text-[10px] font-mono">WARN</Badge>;
       case 'info':
-        return 'primary';
+        return <Badge variant="default" className="bg-primary/90 text-[10px] font-mono">INFO</Badge>;
       case 'debug':
       default:
-        return 'neutral';
+        return <Badge variant="outline" className="text-[10px] font-mono text-muted-foreground">DEBUG</Badge>;
     }
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+    <div className="container mx-auto px-4 py-8 max-w-7xl space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+          <Terminal className="h-7 w-7 text-primary" />
+          Centralized Masked System Logs
+        </h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          High-throughput 5,000-entry in-memory ring buffer with source-level PII redaction and W3C trace correlation.
+        </p>
+      </div>
+
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Log Buffer Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
       {/* Search & Filter Toolbar */}
-      <Card>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+      <Card className="shadow-xs border-border/80">
+        <CardContent className="p-4 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             {/* Level Selector Pills */}
-            <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap' }}>
-              {LEVELS.map((lvl) => (
-                <button
-                  key={lvl}
-                  type="button"
-                  onClick={() => setSelectedLevel(lvl)}
-                  style={{
-                    padding: '0.375rem 0.75rem',
-                    borderRadius: 'var(--radius-sm)',
-                    border: '1px solid var(--color-border-subtle)',
-                    fontSize: '0.75rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    backgroundColor:
-                      selectedLevel === lvl
-                        ? 'var(--color-primary)'
-                        : 'var(--color-surface)',
-                    color:
-                      selectedLevel === lvl
-                        ? 'var(--color-text-inverse)'
-                        : 'var(--color-text-secondary)'
-                  }}
-                >
-                  {lvl}
-                </button>
-              ))}
+            <div className="flex flex-wrap gap-1.5">
+              {LEVELS.map((lvl) => {
+                const isSelected = selectedLevel === lvl;
+                return (
+                  <Button
+                    key={lvl}
+                    type="button"
+                    variant={isSelected ? 'default' : 'outline'}
+                    size="sm"
+                    className="h-7 text-xs font-mono px-3"
+                    onClick={() => setSelectedLevel(lvl)}
+                  >
+                    {lvl}
+                  </Button>
+                );
+              })}
             </div>
 
             {/* Controls */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.8125rem', cursor: 'pointer' }}>
-                <input
-                  type="checkbox"
+            <div className="flex items-center gap-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="live-stream-logs"
                   checked={autoRefresh}
-                  onChange={(e) => setAutoRefresh(e.target.checked)}
+                  onCheckedChange={(checked) => setAutoRefresh(Boolean(checked))}
                 />
-                Live stream (3s)
-              </label>
-              <Button variant="secondary" size="sm" onClick={loadLogs}>
+                <label htmlFor="live-stream-logs" className="text-xs font-medium text-foreground cursor-pointer">
+                  Live Stream (3s)
+                </label>
+              </div>
+              <Button variant="outline" size="sm" onClick={loadLogs} className="h-8 text-xs">
+                <RefreshCw className="h-3.5 w-3.5 mr-1" />
                 Refresh
               </Button>
             </div>
           </div>
 
           {/* Search Inputs */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem' }}>
-            <Input
-              placeholder="Search message or payload (e.g. timeout, redis)..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-            <Input
-              placeholder="Filter by W3C Trace ID..."
-              value={traceId}
-              onChange={(e) => setTraceId(e.target.value)}
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search log message or context..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9 h-9 text-sm font-mono"
+              />
+            </div>
+            <div className="relative">
+              <FileCode2 className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Filter by W3C Trace ID..."
+                value={traceId}
+                onChange={(e) => setTraceId(e.target.value)}
+                className="pl-9 h-9 text-sm font-mono"
+              />
+            </div>
           </div>
-        </div>
+        </CardContent>
       </Card>
 
       {/* Logs Table */}
-      <Card>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-          <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-text-secondary)' }}>
-            Showing {logs.length} of {totalMatching} matching entries in buffer
-          </span>
-          <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
-            PII &amp; credentials redacted at source &amp; serialization
-          </span>
-        </div>
+      <Card className="shadow-xs border-border/80 overflow-hidden">
+        <CardHeader className="py-3 px-4 border-b border-border/60 bg-muted/20">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-foreground">
+              Showing {logs.length} of {totalMatching} matching entries in buffer
+            </span>
+            <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+              <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+              PII, passwords & tokens redacted at source
+            </span>
+          </div>
+        </CardHeader>
 
-        {loading && logs.length === 0 ? (
-          <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem 0' }}>
-            <Spinner size="md" />
-          </div>
-        ) : logs.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '3rem 0', color: 'var(--color-text-muted)' }}>
-            No logs matching the current criteria in the circular buffer.
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            {logs.map((log) => {
-              const isExpanded = expandedLogId === log.id;
-              return (
-                <div
-                  key={log.id}
-                  style={{
-                    border: '1px solid var(--color-border-subtle)',
-                    borderRadius: 'var(--radius-sm)',
-                    backgroundColor: 'var(--color-surface)',
-                    overflow: 'hidden'
-                  }}
-                >
+        <CardContent className="p-4">
+          {loading && logs.length === 0 ? (
+            <div className="flex h-[240px] items-center justify-center">
+              <Spinner size="md" className="text-primary" />
+              <span className="ml-3 text-sm text-muted-foreground">Streaming circular buffer logs...</span>
+            </div>
+          ) : logs.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground text-sm">
+              No logs matching current criteria in the circular buffer.
+            </div>
+          ) : (
+            <div className="space-y-1.5 font-mono text-xs">
+              {logs.map((log) => {
+                const isExpanded = expandedLogId === log.id;
+                return (
                   <div
-                    onClick={() => setExpandedLogId(isExpanded ? null : log.id)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.75rem',
-                      padding: '0.625rem 0.875rem',
-                      cursor: 'pointer',
-                      fontSize: '0.8125rem',
-                      fontFamily: 'monospace'
-                    }}
+                    key={log.id}
+                    className="rounded-lg border border-border/70 bg-card overflow-hidden transition-colors hover:border-border"
                   >
-                    <span style={{ color: 'var(--color-text-muted)', fontSize: '0.75rem', minWidth: '140px' }}>
-                      {new Date(log.timestamp).toLocaleTimeString()}
-                    </span>
-                    <Badge variant={getLevelBadgeVariant(log.level)} size="sm">
-                      {log.level.toUpperCase()}
-                    </Badge>
-                    <span style={{ color: 'var(--color-primary)', fontWeight: 600 }}>
-                      [{log.service}]
-                    </span>
-                    {log.traceId && (
-                      <span style={{ color: 'var(--color-text-muted)', fontSize: '0.75rem' }}>
-                        trace: {log.traceId.slice(0, 8)}...
-                      </span>
-                    )}
-                    <span
-                      style={{
-                        flex: 1,
-                        color: 'var(--color-text-primary)',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap'
-                      }}
-                    >
-                      {log.message}
-                    </span>
-                    <span style={{ color: 'var(--color-text-muted)', fontSize: '0.75rem' }}>
-                      {isExpanded ? '▲' : '▼'}
-                    </span>
-                  </div>
-
-                  {isExpanded && (
                     <div
-                      style={{
-                        padding: '0.75rem 1rem',
-                        backgroundColor: 'var(--color-surface-sunken)',
-                        borderTop: '1px solid var(--color-border-subtle)',
-                        fontSize: '0.75rem',
-                        fontFamily: 'monospace',
-                        overflowX: 'auto',
-                        whiteSpace: 'pre-wrap'
-                      }}
+                      onClick={() => setExpandedLogId(isExpanded ? null : log.id)}
+                      className="flex items-center gap-3 p-2.5 cursor-pointer hover:bg-muted/30 select-none"
                     >
-                      {JSON.stringify(
-                        {
-                          id: log.id,
-                          timestamp: log.timestamp,
-                          level: log.level,
-                          service: log.service,
-                          message: log.message,
-                          traceId: log.traceId,
-                          requestId: log.requestId,
-                          context: log.context
-                        },
-                        null,
-                        2
+                      <span className="text-muted-foreground text-[11px] shrink-0 w-24">
+                        {new Date(log.timestamp).toLocaleTimeString()}
+                      </span>
+                      {getLevelBadge(log.level)}
+                      <span className="text-primary font-bold shrink-0">
+                        [{log.service}]
+                      </span>
+                      {log.traceId && (
+                        <span className="text-muted-foreground text-[11px] shrink-0 hidden md:inline">
+                          trace:{log.traceId.slice(0, 8)}
+                        </span>
                       )}
+                      <span className="text-foreground truncate flex-1">
+                        {log.message}
+                      </span>
+                      <span className="text-muted-foreground shrink-0">
+                        {isExpanded ? (
+                          <ChevronUp className="h-3.5 w-3.5" />
+                        ) : (
+                          <ChevronDown className="h-3.5 w-3.5" />
+                        )}
+                      </span>
                     </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
+
+                    {isExpanded && (
+                      <div className="p-3 bg-muted/40 border-t border-border/60 text-[11px] overflow-x-auto">
+                        <pre className="m-0 whitespace-pre-wrap text-foreground font-mono">
+                          {JSON.stringify(
+                            {
+                              id: log.id,
+                              timestamp: log.timestamp,
+                              level: log.level,
+                              service: log.service,
+                              message: log.message,
+                              traceId: log.traceId,
+                              requestId: log.requestId,
+                              context: log.context,
+                            },
+                            null,
+                            2
+                          )}
+                        </pre>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
       </Card>
     </div>
   );
