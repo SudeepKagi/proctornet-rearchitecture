@@ -6,11 +6,22 @@
 
 import React, { useState, useEffect } from 'react';
 import * as adminUsersApi from '../../api/adminUsersApi.js';
-import { Button } from '../../components/common/Button.jsx';
-import { Card } from '../../components/common/Card.jsx';
-import { Input } from '../../components/common/Input.jsx';
-import { Alert } from '../../components/common/Alert.jsx';
-import { Badge } from '../../components/common/Badge.jsx';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import {
+  Settings,
+  Building2,
+  ShieldCheck,
+  Lock,
+  Clock,
+  AlertCircle,
+  CheckCircle2,
+  KeyRound,
+  ShieldAlert,
+} from 'lucide-react';
 
 export function OrganizationSettingsPage() {
   const [settings, setSettings] = useState(null);
@@ -74,16 +85,16 @@ export function OrganizationSettingsPage() {
         passwordPolicy: {
           minLength: parseInt(minLength, 10) || 8,
           maxFailedAttempts: parseInt(maxFailedAttempts, 10) || 5,
-          lockoutDurationMinutes: parseInt(lockoutDurationMinutes, 10) || 15
+          lockoutDurationMinutes: parseInt(lockoutDurationMinutes, 10) || 15,
         },
         sessionPolicy: {
           accessTokenTtlMinutes: parseInt(accessTokenTtlMinutes, 10) || 15,
-          refreshTokenTtlDays: parseInt(refreshTokenTtlDays, 10) || 7
+          refreshTokenTtlDays: parseInt(refreshTokenTtlDays, 10) || 7,
         },
         featureFlags: {
-          allowSelfRegistration: false, // Authoritative invariant: Self-registration strictly forbidden
-          requireVerificationBeforeExam: true
-        }
+          allowSelfRegistration: false, // Invariant: Self-registration strictly forbidden
+          requireVerificationBeforeExam: true,
+        },
       });
 
       setSettings(updated);
@@ -99,146 +110,218 @@ export function OrganizationSettingsPage() {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ color: 'var(--color-text-muted)' }}>Loading institutional configuration...</div>
+      <div className="flex h-[60vh] items-center justify-center">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        <span className="ml-3 text-sm text-muted-foreground">Loading institutional configuration...</span>
       </div>
     );
   }
 
   return (
-    <div style={{ padding: 'var(--space-xl)', maxWidth: '800px', margin: '0 auto' }}>
-      <div style={{ marginBottom: 'var(--space-xl)' }}>
-        <h1 style={{ fontSize: '1.75rem', fontWeight: 700, margin: 0, color: 'var(--color-text-base)' }}>
+    <div className="container mx-auto px-4 py-8 max-w-3xl space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+          <Settings className="h-7 w-7 text-primary" />
           Institutional & Security Settings
         </h1>
-        <p style={{ color: 'var(--color-text-muted)', margin: '4px 0 0 0', fontSize: '0.875rem' }}>
+        <p className="text-sm text-muted-foreground mt-1">
           Configure university identity, authentication rate limits, and access governance policies.
         </p>
       </div>
 
-      {error && <Alert variant="danger" style={{ marginBottom: 'var(--space-md)' }}>{error}</Alert>}
-      {success && <Alert variant="success" style={{ marginBottom: 'var(--space-md)' }}>Settings saved successfully.</Alert>}
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Configuration Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
 
-      <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
-        {/* Institutional Identity Card */}
-        <Card style={{ padding: 'var(--space-xl)' }}>
-          <h3 style={{ fontSize: '1.125rem', fontWeight: 600, margin: '0 0 var(--space-md) 0' }}>
-            Institution Profile
-          </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
-            <Input
-              id="inst-name"
-              label="Institution Name"
-              required
-              value={institutionName}
-              onChange={(e) => setInstitutionName(e.target.value)}
-            />
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)' }}>
+      {success && (
+        <Alert className="border-emerald-500 text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/30">
+          <CheckCircle2 className="h-4 w-4" />
+          <AlertTitle>Saved</AlertTitle>
+          <AlertDescription>Institutional settings and policies successfully saved.</AlertDescription>
+        </Alert>
+      )}
+
+      <form onSubmit={handleSave} className="space-y-6">
+        {/* Institutional Profile */}
+        <Card className="shadow-xs border-border/80">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Building2 className="h-5 w-5 text-primary" />
+              <CardTitle className="text-base font-semibold">Institutional Profile</CardTitle>
+            </div>
+            <CardDescription>
+              Legal organization identity displayed across candidate portals and official certificates.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-1.5">
+              <label htmlFor="inst-name" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Institution Name *
+              </label>
               <Input
-                id="inst-email"
-                label="Institutional Support Email"
-                type="email"
+                id="inst-name"
                 required
-                value={supportEmail}
-                onChange={(e) => setSupportEmail(e.target.value)}
-              />
-              <Input
-                id="inst-domains"
-                label="Allowed Email Domains (comma separated)"
-                placeholder="university.edu, college.edu"
-                value={allowedDomains}
-                onChange={(e) => setAllowedDomains(e.target.value)}
+                value={institutionName}
+                onChange={(e) => setInstitutionName(e.target.value)}
+                className="h-10 text-sm"
               />
             </div>
-          </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label htmlFor="inst-email" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Support Email Address *
+                </label>
+                <Input
+                  id="inst-email"
+                  type="email"
+                  required
+                  value={supportEmail}
+                  onChange={(e) => setSupportEmail(e.target.value)}
+                  className="h-10 text-sm"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label htmlFor="inst-domains" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Allowed Email Domains (CSV)
+                </label>
+                <Input
+                  id="inst-domains"
+                  placeholder="university.edu, college.edu"
+                  value={allowedDomains}
+                  onChange={(e) => setAllowedDomains(e.target.value)}
+                  className="h-10 text-sm"
+                />
+              </div>
+            </div>
+          </CardContent>
         </Card>
 
         {/* Security & Authentication Policies */}
-        <Card style={{ padding: 'var(--space-xl)' }}>
-          <h3 style={{ fontSize: '1.125rem', fontWeight: 600, margin: '0 0 var(--space-md) 0' }}>
-            Password & Lockout Policy
-          </h3>
+        <Card className="shadow-xs border-border/80">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Lock className="h-5 w-5 text-primary" />
+              <CardTitle className="text-base font-semibold">Password & Lockout Policy</CardTitle>
+            </div>
+            <CardDescription>
+              Enforce cryptographic complexity and brute-force lockouts across all accounts.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="space-y-1.5">
+                <label htmlFor="min-length" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Min Password Length
+                </label>
+                <Input
+                  id="min-length"
+                  type="number"
+                  min="8"
+                  max="64"
+                  value={minLength}
+                  onChange={(e) => setMinLength(e.target.value)}
+                  className="h-10 text-sm"
+                />
+              </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--space-md)', marginBottom: 'var(--space-lg)' }}>
-            <Input
-              id="min-length"
-              label="Min Password Length"
-              type="number"
-              min="8"
-              max="64"
-              value={minLength}
-              onChange={(e) => setMinLength(e.target.value)}
-            />
-            <Input
-              id="max-login-attempts"
-              label="Max Failed Attempts"
-              type="number"
-              min="3"
-              max="20"
-              value={maxFailedAttempts}
-              onChange={(e) => setMaxFailedAttempts(e.target.value)}
-            />
-            <Input
-              id="lockout-duration"
-              label="Lockout Duration (mins)"
-              type="number"
-              min="5"
-              max="1440"
-              value={lockoutDurationMinutes}
-              onChange={(e) => setLockoutDurationMinutes(e.target.value)}
-            />
-          </div>
+              <div className="space-y-1.5">
+                <label htmlFor="max-login-attempts" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Max Failed Attempts
+                </label>
+                <Input
+                  id="max-login-attempts"
+                  type="number"
+                  min="3"
+                  max="20"
+                  value={maxFailedAttempts}
+                  onChange={(e) => setMaxFailedAttempts(e.target.value)}
+                  className="h-10 text-sm"
+                />
+              </div>
 
-          <h3 style={{ fontSize: '1.125rem', fontWeight: 600, margin: 'var(--space-md) 0' }}>
-            Session Policies
-          </h3>
+              <div className="space-y-1.5">
+                <label htmlFor="lockout-duration" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Lockout Duration (mins)
+                </label>
+                <Input
+                  id="lockout-duration"
+                  type="number"
+                  min="5"
+                  max="1440"
+                  value={lockoutDurationMinutes}
+                  onChange={(e) => setLockoutDurationMinutes(e.target.value)}
+                  className="h-10 text-sm"
+                />
+              </div>
+            </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)', marginBottom: 'var(--space-lg)' }}>
-            <Input
-              id="access-token-ttl"
-              label="Access Token TTL (mins)"
-              type="number"
-              min="5"
-              max="1440"
-              value={accessTokenTtlMinutes}
-              onChange={(e) => setAccessTokenTtlMinutes(e.target.value)}
-            />
-            <Input
-              id="refresh-token-ttl"
-              label="Refresh Token TTL (days)"
-              type="number"
-              min="1"
-              max="90"
-              value={refreshTokenTtlDays}
-              onChange={(e) => setRefreshTokenTtlDays(e.target.value)}
-            />
-          </div>
+            <div className="border-t border-border/60 pt-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Clock className="h-4 w-4 text-primary" />
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Session Token Policies
+                </h4>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label htmlFor="access-token-ttl" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Access Token TTL (mins)
+                  </label>
+                  <Input
+                    id="access-token-ttl"
+                    type="number"
+                    min="5"
+                    max="1440"
+                    value={accessTokenTtlMinutes}
+                    onChange={(e) => setAccessTokenTtlMinutes(e.target.value)}
+                    className="h-10 text-sm"
+                  />
+                </div>
 
-          {/* Registration Policy Notice */}
-          <div style={{
-            background: 'var(--color-bg-surface)',
-            border: '1px solid var(--color-border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            padding: 'var(--space-md)',
-            fontSize: '0.8125rem'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <strong>Public Self-Registration:</strong>
-                <div style={{ color: 'var(--color-text-muted)', marginTop: '2px' }}>
-                  Student and Faculty accounts must be provisioned exclusively by administrators or via verified bulk roster ingestion.
+                <div className="space-y-1.5">
+                  <label htmlFor="refresh-token-ttl" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Refresh Token TTL (days)
+                  </label>
+                  <Input
+                    id="refresh-token-ttl"
+                    type="number"
+                    min="1"
+                    max="90"
+                    value={refreshTokenTtlDays}
+                    onChange={(e) => setRefreshTokenTtlDays(e.target.value)}
+                    className="h-10 text-sm"
+                  />
                 </div>
               </div>
-              <Badge variant="neutral">DISABLED (LOCKED)</Badge>
             </div>
-          </div>
-        </Card>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <Button type="submit" variant="primary" loading={saving}>
-            Save Configuration
-          </Button>
-        </div>
+            {/* Self-Registration Notice */}
+            <div className="rounded-lg border border-border/70 bg-muted/20 p-3.5 flex items-center justify-between">
+              <div>
+                <div className="text-xs font-semibold text-foreground">Public Self-Registration</div>
+                <div className="text-[11px] text-muted-foreground mt-0.5">
+                  Institutional accounts must be provisioned exclusively by administrators or via verified roster ingestion.
+                </div>
+              </div>
+              <Badge variant="outline" className="font-mono text-xs">
+                DISABLED (LOCKED)
+              </Badge>
+            </div>
+          </CardContent>
+
+          <CardFooter className="flex justify-end border-t border-border/60 p-4">
+            <Button type="submit" disabled={saving}>
+              {saving ? 'Saving...' : 'Save Configuration'}
+            </Button>
+          </CardFooter>
+        </Card>
       </form>
     </div>
   );

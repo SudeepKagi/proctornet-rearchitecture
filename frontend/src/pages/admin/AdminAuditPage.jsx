@@ -5,12 +5,37 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import * as adminUsersApi from '../../api/adminUsersApi.js';
-import { Card } from '../../components/common/Card.jsx';
-import { Badge } from '../../components/common/Badge.jsx';
-import { Button } from '../../components/common/Button.jsx';
-import { Modal } from '../../components/common/Modal.jsx';
-import { Alert } from '../../components/common/Alert.jsx';
-import { Input } from '../../components/common/Input.jsx';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+} from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import {
+  ScrollText,
+  Search,
+  FileJson,
+  ChevronLeft,
+  ChevronRight,
+  AlertCircle,
+  ShieldCheck,
+  Calendar,
+} from 'lucide-react';
 
 export function AdminAuditPage() {
   const [logs, setLogs] = useState([]);
@@ -33,7 +58,7 @@ export function AdminAuditPage() {
         page,
         limit: pagination.limit,
         action: actionFilter.trim() || undefined,
-        resource_type: resourceTypeFilter.trim() || undefined
+        resource_type: resourceTypeFilter.trim() || undefined,
       });
       setLogs(data.audit_logs || data.logs || []);
       setPagination(data.pagination || { page: 1, limit: 15, total: 0, totalPages: 1 });
@@ -54,174 +79,212 @@ export function AdminAuditPage() {
   };
 
   return (
-    <div style={{ padding: 'var(--space-xl)', maxWidth: '1400px', margin: '0 auto' }}>
-      <div style={{ marginBottom: 'var(--space-xl)' }}>
-        <h1 style={{ fontSize: '1.75rem', fontWeight: 700, margin: 0, color: 'var(--color-text-base)' }}>
+    <div className="container mx-auto px-4 py-8 max-w-7xl space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+          <ScrollText className="h-7 w-7 text-primary" />
           Immutable Security & Audit Logs
         </h1>
-        <p style={{ color: 'var(--color-text-muted)', margin: '4px 0 0 0', fontSize: '0.875rem' }}>
+        <p className="text-sm text-muted-foreground mt-1">
           Tamper-evident audit trail recording all administrative mutations, user provisioning, and verification decisions.
         </p>
       </div>
 
-      {error && <Alert variant="danger" style={{ marginBottom: 'var(--space-md)' }}>{error}</Alert>}
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Audit Trail Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
 
       {/* Filter Bar */}
-      <Card style={{ marginBottom: 'var(--space-lg)', padding: 'var(--space-md)' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 'var(--space-md)', alignItems: 'end' }}>
-          <div>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: '4px' }}>
-              FILTER BY ACTION
-            </label>
-            <Input
-              id="audit-action"
-              placeholder="e.g. USER_CREATED, USER_STATUS_UPDATED"
-              value={actionFilter}
-              onChange={(e) => setActionFilter(e.target.value)}
-            />
-          </div>
+      <Card className="shadow-xs border-border/80">
+        <CardContent className="p-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="audit-action" className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+                Filter by Action
+              </label>
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="audit-action"
+                  placeholder="e.g. USER_CREATED, USER_STATUS_UPDATED..."
+                  value={actionFilter}
+                  onChange={(e) => setActionFilter(e.target.value)}
+                  className="pl-9 h-9 text-sm"
+                />
+              </div>
+            </div>
 
-          <div>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: '4px' }}>
-              RESOURCE TYPE
-            </label>
-            <Input
-              id="audit-resource"
-              placeholder="e.g. USER, SETTINGS"
-              value={resourceTypeFilter}
-              onChange={(e) => setResourceTypeFilter(e.target.value)}
-            />
+            <div>
+              <label htmlFor="audit-resource" className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+                Resource Type
+              </label>
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="audit-resource"
+                  placeholder="e.g. USER, SETTINGS, EXAM..."
+                  value={resourceTypeFilter}
+                  onChange={(e) => setResourceTypeFilter(e.target.value)}
+                  className="pl-9 h-9 text-sm"
+                />
+              </div>
+            </div>
           </div>
-        </div>
+        </CardContent>
       </Card>
 
       {/* Table */}
-      <Card style={{ padding: 0, overflow: 'hidden' }}>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.8125rem' }}>
-            <thead>
-              <tr style={{ background: 'var(--color-bg-surface)', borderBottom: '1px solid var(--color-border-subtle)' }}>
-                <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--color-text-muted)' }}>Timestamp</th>
-                <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--color-text-muted)' }}>Action</th>
-                <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--color-text-muted)' }}>Actor ID</th>
-                <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--color-text-muted)' }}>Resource</th>
-                <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--color-text-muted)' }}>Resource ID</th>
-                <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--color-text-muted)', textAlign: 'right' }}>Evidence</th>
-              </tr>
-            </thead>
-            <tbody>
+      <Card className="shadow-xs border-border/80 overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/40 hover:bg-muted/40">
+                <TableHead>Timestamp</TableHead>
+                <TableHead>Action</TableHead>
+                <TableHead>Actor ID</TableHead>
+                <TableHead>Resource</TableHead>
+                <TableHead>Resource ID</TableHead>
+                <TableHead className="text-right">Evidence</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {loading ? (
-                <tr>
-                  <td colSpan="6" style={{ padding: '32px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
-                    Loading audit trail...
-                  </td>
-                </tr>
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                    <div className="inline-flex items-center gap-2">
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                      <span>Loading audit trail...</span>
+                    </div>
+                  </TableCell>
+                </TableRow>
               ) : logs.length === 0 ? (
-                <tr>
-                  <td colSpan="6" style={{ padding: '32px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
-                    No audit records match query.
-                  </td>
-                </tr>
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                    No audit records match query criteria.
+                  </TableCell>
+                </TableRow>
               ) : (
                 logs.map((l) => (
-                  <tr key={l.audit_id || l.auditId} style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
-                    <td style={{ padding: '10px 16px', color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>
+                  <TableRow key={l.audit_id || l.auditId} className="transition-colors">
+                    <TableCell className="text-xs text-muted-foreground whitespace-nowrap font-mono">
                       {(() => {
                         const raw = l.timestamp || l.created_at;
                         if (!raw) return 'N/A';
                         const d = new Date(raw);
                         return isNaN(d.getTime()) ? 'N/A' : d.toLocaleString();
                       })()}
-                    </td>
-                    <td style={{ padding: '10px 16px' }}>
-                      <Badge variant="primary" size="sm">{l.action}</Badge>
-                    </td>
-                    <td style={{ padding: '10px 16px', fontFamily: 'monospace', color: 'var(--color-text-muted)' }}>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className="text-xs font-mono">
+                        {l.action}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="font-mono text-xs text-muted-foreground">
                       {l.actor_user_id || l.actorUserId || 'SYSTEM'}
-                    </td>
-                    <td style={{ padding: '10px 16px', fontWeight: 500 }}>
+                    </TableCell>
+                    <TableCell className="text-xs font-medium text-foreground">
                       {l.resource_type || l.resourceType}
-                    </td>
-                    <td style={{ padding: '10px 16px', fontFamily: 'monospace' }}>
+                    </TableCell>
+                    <TableCell className="font-mono text-xs text-muted-foreground">
                       {l.resource_id || l.resourceId}
-                    </td>
-                    <td style={{ padding: '10px 16px', textAlign: 'right' }}>
-                      <Button variant="ghost" size="sm" onClick={() => handleOpenMeta(l)}>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 text-xs font-medium"
+                        onClick={() => handleOpenMeta(l)}
+                      >
+                        <FileJson className="h-3.5 w-3.5 mr-1 text-primary" />
                         Metadata
                       </Button>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))
               )}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
 
         {/* Pagination Bar */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          padding: '12px 16px',
-          borderTop: '1px solid var(--color-border-subtle)',
-          background: 'var(--color-bg-surface)',
-          fontSize: '0.8125rem',
-          color: 'var(--color-text-muted)'
-        }}>
+        <div className="flex items-center justify-between px-4 py-3 border-t border-border/60 bg-muted/20 text-xs text-muted-foreground">
           <div>
             Page {pagination.page} of {pagination.totalPages} ({pagination.total} events recorded)
           </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="sm"
+              className="h-8 text-xs flex items-center gap-1"
               disabled={pagination.page <= 1 || loading}
               onClick={() => loadLogs(pagination.page - 1)}
             >
+              <ChevronLeft className="h-3.5 w-3.5" />
               Previous
             </Button>
+            <span className="px-2 font-medium text-foreground">
+              Page {pagination.page} of {pagination.totalPages}
+            </span>
             <Button
               variant="outline"
               size="sm"
+              className="h-8 text-xs flex items-center gap-1"
               disabled={pagination.page >= pagination.totalPages || loading}
               onClick={() => loadLogs(pagination.page + 1)}
             >
               Next
+              <ChevronRight className="h-3.5 w-3.5" />
             </Button>
           </div>
         </div>
       </Card>
 
       {/* Metadata Inspector Modal */}
-      <Modal
-        isOpen={metaModalOpen}
-        onClose={() => setMetaModalOpen(false)}
-        title="Audit Evidence Metadata"
-      >
-        <div>
-          <div style={{ marginBottom: '12px', fontSize: '0.8125rem' }}>
-            <div><strong>Action:</strong> {selectedLog?.action}</div>
-            <div><strong>Resource:</strong> {selectedLog?.resource_type || selectedLog?.resourceType} ({selectedLog?.resource_id || selectedLog?.resourceId})</div>
-            <div><strong>Timestamp:</strong> {selectedLog && new Date(selectedLog.timestamp).toISOString()}</div>
+      <Dialog open={metaModalOpen} onOpenChange={setMetaModalOpen}>
+        <DialogContent className="sm:max-w-[560px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileJson className="h-5 w-5 text-primary" />
+              Audit Evidence Metadata
+            </DialogTitle>
+            <DialogDescription>
+              Action: <span className="font-mono font-semibold text-foreground">{selectedLog?.action}</span>
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 pt-2">
+            <div className="rounded-lg border border-border bg-muted/20 p-3 text-xs space-y-1">
+              <div>
+                <span className="text-muted-foreground font-semibold">Resource: </span>
+                <span className="font-mono text-foreground">
+                  {selectedLog?.resource_type || selectedLog?.resourceType} ({selectedLog?.resource_id || selectedLog?.resourceId})
+                </span>
+              </div>
+              <div>
+                <span className="text-muted-foreground font-semibold">Timestamp: </span>
+                <span className="font-mono text-foreground">
+                  {selectedLog && (selectedLog.timestamp || selectedLog.created_at)}
+                </span>
+              </div>
+            </div>
+
+            <pre className="p-4 rounded-lg border border-border bg-muted/30 text-xs font-mono overflow-x-auto max-h-[320px] text-foreground">
+              {JSON.stringify(selectedLog?.metadata || {}, null, 2)}
+            </pre>
+
+            <DialogFooter className="pt-2">
+              <Button type="button" onClick={() => setMetaModalOpen(false)}>
+                Close
+              </Button>
+            </DialogFooter>
           </div>
-          <pre style={{
-            background: 'var(--color-bg-surface)',
-            padding: 'var(--space-md)',
-            borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--color-border-subtle)',
-            fontSize: '0.75rem',
-            overflowX: 'auto',
-            maxHeight: '300px'
-          }}>
-            {JSON.stringify(selectedLog?.metadata || {}, null, 2)}
-          </pre>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 'var(--space-md)' }}>
-            <Button variant="primary" onClick={() => setMetaModalOpen(false)}>
-              Close
-            </Button>
-          </div>
-        </div>
-      </Modal>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

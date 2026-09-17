@@ -7,11 +7,23 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import * as adminUsersApi from '../../api/adminUsersApi.js';
-import { Button } from '../../components/common/Button.jsx';
-import { Card } from '../../components/common/Card.jsx';
-import { Input } from '../../components/common/Input.jsx';
-import { Alert } from '../../components/common/Alert.jsx';
-import { Badge } from '../../components/common/Badge.jsx';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Sliders,
+  ArrowLeft,
+  Clock,
+  Accessibility,
+  ShieldCheck,
+  CheckCircle2,
+  AlertCircle,
+  Coffee,
+  Check,
+} from 'lucide-react';
 
 export function StudentConfigurationPage() {
   const { id: studentId } = useParams();
@@ -39,7 +51,7 @@ export function StudentConfigurationPage() {
       try {
         const [dossier, config] = await Promise.all([
           adminUsersApi.fetchStudentVerificationDossier(studentId).catch(() => null),
-          adminUsersApi.fetchStudentConfiguration(studentId).catch(() => null)
+          adminUsersApi.fetchStudentConfiguration(studentId).catch(() => null),
         ]);
 
         if (dossier?.user) {
@@ -100,9 +112,9 @@ export function StudentConfigurationPage() {
         assistiveTechnology: {
           screenReader,
           speechToText,
-          keyboardOnly
+          keyboardOnly,
         },
-        proctoringStrictness
+        proctoringStrictness,
       });
 
       setSuccess('Accommodations and proctoring strictness updated successfully!');
@@ -116,209 +128,249 @@ export function StudentConfigurationPage() {
 
   if (loading) {
     return (
-      <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-muted)' }}>
-        Loading student accommodations profile...
+      <div className="flex h-[60vh] items-center justify-center">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        <span className="ml-3 text-sm text-muted-foreground">Loading student accommodations profile...</span>
       </div>
     );
   }
 
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto', padding: '1.5rem 1rem' }}>
-      {/* Back Button & Header */}
-      <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-        <Button variant="outline" size="sm" onClick={() => navigate(-1)}>
-          ← Back
+    <div className="container mx-auto px-4 py-8 max-w-3xl space-y-6">
+      {/* Header */}
+      <div>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="mb-2 -ml-2 text-muted-foreground hover:text-foreground flex items-center gap-1.5"
+          onClick={() => navigate(-1)}
+        >
+          <ArrowLeft className="h-4 w-4" />
+          <span>Back</span>
         </Button>
-        <div>
-          <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-text)' }}>
-            Per-Student Accommodations & Strictness
-          </h1>
-          <div style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', marginTop: '0.25rem' }}>
-            {studentInfo?.name} ({studentInfo?.enrollmentNumber || studentInfo?.email})
-          </div>
-        </div>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+          <Sliders className="h-7 w-7 text-primary" />
+          Per-Student Accommodations & Strictness
+        </h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          {studentInfo?.name} ({studentInfo?.enrollmentNumber || studentInfo?.email})
+        </p>
       </div>
 
       {error && (
-        <div style={{ marginBottom: '1.5rem' }}>
-          <Alert variant="danger">{error}</Alert>
-        </div>
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
 
       {success && (
-        <div style={{ marginBottom: '1.5rem' }}>
-          <Alert variant="success">{success}</Alert>
-        </div>
+        <Alert className="border-emerald-500 text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/30">
+          <CheckCircle2 className="h-4 w-4" />
+          <AlertTitle>Saved</AlertTitle>
+          <AlertDescription>{success}</AlertDescription>
+        </Alert>
       )}
 
-      <form onSubmit={handleSave}>
-        <Card style={{ marginBottom: '1.5rem' }}>
-          <h2 style={{ fontSize: '1.1rem', fontWeight: 600, marginTop: 0, marginBottom: '1rem' }}>
-            Examination Time & Duration Accommodations
-          </h2>
-          <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '1.25rem' }}>
-            The time multiplier automatically and server-authoritatively scales the exam countdown duration for all scheduled sessions.
-          </p>
-
-          <div style={{ marginBottom: '1.25rem' }}>
-            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.35rem' }}>
-              Extra Time Multiplier (1.00x to 3.00x) *
-            </label>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <Input
-                type="number"
-                step="0.05"
-                min="1.00"
-                max="3.00"
-                value={extraTimeMultiplier}
-                onChange={(e) => setExtraTimeMultiplier(e.target.value)}
-                disabled={saving}
-                style={{ width: '120px' }}
-                required
-              />
-              <span style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>
-                {parseFloat(extraTimeMultiplier) === 1
-                  ? 'Standard duration (no extra time)'
-                  : `${Math.round((parseFloat(extraTimeMultiplier) - 1) * 100)}% additional exam time (e.g. 60 min → ${Math.round(60 * parseFloat(extraTimeMultiplier))} min)`}
-              </span>
+      <form onSubmit={handleSave} className="space-y-6">
+        {/* Time Multiplier & Breaks */}
+        <Card className="shadow-xs border-border/80">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-primary" />
+              <CardTitle className="text-base font-semibold">
+                Examination Time & Duration Accommodations
+              </CardTitle>
             </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.35rem' }}>
-                Total Break Allowance (Minutes)
+            <CardDescription>
+              The time multiplier server-authoritatively scales the exam timer for all attempts.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-1.5">
+              <label htmlFor="multiplier" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Extra Time Multiplier (1.00x to 3.00x) *
               </label>
-              <Input
-                type="number"
-                min="0"
-                max="120"
-                value={breakAllowanceMinutes}
-                onChange={(e) => setBreakAllowanceMinutes(e.target.value)}
-                disabled={saving}
-              />
-              <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '0.25rem', display: 'block' }}>
-                Maximum cumulative break minutes across attempt (0 - 120)
-              </span>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                <Input
+                  id="multiplier"
+                  type="number"
+                  step="0.05"
+                  min="1.00"
+                  max="3.00"
+                  value={extraTimeMultiplier}
+                  onChange={(e) => setExtraTimeMultiplier(e.target.value)}
+                  disabled={saving}
+                  className="w-32 h-10 text-sm font-semibold"
+                  required
+                />
+                <span className="text-xs text-muted-foreground">
+                  {parseFloat(extraTimeMultiplier) === 1
+                    ? 'Standard duration (no extra time)'
+                    : `${Math.round((parseFloat(extraTimeMultiplier) - 1) * 100)}% additional exam time (e.g. 60 min → ${Math.round(60 * parseFloat(extraTimeMultiplier))} min)`}
+                </span>
+              </div>
             </div>
 
-            <div>
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.35rem' }}>
-                Maximum Breaks Allowed
-              </label>
-              <Input
-                type="number"
-                min="0"
-                max="10"
-                value={maxBreaksAllowed}
-                onChange={(e) => setMaxBreaksAllowed(e.target.value)}
-                disabled={saving}
-              />
-              <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '0.25rem', display: 'block' }}>
-                Number of discrete pause/rest sessions permitted (0 - 10)
-              </span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+              <div className="space-y-1.5">
+                <label htmlFor="breaks-min" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Total Break Allowance (Minutes)
+                </label>
+                <Input
+                  id="breaks-min"
+                  type="number"
+                  min="0"
+                  max="120"
+                  value={breakAllowanceMinutes}
+                  onChange={(e) => setBreakAllowanceMinutes(e.target.value)}
+                  disabled={saving}
+                  className="h-10 text-sm"
+                />
+                <span className="text-[11px] text-muted-foreground block">
+                  Cumulative break budget (0 - 120 minutes)
+                </span>
+              </div>
+
+              <div className="space-y-1.5">
+                <label htmlFor="breaks-count" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Maximum Breaks Allowed
+                </label>
+                <Input
+                  id="breaks-count"
+                  type="number"
+                  min="0"
+                  max="10"
+                  value={maxBreaksAllowed}
+                  onChange={(e) => setMaxBreaksAllowed(e.target.value)}
+                  disabled={saving}
+                  className="h-10 text-sm"
+                />
+                <span className="text-[11px] text-muted-foreground block">
+                  Discrete rest sessions permitted (0 - 10)
+                </span>
+              </div>
             </div>
-          </div>
+          </CardContent>
         </Card>
 
-        <Card style={{ marginBottom: '1.5rem' }}>
-          <h2 style={{ fontSize: '1.1rem', fontWeight: 600, marginTop: 0, marginBottom: '1rem' }}>
-            Assistive Technology Clearance
-          </h2>
-          <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '1rem' }}>
-            Enable declared assistive technologies. AI and rule-based proctoring flags will suppress false anomalies caused by these tools.
-          </p>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
-              <input
-                type="checkbox"
+        {/* Assistive Tech */}
+        <Card className="shadow-xs border-border/80">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Accessibility className="h-5 w-5 text-primary" />
+              <CardTitle className="text-base font-semibold">
+                Assistive Technology Clearance
+              </CardTitle>
+            </div>
+            <CardDescription>
+              Clear assistive technologies to suppress false-positive anomaly detections.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-start space-x-3 p-3 rounded-lg border border-border/70 hover:bg-muted/20 transition-colors">
+              <Checkbox
+                id="screen-reader"
                 checked={screenReader}
-                onChange={(e) => setScreenReader(e.target.checked)}
+                onCheckedChange={(checked) => setScreenReader(Boolean(checked))}
                 disabled={saving}
-                style={{ width: '16px', height: '16px' }}
+                className="mt-0.5"
               />
-              <span style={{ fontSize: '0.9rem', color: 'var(--color-text)' }}>
-                <strong>Screen Reader:</strong> JAWS, NVDA, VoiceOver, or Orca accessibility tools
-              </span>
-            </label>
+              <div className="space-y-0.5 leading-none">
+                <label htmlFor="screen-reader" className="text-xs font-medium text-foreground cursor-pointer">
+                  <strong>Screen Reader:</strong> JAWS, NVDA, VoiceOver, or Orca accessibility tools
+                </label>
+                <p className="text-[11px] text-muted-foreground">
+                  Suppresses rapid DOM mutation and speech synthesiser flags.
+                </p>
+              </div>
+            </div>
 
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
-              <input
-                type="checkbox"
+            <div className="flex items-start space-x-3 p-3 rounded-lg border border-border/70 hover:bg-muted/20 transition-colors">
+              <Checkbox
+                id="speech-to-text"
                 checked={speechToText}
-                onChange={(e) => setSpeechToText(e.target.checked)}
+                onCheckedChange={(checked) => setSpeechToText(Boolean(checked))}
                 disabled={saving}
-                style={{ width: '16px', height: '16px' }}
+                className="mt-0.5"
               />
-              <span style={{ fontSize: '0.9rem', color: 'var(--color-text)' }}>
-                <strong>Speech-to-Text Dictation:</strong> Dragon NaturallySpeaking, Windows Speech Recognition
-              </span>
-            </label>
+              <div className="space-y-0.5 leading-none">
+                <label htmlFor="speech-to-text" className="text-xs font-medium text-foreground cursor-pointer">
+                  <strong>Speech-to-Text Dictation:</strong> Dragon, Windows Speech Recognition
+                </label>
+                <p className="text-[11px] text-muted-foreground">
+                  Suppresses vocalization anomaly alerts for this candidate.
+                </p>
+              </div>
+            </div>
 
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
-              <input
-                type="checkbox"
+            <div className="flex items-start space-x-3 p-3 rounded-lg border border-border/70 hover:bg-muted/20 transition-colors">
+              <Checkbox
+                id="keyboard-only"
                 checked={keyboardOnly}
-                onChange={(e) => setKeyboardOnly(e.target.checked)}
+                onCheckedChange={(checked) => setKeyboardOnly(Boolean(checked))}
                 disabled={saving}
-                style={{ width: '16px', height: '16px' }}
+                className="mt-0.5"
               />
-              <span style={{ fontSize: '0.9rem', color: 'var(--color-text)' }}>
-                <strong>Keyboard-Only Navigation:</strong> Head wand, sip-and-puff, switch access devices
-              </span>
-            </label>
-          </div>
+              <div className="space-y-0.5 leading-none">
+                <label htmlFor="keyboard-only" className="text-xs font-medium text-foreground cursor-pointer">
+                  <strong>Keyboard-Only Navigation:</strong> Head wand, sip-and-puff, switch access
+                </label>
+                <p className="text-[11px] text-muted-foreground">
+                  Suppresses mouse inactivity and cursor-off-screen flags.
+                </p>
+              </div>
+            </div>
+          </CardContent>
         </Card>
 
-        <Card style={{ marginBottom: '1.5rem' }}>
-          <h2 style={{ fontSize: '1.1rem', fontWeight: 600, marginTop: 0, marginBottom: '1rem' }}>
-            Proctoring Strictness Profile
-          </h2>
-          <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '1rem' }}>
-            Tailor AI anomaly thresholds and sensitivity to the student's documented medical and accommodation context.
-          </p>
-
-          <div>
-            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.35rem' }}>
-              Strictness Level *
-            </label>
-            <select
-              value={proctoringStrictness}
-              onChange={(e) => setProctoringStrictness(e.target.value)}
-              disabled={saving}
-              style={{
-                width: '100%',
-                padding: '0.65rem 0.75rem',
-                backgroundColor: 'var(--color-surface)',
-                border: '1px solid var(--color-border)',
-                borderRadius: '6px',
-                color: 'var(--color-text)',
-                fontSize: '0.9rem'
-              }}
-            >
-              <option value="STANDARD">STANDARD — Standard strictness and multi-face detection thresholds</option>
-              <option value="RELAXED">RELAXED — Elevated gaze and movement tolerance for candidates with ADHD/tics</option>
-              <option value="STRICT">STRICT — Tight anomaly thresholds for audited high-stakes retakes</option>
-              <option value="MEDICAL_EXEMPTION">MEDICAL_EXEMPTION — Suppress automated posture and gaze anomaly alerts</option>
-            </select>
-          </div>
+        {/* Proctoring Strictness Profile */}
+        <Card className="shadow-xs border-border/80">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="h-5 w-5 text-primary" />
+              <CardTitle className="text-base font-semibold">
+                Proctoring Strictness Profile
+              </CardTitle>
+            </div>
+            <CardDescription>
+              Tailor AI anomaly sensitivity to the student's documented medical and accommodation context.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-1.5">
+              <label htmlFor="strictness" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Strictness Profile *
+              </label>
+              <select
+                id="strictness"
+                value={proctoringStrictness}
+                onChange={(e) => setProctoringStrictness(e.target.value)}
+                disabled={saving}
+                className="w-full h-10 px-3 rounded-md border border-input bg-background text-foreground text-sm shadow-xs focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              >
+                <option value="STANDARD">STANDARD — Normal thresholds for multi-face and gaze tracking</option>
+                <option value="RELAXED">RELAXED — Elevated gaze and movement tolerance for neurodivergent candidates</option>
+                <option value="STRICT">STRICT — Tight anomaly sensitivity for high-stakes retakes</option>
+                <option value="MEDICAL_EXEMPTION">MEDICAL_EXEMPTION — Suppress automated posture and gaze alerts</option>
+              </select>
+            </div>
+          </CardContent>
+          <CardFooter className="flex items-center justify-between border-t border-border/60 p-4">
+            <div className="text-xs text-muted-foreground">
+              {updatedAt ? `Last modified: ${new Date(updatedAt).toLocaleString()}` : 'Default institutional settings'}
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" type="button" onClick={() => navigate(-1)} disabled={saving}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={saving}>
+                {saving ? 'Saving...' : 'Save Accommodations'}
+              </Button>
+            </div>
+          </CardFooter>
         </Card>
-
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
-            {updatedAt ? `Last modified: ${new Date(updatedAt).toLocaleString()}` : 'Default institutional settings'}
-          </div>
-
-          <div style={{ display: 'flex', gap: '0.75rem' }}>
-            <Button variant="outline" type="button" onClick={() => navigate(-1)} disabled={saving}>
-              Cancel
-            </Button>
-            <Button variant="primary" type="submit" disabled={saving}>
-              {saving ? 'Saving Changes...' : 'Save Accommodations'}
-            </Button>
-          </div>
-        </div>
       </form>
     </div>
   );

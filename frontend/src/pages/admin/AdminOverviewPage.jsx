@@ -7,10 +7,27 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as examsApi from '../../api/examsApi.js';
 import * as sessionsApi from '../../api/sessionsApi.js';
-import { Card } from '../../components/common/Card.jsx';
-import { Button } from '../../components/common/Button.jsx';
-import { Badge, getStatusBadgeVariant } from '../../components/common/Badge.jsx';
-import { Spinner } from '../../components/common/Spinner.jsx';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Spinner } from '@/components/ui/spinner';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+} from '@/components/ui/table';
+import {
+  FileText,
+  Calendar,
+  Building,
+  ArrowRight,
+  Activity,
+  Layers,
+  ShieldCheck,
+} from 'lucide-react';
 
 export function AdminOverviewPage() {
   const navigate = useNavigate();
@@ -38,106 +55,176 @@ export function AdminOverviewPage() {
     loadData();
   }, []);
 
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case 'SCHEDULED':
+        return <Badge variant="secondary">{status}</Badge>;
+      case 'IN_PROGRESS':
+        return <Badge variant="default" className="bg-emerald-600 hover:bg-emerald-700">{status}</Badge>;
+      case 'COMPLETED':
+        return <Badge variant="outline" className="text-muted-foreground">{status}</Badge>;
+      case 'CANCELLED':
+        return <Badge variant="destructive">{status}</Badge>;
+      default:
+        return <Badge variant="outline">{status || 'UNKNOWN'}</Badge>;
+    }
+  };
+
   if (loading) {
     return (
-      <div className="container" style={{ textAlign: 'center', padding: '4rem 0' }}>
-        <Spinner size="lg" label="Loading system-wide metrics..." />
+      <div className="flex h-[60vh] items-center justify-center">
+        <Spinner size="lg" className="text-primary" />
+        <span className="ml-3 text-sm text-muted-foreground">Loading system-wide metrics...</span>
       </div>
     );
   }
 
   return (
-    <div className="container">
-      <div style={{ marginBottom: '2rem' }}>
-        <h1 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '0.25rem' }}>
+    <div className="container mx-auto px-4 py-8 max-w-7xl space-y-8">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+          <ShieldCheck className="h-7 w-7 text-primary" />
           System Administration Overview
         </h1>
-        <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9375rem' }}>
-          Global oversight of academic blueprints, examination execution windows, and physical rooms.
+        <p className="text-sm text-muted-foreground mt-1">
+          Global oversight of academic blueprints, examination execution windows, and physical facilities.
         </p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', marginBottom: '2rem' }}>
-        <Card padding="normal">
-          <div style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)', marginBottom: '0.25rem' }}>
-            TOTAL EXAM BLUEPRINTS
-          </div>
-          <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-primary)' }}>
-            {exams.length}
-          </div>
-          <div style={{ marginTop: '0.75rem' }}>
-            <Button variant="secondary" size="sm" onClick={() => navigate('/faculty')}>
-              Manage All Exams &rarr;
-            </Button>
-          </div>
+      {/* KPI Cards Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="shadow-xs border-border/80">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Total Exam Blueprints
+            </CardTitle>
+            <FileText className="h-4 w-4 text-primary" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-extrabold text-foreground">{exams.length}</div>
+            <p className="text-xs text-muted-foreground mt-1">Configured blueprints across departments</p>
+            <div className="mt-4 pt-3 border-t border-border/60">
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full justify-between group"
+                onClick={() => navigate('/faculty')}
+              >
+                <span>Manage All Exams</span>
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </Button>
+            </div>
+          </CardContent>
         </Card>
 
-        <Card padding="normal">
-          <div style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)', marginBottom: '0.25rem' }}>
-            SCHEDULED SESSIONS
-          </div>
-          <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-success)' }}>
-            {sessions.length}
-          </div>
-          <div style={{ marginTop: '0.75rem' }}>
-            <Button variant="secondary" size="sm" onClick={() => navigate('/faculty/sessions')}>
-              Manage Sessions &rarr;
-            </Button>
-          </div>
+        <Card className="shadow-xs border-border/80">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Scheduled Sessions
+            </CardTitle>
+            <Calendar className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400">
+              {sessions.length}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Active, upcoming & historic exam slots</p>
+            <div className="mt-4 pt-3 border-t border-border/60">
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full justify-between group"
+                onClick={() => navigate('/faculty/sessions')}
+              >
+                <span>Manage Sessions</span>
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </Button>
+            </div>
+          </CardContent>
         </Card>
 
-        <Card padding="normal">
-          <div style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)', marginBottom: '0.25rem' }}>
-            CAMPUS ROOMS
-          </div>
-          <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-text-primary)' }}>
-            {rooms.length}
-          </div>
-          <div style={{ marginTop: '0.75rem' }}>
-            <Button variant="secondary" size="sm" onClick={() => navigate('/faculty/sessions')}>
-              Inspect Facilities &rarr;
-            </Button>
-          </div>
+        <Card className="shadow-xs border-border/80">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Campus Rooms & Halls
+            </CardTitle>
+            <Building className="h-4 w-4 text-primary" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-extrabold text-foreground">{rooms.length}</div>
+            <p className="text-xs text-muted-foreground mt-1">Physical exam venues and computer labs</p>
+            <div className="mt-4 pt-3 border-t border-border/60">
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full justify-between group"
+                onClick={() => navigate('/faculty/sessions')}
+              >
+                <span>Inspect Facilities</span>
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </Button>
+            </div>
+          </CardContent>
         </Card>
       </div>
 
-      <Card padding="normal">
-        <h3 style={{ fontSize: '1.125rem', marginBottom: '1rem' }}>Active System Sessions</h3>
-        {sessions.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--color-text-muted)' }}>
-            No sessions currently active in the system.
+      {/* Active System Sessions Table */}
+      <Card className="shadow-xs border-border/80">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Activity className="h-5 w-5 text-primary" />
+              <CardTitle className="text-base font-semibold">Active System Sessions</CardTitle>
+            </div>
+            <span className="text-xs text-muted-foreground">Latest 5 registered sessions</span>
           </div>
-        ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
-            <thead>
-              <tr style={{ borderBottom: '2px solid var(--color-border-subtle)', color: 'var(--color-text-muted)' }}>
-                <th style={{ padding: '0.75rem 0.5rem' }}>Session ID</th>
-                <th style={{ padding: '0.75rem 0.5rem' }}>Exam</th>
-                <th style={{ padding: '0.75rem 0.5rem' }}>Room</th>
-                <th style={{ padding: '0.75rem 0.5rem' }}>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(Array.isArray(sessions) ? sessions : []).slice(0, 5).map((s) => {
-                const sid = s.session_id || s.id || '';
-                return (
-                  <tr key={sid || Math.random()} style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
-                    <td style={{ padding: '0.75rem 0.5rem', fontFamily: 'var(--font-family-mono)' }}>
-                      {sid ? `${sid.slice(0, 8)}...` : '—'}
-                    </td>
-                    <td style={{ padding: '0.75rem 0.5rem' }}>{s.exam_title || '—'}</td>
-                    <td style={{ padding: '0.75rem 0.5rem' }}>{s.room_name || 'Virtual'}</td>
-                    <td style={{ padding: '0.75rem 0.5rem' }}>
-                      <Badge variant={getStatusBadgeVariant(s.status)} size="sm">
-                        {s.status}
-                      </Badge>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
+          <CardDescription>
+            Live view of scheduled examination instances currently configured in the system.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          {sessions.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <Layers className="h-10 w-10 mx-auto text-muted-foreground/40 mb-2" />
+              <p className="text-sm font-medium">No sessions currently active in the system.</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="w-[140px]">Session ID</TableHead>
+                    <TableHead>Exam Title</TableHead>
+                    <TableHead>Room / Venue</TableHead>
+                    <TableHead className="w-[140px]">Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(Array.isArray(sessions) ? sessions : []).slice(0, 5).map((s) => {
+                    const sid = s.session_id || s.id || '';
+                    return (
+                      <TableRow key={sid || Math.random()} className="transition-colors">
+                        <TableCell className="font-mono text-xs text-muted-foreground">
+                          {sid ? `${sid.slice(0, 8)}...` : '—'}
+                        </TableCell>
+                        <TableCell className="font-medium text-foreground">
+                          {s.exam_title || '—'}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {s.room_name || 'Virtual'}
+                        </TableCell>
+                        <TableCell>
+                          {getStatusBadge(s.status)}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
       </Card>
     </div>
   );

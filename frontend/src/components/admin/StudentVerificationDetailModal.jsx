@@ -7,10 +7,29 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as adminUsersApi from '../../api/adminUsersApi.js';
-import { Button } from '../common/Button.jsx';
-import { Badge } from '../common/Badge.jsx';
-import { Alert } from '../common/Alert.jsx';
-import { Input } from '../common/Input.jsx';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import {
+  FileCheck,
+  CheckCircle2,
+  XCircle,
+  Lock,
+  Sliders,
+  AlertCircle,
+  FileText,
+  ShieldCheck,
+  Clock,
+} from 'lucide-react';
 
 export function StudentVerificationDetailModal({ studentId, isOpen, onClose, onReviewSuccess }) {
   const navigate = useNavigate();
@@ -37,7 +56,7 @@ export function StudentVerificationDetailModal({ studentId, isOpen, onClose, onR
       try {
         const [dossierData, previewData] = await Promise.all([
           adminUsersApi.fetchStudentVerificationDossier(studentId),
-          adminUsersApi.fetchStudentDocumentPreview(studentId).catch(() => null)
+          adminUsersApi.fetchStudentDocumentPreview(studentId).catch(() => null),
         ]);
 
         if (isMounted) {
@@ -60,8 +79,6 @@ export function StudentVerificationDetailModal({ studentId, isOpen, onClose, onR
       isMounted = false;
     };
   }, [isOpen, studentId]);
-
-  if (!isOpen) return null;
 
   const handleApprove = async () => {
     setActionLoading(true);
@@ -100,249 +117,191 @@ export function StudentVerificationDetailModal({ studentId, isOpen, onClose, onR
   const activeDoc = dossier?.activeDocument;
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.75)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 1000,
-      padding: '1.5rem'
-    }}>
-      <div style={{
-        backgroundColor: 'var(--color-surface)',
-        borderRadius: '12px',
-        maxWidth: '900px',
-        width: '100%',
-        maxHeight: '90vh',
-        display: 'flex',
-        flexDirection: 'column',
-        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.4)',
-        border: '1px solid var(--color-border)'
-      }}>
-        {/* Modal Header */}
-        <div style={{
-          padding: '1.25rem 1.5rem',
-          borderBottom: '1px solid var(--color-border)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <div>
-            <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600, color: 'var(--color-text)' }}>
-              Candidate Verification Dossier
-            </h2>
-            <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
-              {user ? `${user.name} (${user.enrollmentNumber || user.email})` : 'Loading candidate...'}
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            style={{
-              background: 'none',
-              border: 'none',
-              fontSize: '1.5rem',
-              color: 'var(--color-text-muted)',
-              cursor: 'pointer'
-            }}
-          >
-            ×
-          </button>
-        </div>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-[850px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-foreground">
+            <FileCheck className="h-6 w-6 text-primary" />
+            Candidate Verification Dossier
+          </DialogTitle>
+          <DialogDescription>
+            {user ? `${user.name} (${user.enrollmentNumber || user.email})` : 'Loading candidate dossier...'}
+          </DialogDescription>
+        </DialogHeader>
 
-        {/* Modal Content */}
-        <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1 }}>
-          {error && (
-            <div style={{ marginBottom: '1rem' }}>
-              <Alert variant="danger">{error}</Alert>
-            </div>
-          )}
+        {error && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Verification Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
 
-          {loading ? (
-            <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--color-text-muted)' }}>
+        {loading ? (
+          <div className="flex h-[320px] items-center justify-center">
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            <span className="ml-3 text-sm text-muted-foreground">
               Loading identity credentials and private preview...
+            </span>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 pt-2">
+            {/* Left Column: Document Preview */}
+            <div className="md:col-span-7 space-y-3">
+              <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
+                <span>Identity Document Preview</span>
+                <span className="text-[11px] text-muted-foreground flex items-center gap-1 font-normal">
+                  <Lock className="h-3 w-3 text-amber-500" />
+                  300s TTL Pre-signed S3 URL
+                </span>
+              </div>
+
+              {preview?.previewUrl ? (
+                <div className="border border-border rounded-xl overflow-hidden bg-black/90 h-[360px] flex items-center justify-center">
+                  {preview.mimeType?.includes('pdf') ? (
+                    <iframe
+                      src={preview.previewUrl}
+                      title="Document PDF Preview"
+                      className="w-full h-full border-0"
+                    />
+                  ) : (
+                    <img
+                      src={preview.previewUrl}
+                      alt="Candidate Identity Document"
+                      className="max-w-full max-h-full object-contain"
+                    />
+                  )}
+                </div>
+              ) : (
+                <div className="h-[360px] border border-dashed border-border rounded-xl flex flex-col items-center justify-center p-6 text-center text-muted-foreground bg-muted/20">
+                  <FileText className="h-10 w-10 mb-2 opacity-40" />
+                  <p className="text-sm font-medium">No previewable document binary found.</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Candidate has not uploaded or completed identity document submission.
+                  </p>
+                </div>
+              )}
             </div>
-          ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '1.5rem' }}>
-              {/* Left Column: Document Preview */}
-              <div>
-                <h3 style={{ margin: '0 0 0.75rem 0', fontSize: '1rem', fontWeight: 600 }}>
-                  Document Preview
-                </h3>
-                {preview?.previewUrl ? (
-                  <div style={{
-                    border: '1px solid var(--color-border)',
-                    borderRadius: '8px',
-                    overflow: 'hidden',
-                    backgroundColor: '#000',
-                    height: '380px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
-                    {preview.mimeType?.includes('pdf') ? (
-                      <iframe
-                        src={preview.previewUrl}
-                        title="Document PDF Preview"
-                        style={{ width: '100%', height: '100%', border: 'none' }}
-                      />
-                    ) : (
-                      <img
-                        src={preview.previewUrl}
-                        alt="Candidate Identity Document"
-                        style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
-                      />
-                    )}
-                  </div>
-                ) : (
-                  <div style={{
-                    height: '380px',
-                    border: '1px dashed var(--color-border)',
-                    borderRadius: '8px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'var(--color-text-muted)',
-                    fontSize: '0.9rem'
-                  }}>
-                    No previewable document binary found.
-                  </div>
-                )}
-                <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '0.5rem' }}>
-                  🔒 Short-lived preview link (300s TTL). Document access is logged for audit compliance.
+
+            {/* Right Column: Metadata & Decision Box */}
+            <div className="md:col-span-5 space-y-4">
+              <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Document Details
+              </div>
+
+              <div className="rounded-lg border border-border bg-muted/20 p-3.5 space-y-2.5 text-xs">
+                <div className="flex justify-between items-center pb-2 border-b border-border/50">
+                  <span className="text-muted-foreground">Status</span>
+                  <Badge variant={user?.verificationStatus === 'VERIFIED' ? 'default' : 'secondary'}>
+                    {user?.verificationStatus}
+                  </Badge>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Document Type:</span>
+                  <span className="font-semibold text-foreground">{activeDoc?.documentType || 'None'}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Masked ID:</span>
+                  <span className="font-mono text-foreground font-medium">****{activeDoc?.documentNumberLast4 || 'N/A'}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Name on ID:</span>
+                  <span className="font-semibold text-foreground">{activeDoc?.fullNameOnDocument || 'N/A'}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Department:</span>
+                  <span className="text-foreground">{user?.department || 'Unassigned'}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Submitted:</span>
+                  <span className="text-muted-foreground">
+                    {activeDoc?.submittedAt ? new Date(activeDoc.submittedAt).toLocaleDateString() : 'N/A'}
+                  </span>
                 </div>
               </div>
 
-              {/* Right Column: Metadata & Decision Box */}
-              <div>
-                <h3 style={{ margin: '0 0 0.75rem 0', fontSize: '1rem', fontWeight: 600 }}>
-                  Identity Details
-                </h3>
+              {/* Accommodations Shortcut */}
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full text-xs flex items-center justify-center gap-2"
+                onClick={() => {
+                  onClose();
+                  navigate(`/admin/students/${studentId}/configuration`);
+                }}
+              >
+                <Sliders className="h-3.5 w-3.5 text-primary" />
+                <span>Configure Student Accommodations</span>
+              </Button>
 
-                <div style={{
-                  backgroundColor: 'var(--color-surface-hover)',
-                  borderRadius: '8px',
-                  padding: '1rem',
-                  fontSize: '0.875rem',
-                  marginBottom: '1rem',
-                  border: '1px solid var(--color-border)'
-                }}>
-                  <div style={{ marginBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: 'var(--color-text-muted)' }}>Status:</span>
-                    <Badge variant={user?.verificationStatus === 'VERIFIED' ? 'success' : user?.verificationStatus === 'REJECTED' ? 'danger' : 'warning'}>
-                      {user?.verificationStatus}
-                    </Badge>
-                  </div>
-                  <div style={{ marginBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: 'var(--color-text-muted)' }}>Document Type:</span>
-                    <span style={{ fontWeight: 500 }}>{activeDoc?.documentType || 'None'}</span>
-                  </div>
-                  <div style={{ marginBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: 'var(--color-text-muted)' }}>Masked ID:</span>
-                    <span style={{ fontWeight: 500 }}>****{activeDoc?.documentNumberLast4 || 'N/A'}</span>
-                  </div>
-                  <div style={{ marginBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: 'var(--color-text-muted)' }}>Name on ID:</span>
-                    <span style={{ fontWeight: 500 }}>{activeDoc?.fullNameOnDocument || 'N/A'}</span>
-                  </div>
-                  <div style={{ marginBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: 'var(--color-text-muted)' }}>Department:</span>
-                    <span style={{ fontWeight: 500 }}>{user?.department || 'Unassigned'}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: 'var(--color-text-muted)' }}>Submitted:</span>
-                    <span style={{ fontWeight: 500 }}>
-                      {activeDoc?.submittedAt ? new Date(activeDoc.submittedAt).toLocaleString() : 'N/A'}
-                    </span>
-                  </div>
+              {/* Decision Panel */}
+              <div className="border-t border-border/80 pt-3 space-y-3">
+                <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Verification Decision
                 </div>
 
-                {/* Accommodations Shortcut */}
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    style={{ width: '100%' }}
-                    onClick={() => {
-                      onClose();
-                      navigate(`/admin/students/${studentId}/configuration`);
-                    }}
-                  >
-                    ⚙️ Configure Student Accommodations
-                  </Button>
-                </div>
-
-                {/* Decision Panel */}
-                <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '1rem' }}>
-                  <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.9rem', color: 'var(--color-text)' }}>
-                    Review Decision
-                  </h4>
-
-                  {!showRejectBox ? (
-                    <div style={{ display: 'flex', gap: '0.75rem' }}>
+                {!showRejectBox ? (
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      variant="default"
+                      size="sm"
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                      onClick={handleApprove}
+                      disabled={actionLoading || !activeDoc}
+                    >
+                      <CheckCircle2 className="h-4 w-4 mr-1" />
+                      Approve
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => setShowRejectBox(true)}
+                      disabled={actionLoading || !activeDoc}
+                    >
+                      <XCircle className="h-4 w-4 mr-1" />
+                      Reject...
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 space-y-2.5">
+                    <label className="block text-xs font-semibold text-destructive">
+                      Mandatory Rejection Reason *
+                    </label>
+                    <Input
+                      value={rejectReason}
+                      onChange={(e) => setRejectReason(e.target.value)}
+                      placeholder="e.g. Document photo is illegible or expired"
+                      disabled={actionLoading}
+                      className="h-9 text-xs"
+                    />
+                    <div className="flex gap-2 pt-1">
                       <Button
-                        variant="primary"
-                        style={{ flex: 1, backgroundColor: '#059669', borderColor: '#059669' }}
-                        onClick={handleApprove}
-                        disabled={actionLoading || !activeDoc}
+                        variant="destructive"
+                        size="sm"
+                        className="flex-1 text-xs"
+                        onClick={handleReject}
+                        disabled={actionLoading || !rejectReason.trim()}
                       >
-                        ✓ Approve
+                        Confirm Rejection
                       </Button>
                       <Button
                         variant="outline"
-                        style={{ flex: 1, color: '#ef4444', borderColor: '#ef4444' }}
-                        onClick={() => setShowRejectBox(true)}
-                        disabled={actionLoading || !activeDoc}
+                        size="sm"
+                        className="text-xs"
+                        onClick={() => setShowRejectBox(false)}
+                        disabled={actionLoading}
                       >
-                        ✕ Reject...
+                        Cancel
                       </Button>
                     </div>
-                  ) : (
-                    <div style={{
-                      backgroundColor: 'rgba(239, 68, 68, 0.05)',
-                      padding: '1rem',
-                      borderRadius: '8px',
-                      border: '1px solid rgba(239, 68, 68, 0.2)'
-                    }}>
-                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#ef4444', marginBottom: '0.35rem' }}>
-                        Mandatory Rejection Reason *
-                      </label>
-                      <Input
-                        value={rejectReason}
-                        onChange={(e) => setRejectReason(e.target.value)}
-                        placeholder="e.g. Document image is blurry or expired"
-                        disabled={actionLoading}
-                        style={{ marginBottom: '0.75rem' }}
-                      />
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <Button
-                          variant="primary"
-                          style={{ flex: 1, backgroundColor: '#dc2626', borderColor: '#dc2626' }}
-                          onClick={handleReject}
-                          disabled={actionLoading || !rejectReason.trim()}
-                        >
-                          Confirm Rejection
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => setShowRejectBox(false)}
-                          disabled={actionLoading}
-                        >
-                          Cancel
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             </div>
-          )}
-        </div>
-      </div>
-    </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }

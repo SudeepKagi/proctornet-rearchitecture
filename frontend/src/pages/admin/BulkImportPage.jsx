@@ -7,10 +7,30 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as adminUsersApi from '../../api/adminUsersApi.js';
-import { Button } from '../../components/common/Button.jsx';
-import { Card } from '../../components/common/Card.jsx';
-import { Badge } from '../../components/common/Badge.jsx';
-import { Alert } from '../../components/common/Alert.jsx';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+} from '@/components/ui/table';
+import {
+  UploadCloud,
+  FileSpreadsheet,
+  Download,
+  CheckCircle2,
+  AlertTriangle,
+  ArrowLeft,
+  AlertCircle,
+  ShieldAlert,
+  FileText,
+  Layers,
+} from 'lucide-react';
 
 export function BulkImportPage() {
   const navigate = useNavigate();
@@ -80,10 +100,11 @@ export function BulkImportPage() {
       `"${c.email}"`,
       `"${c.name}"`,
       `"${c.role || defaultRole}"`,
-      `"${c.temporaryPassword}"`
+      `"${c.temporaryPassword}"`,
     ]);
 
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const csvContent =
+      'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
@@ -94,263 +115,277 @@ export function BulkImportPage() {
   };
 
   return (
-    <div style={{ padding: 'var(--space-xl)', maxWidth: '1000px', margin: '0 auto' }}>
-      <div style={{ marginBottom: 'var(--space-lg)' }}>
-        <button
+    <div className="container mx-auto px-4 py-8 max-w-4xl space-y-6">
+      {/* Header */}
+      <div>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="mb-2 -ml-2 text-muted-foreground hover:text-foreground flex items-center gap-1.5"
           onClick={() => navigate('/admin/users')}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: 'var(--color-primary)',
-            fontSize: '0.875rem',
-            cursor: 'pointer',
-            padding: 0,
-            marginBottom: 'var(--space-xs)',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '4px'
-          }}
         >
-          ← Back to User Roster
-        </button>
-        <h1 style={{ fontSize: '1.75rem', fontWeight: 700, margin: 0, color: 'var(--color-text-base)' }}>
+          <ArrowLeft className="h-4 w-4" />
+          <span>Back to User Roster</span>
+        </Button>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+          <FileSpreadsheet className="h-7 w-7 text-primary" />
           Bulk User Spreadsheet Ingestion
         </h1>
-        <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem', marginTop: '4px' }}>
+        <p className="text-sm text-muted-foreground mt-1">
           Batch provision students or faculty from Excel (.xlsx, .xls) or CSV files with pre-commit validation.
         </p>
       </div>
 
       {/* Step 1: Upload and Configuration */}
-      <Card style={{ marginBottom: 'var(--space-lg)', padding: 'var(--space-xl)' }}>
-        <h3 style={{ fontSize: '1.125rem', fontWeight: 600, margin: '0 0 var(--space-md) 0' }}>
-          1. Select File & Mode
-        </h3>
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-lg)', marginBottom: 'var(--space-lg)' }}>
-          <div>
-            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '6px' }}>
-              Target Role Roster
-            </label>
-            <select
-              value={defaultRole}
-              onChange={(e) => setDefaultRole(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                borderRadius: 'var(--radius-md)',
-                border: '1px solid var(--color-border-subtle)',
-                background: 'var(--color-bg-surface)',
-                color: 'var(--color-text-base)',
-                fontSize: '0.875rem'
-              }}
-            >
-              <option value="STUDENT">Student Roster (USN / EnrollmentNumber, Name, Email, Phone)</option>
-              <option value="FACULTY">Faculty Roster (EmployeeID / FacultyID, Name, Email, Phone)</option>
-            </select>
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '6px' }}>
-              Transaction Mode
-            </label>
-            <div style={{ display: 'flex', gap: '12px', marginTop: '6px' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.875rem', cursor: 'pointer' }}>
-                <input
-                  type="radio"
-                  name="atomicMode"
-                  checked={!atomic}
-                  onChange={() => setAtomic(false)}
-                />
-                <span><strong>Resilient:</strong> Commit valid, report invalid</span>
+      <Card className="shadow-xs border-border/80">
+        <CardHeader>
+          <CardTitle className="text-base font-semibold">1. Select File & Transaction Mode</CardTitle>
+          <CardDescription>
+            Specify target institutional role and choose error handling strategy before processing.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Target Role Roster
               </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.875rem', cursor: 'pointer' }}>
-                <input
-                  type="radio"
-                  name="atomicMode"
-                  checked={atomic}
-                  onChange={() => setAtomic(true)}
-                />
-                <span><strong>Atomic:</strong> Roll back if any row fails</span>
+              <select
+                value={defaultRole}
+                onChange={(e) => setDefaultRole(e.target.value)}
+                className="w-full h-10 px-3 rounded-md border border-input bg-background text-foreground text-sm shadow-xs focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              >
+                <option value="STUDENT">Student Roster (USN, Name, Email, Phone)</option>
+                <option value="FACULTY">Faculty Roster (Employee ID, Name, Email, Phone)</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Transaction Mode
               </label>
+              <div className="flex flex-col sm:flex-row gap-3 pt-1">
+                <label className="flex items-center gap-2 text-xs font-medium text-foreground cursor-pointer">
+                  <input
+                    type="radio"
+                    name="atomicMode"
+                    checked={!atomic}
+                    onChange={() => setAtomic(false)}
+                    className="text-primary focus:ring-primary h-4 w-4"
+                  />
+                  <span>
+                    <strong>Resilient:</strong> Commit valid, report invalid
+                  </span>
+                </label>
+                <label className="flex items-center gap-2 text-xs font-medium text-foreground cursor-pointer">
+                  <input
+                    type="radio"
+                    name="atomicMode"
+                    checked={atomic}
+                    onChange={() => setAtomic(true)}
+                    className="text-primary focus:ring-primary h-4 w-4"
+                  />
+                  <span>
+                    <strong>Atomic:</strong> Roll back if any row fails
+                  </span>
+                </label>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* File Dropzone */}
-        <div
-          onClick={() => fileInputRef.current?.click()}
-          style={{
-            border: '2px dashed var(--color-border-subtle)',
-            borderRadius: 'var(--radius-lg)',
-            padding: 'var(--space-xl)',
-            textAlign: 'center',
-            cursor: 'pointer',
-            background: selectedFile ? 'var(--color-primary-subtle)' : 'var(--color-bg-surface)',
-            transition: 'border-color 0.2s'
-          }}
-        >
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".xlsx, .xls, .csv"
-            style={{ display: 'none' }}
-            onChange={handleFileChange}
-          />
-          <div style={{ fontSize: '2rem', marginBottom: '8px' }}>📑</div>
-          <div style={{ fontWeight: 600, color: 'var(--color-text-base)' }}>
-            {selectedFile ? selectedFile.name : 'Click to upload Excel or CSV file'}
-          </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '4px' }}>
-            Supported formats: .xlsx, .xls, .csv (Max 10,000 rows). Password column is strictly forbidden.
-          </div>
-        </div>
-
-        {previewError && (
-          <Alert variant="danger" style={{ marginTop: 'var(--space-md)' }}>
-            {previewError}
-          </Alert>
-        )}
-
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 'var(--space-lg)' }}>
-          <Button
-            variant="primary"
-            loading={previewLoading}
-            disabled={!selectedFile}
-            onClick={handleAnalyze}
+          {/* File Dropzone */}
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${
+              selectedFile
+                ? 'border-primary bg-primary/5 dark:bg-primary/10'
+                : 'border-border hover:border-primary/50 bg-muted/20 hover:bg-muted/30'
+            }`}
           >
-            Analyze & Validate Spreadsheet
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".xlsx, .xls, .csv"
+              className="hidden"
+              onChange={handleFileChange}
+            />
+            <UploadCloud className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+            <div className="font-semibold text-foreground text-sm">
+              {selectedFile ? selectedFile.name : 'Click to select Excel or CSV file'}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Supported formats: .xlsx, .xls, .csv (Up to 10,000 rows). Passwords must never be included.
+            </p>
+          </div>
+
+          {previewError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Validation Error</AlertTitle>
+              <AlertDescription>{previewError}</AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+
+        <CardFooter className="flex justify-end border-t border-border/60 p-4">
+          <Button
+            disabled={!selectedFile || previewLoading}
+            onClick={handleAnalyze}
+            className="flex items-center gap-2"
+          >
+            {previewLoading && (
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            )}
+            <span>Analyze & Validate Spreadsheet</span>
           </Button>
-        </div>
+        </CardFooter>
       </Card>
 
       {/* Step 2: Validation Preview */}
       {previewData && !commitResult && (
-        <Card style={{ marginBottom: 'var(--space-lg)', padding: 'var(--space-xl)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-md)' }}>
-            <h3 style={{ fontSize: '1.125rem', fontWeight: 600, margin: 0 }}>
-              2. Pre-Commit Validation Summary
-            </h3>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <Badge variant="neutral">Total: {previewData.summary?.total}</Badge>
-              <Badge variant="success">Valid: {previewData.summary?.valid}</Badge>
-              {previewData.summary?.invalid > 0 && <Badge variant="danger">Invalid: {previewData.summary?.invalid}</Badge>}
-              {previewData.summary?.duplicatesInFile > 0 && <Badge variant="warning">Duplicates: {previewData.summary?.duplicatesInFile}</Badge>}
+        <Card className="shadow-xs border-border/80">
+          <CardHeader>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <CardTitle className="text-base font-semibold">2. Pre-Commit Validation Summary</CardTitle>
+                <CardDescription>
+                  Review spreadsheet parsing diagnostics before generating user credentials.
+                </CardDescription>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="outline">Total: {previewData.summary?.total}</Badge>
+                <Badge variant="default" className="bg-emerald-600 hover:bg-emerald-700">
+                  Valid: {previewData.summary?.valid}
+                </Badge>
+                {previewData.summary?.invalid > 0 && (
+                  <Badge variant="destructive">Invalid: {previewData.summary?.invalid}</Badge>
+                )}
+                {previewData.summary?.duplicatesInFile > 0 && (
+                  <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300">
+                    Duplicates: {previewData.summary?.duplicatesInFile}
+                  </Badge>
+                )}
+              </div>
             </div>
-          </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {previewData.errors?.length > 0 && (
+              <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 max-h-[220px] overflow-y-auto">
+                <div className="flex items-center gap-2 text-destructive text-sm font-semibold mb-2">
+                  <AlertCircle className="h-4 w-4" />
+                  <span>Row Validation Issues Detected ({previewData.errors.length}):</span>
+                </div>
+                <ul className="space-y-1 text-xs text-muted-foreground list-disc pl-5">
+                  {previewData.errors.map((err, idx) => (
+                    <li key={idx}>
+                      Row {err.row}: <span className="font-semibold text-foreground">{err.email || 'Unknown'}</span> — {err.error}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
-          {previewData.errors?.length > 0 && (
-            <div style={{
-              background: 'rgba(239, 68, 68, 0.05)',
-              border: '1px solid rgba(239, 68, 68, 0.2)',
-              borderRadius: 'var(--radius-md)',
-              padding: 'var(--space-md)',
-              marginBottom: 'var(--space-md)',
-              maxHeight: '200px',
-              overflowY: 'auto'
-            }}>
-              <strong style={{ color: '#ef4444', fontSize: '0.875rem' }}>Row Validation Issues Detected:</strong>
-              <ul style={{ margin: '6px 0 0 16px', padding: 0, fontSize: '0.8125rem', color: 'var(--color-text-muted)' }}>
-                {previewData.errors.map((err, idx) => (
-                  <li key={idx}>
-                    Row {err.row}: <strong>{err.email || 'Unknown'}</strong> — {err.error}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+            {atomic && previewData.summary?.invalid > 0 && (
+              <Alert variant="destructive">
+                <ShieldAlert className="h-4 w-4" />
+                <AlertTitle>Atomic Mode Invariant Violated</AlertTitle>
+                <AlertDescription className="text-xs">
+                  Ingestion is blocked because {previewData.summary?.invalid} invalid row(s) were found. Fix the spreadsheet or switch to Resilient Mode.
+                </AlertDescription>
+              </Alert>
+            )}
+          </CardContent>
 
-          {atomic && previewData.summary?.invalid > 0 && (
-            <Alert variant="warning" style={{ marginBottom: 'var(--space-md)' }}>
-              <strong>Atomic Mode Active:</strong> Ingestion cannot proceed because {previewData.summary?.invalid} invalid row(s) were found. Fix the spreadsheet or switch to Resilient Mode.
-            </Alert>
-          )}
-
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+          <CardFooter className="flex justify-end border-t border-border/60 p-4">
             <Button
-              variant="primary"
-              loading={commitLoading}
-              disabled={atomic && previewData.summary?.invalid > 0}
+              disabled={(atomic && previewData.summary?.invalid > 0) || commitLoading}
               onClick={handleCommit}
+              className="flex items-center gap-2"
             >
-              Commit Ingestion & Issue Credentials ({previewData.summary?.valid} Accounts)
+              {commitLoading && (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+              )}
+              <span>Commit Ingestion & Issue Credentials ({previewData.summary?.valid || 0} Accounts)</span>
             </Button>
-          </div>
+          </CardFooter>
         </Card>
       )}
 
       {/* Step 3: Ingestion Result & Credentials Manifest */}
       {commitResult && (
-        <Card style={{ padding: 'var(--space-xl)' }}>
-          <div style={{ textAlign: 'center', marginBottom: 'var(--space-lg)' }}>
-            <div style={{
-              width: '56px',
-              height: '56px',
-              borderRadius: '50%',
-              background: 'var(--color-success-subtle)',
-              color: 'var(--color-success)',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: 'var(--space-sm)'
-            }}>
-              ✓
+        <Card className="shadow-xs border-border/80">
+          <CardContent className="p-6 space-y-6">
+            <div className="text-center py-4 space-y-2">
+              <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 mx-auto flex items-center justify-center">
+                <CheckCircle2 className="h-7 w-7" />
+              </div>
+              <h2 className="text-xl font-bold text-foreground">Ingestion Completed Successfully</h2>
+              <p className="text-sm text-muted-foreground">
+                Successfully created <strong className="text-foreground">{commitResult.summary?.created}</strong> accounts.
+                {commitResult.summary?.failed > 0 && (
+                  <> Failed: <strong className="text-destructive">{commitResult.summary?.failed}</strong>.</>
+                )}
+              </p>
             </div>
-            <h2 style={{ fontSize: '1.5rem', fontWeight: 600, margin: 0 }}>
-              Ingestion Completed Successfully
-            </h2>
-            <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem', marginTop: '4px' }}>
-              Created <strong>{commitResult.summary?.created}</strong> accounts. Failed: <strong>{commitResult.summary?.failed}</strong>.
-            </p>
-          </div>
 
-          <Alert variant="warning" style={{ marginBottom: 'var(--space-lg)' }}>
-            <strong>Security Notice:</strong> The temporary passwords below were generated at runtime and are never persisted in plaintext. Download the manifest now to distribute credentials to candidates.
-          </Alert>
+            <Alert variant="default" className="border-amber-500 bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-200">
+              <ShieldAlert className="h-4 w-4 text-amber-600" />
+              <AlertTitle className="font-semibold">Security Warning</AlertTitle>
+              <AlertDescription className="text-xs">
+                Generated temporary passwords are only available right now and cannot be retrieved later. Download the manifest now to distribute credentials to candidates.
+              </AlertDescription>
+            </Alert>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-md)' }}>
-            <div style={{ fontWeight: 600, fontSize: '0.9375rem' }}>
-              Generated Credentials Manifest ({commitResult.credentials?.length} accounts)
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-semibold text-foreground">
+                Generated Credentials Manifest ({commitResult.credentials?.length || 0} accounts)
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={downloadCredentialsCsv}
+                className="flex items-center gap-2"
+              >
+                <Download className="h-4 w-4 text-primary" />
+                <span>Download Manifest (.csv)</span>
+              </Button>
             </div>
-            <Button variant="primary" onClick={downloadCredentialsCsv}>
-              📥 Download Manifest (.csv)
-            </Button>
-          </div>
 
-          <div style={{ maxHeight: '300px', overflowY: 'auto', border: '1px solid var(--color-border-subtle)', borderRadius: 'var(--radius-md)' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8125rem' }}>
-              <thead>
-                <tr style={{ background: 'var(--color-bg-surface)', borderBottom: '1px solid var(--color-border-subtle)' }}>
-                  <th style={{ padding: '8px 12px', textAlign: 'left' }}>Name</th>
-                  <th style={{ padding: '8px 12px', textAlign: 'left' }}>Email</th>
-                  <th style={{ padding: '8px 12px', textAlign: 'left' }}>Temporary Password</th>
-                </tr>
-              </thead>
-              <tbody>
-                {commitResult.credentials?.map((c, i) => (
-                  <tr key={i} style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
-                    <td style={{ padding: '8px 12px', fontWeight: 500 }}>{c.name}</td>
-                    <td style={{ padding: '8px 12px' }}>{c.email}</td>
-                    <td style={{ padding: '8px 12px', fontFamily: 'monospace', color: 'var(--color-primary)', fontWeight: 600 }}>
-                      {c.temporaryPassword}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+            <div className="rounded-lg border border-border/80 overflow-hidden max-h-[300px] overflow-y-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/40 hover:bg-muted/40">
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Temporary Password</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {commitResult.credentials?.map((c, i) => (
+                    <TableRow key={i}>
+                      <TableCell className="font-medium text-foreground text-xs">{c.name}</TableCell>
+                      <TableCell className="font-mono text-xs text-muted-foreground">{c.email}</TableCell>
+                      <TableCell className="font-mono font-bold text-xs text-primary">{c.temporaryPassword}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 'var(--space-lg)' }}>
-            <Button variant="outline" onClick={() => navigate('/admin/users')}>
-              Return to User Roster
-            </Button>
-          </div>
+            <div className="flex justify-end pt-2">
+              <Button variant="outline" onClick={() => navigate('/admin/users')}>
+                Return to User Roster
+              </Button>
+            </div>
+          </CardContent>
         </Card>
       )}
 
       {commitError && (
-        <Alert variant="danger" style={{ marginTop: 'var(--space-md)' }}>
-          {commitError}
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Ingestion Error</AlertTitle>
+          <AlertDescription>{commitError}</AlertDescription>
         </Alert>
       )}
     </div>
