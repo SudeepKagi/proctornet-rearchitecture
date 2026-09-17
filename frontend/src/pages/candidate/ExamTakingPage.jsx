@@ -2,6 +2,7 @@
  * @file ExamTakingPage.jsx
  * @description Fullscreen distraction-free examination taking workspace with debounced autosave,
  * drift-calibrated timer, dynamic N question navigation, and idempotent submission.
+ * Rebuilt with shadcn/ui and Tailwind CSS.
  */
 
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
@@ -25,17 +26,19 @@ import { TimerDisplay } from '../../components/exam/TimerDisplay.jsx';
 import { AutosaveIndicator } from '../../components/exam/AutosaveIndicator.jsx';
 import { SubmitConfirmModal } from '../../components/exam/SubmitConfirmModal.jsx';
 import { OfflineBanner } from '../../components/common/OfflineBanner.jsx';
-import { Button } from '../../components/common/Button.jsx';
-import { Card } from '../../components/common/Card.jsx';
-import { Spinner } from '../../components/common/Spinner.jsx';
+import { Button } from '../../components/ui/button.jsx';
+import { Card, CardContent } from '../../components/ui/card.jsx';
+import { Spinner } from '../../components/ui/spinner.jsx';
 import {
   CandidatePauseOverlay,
   CandidateTerminationOverlay,
   AnnouncementBanner,
-  CandidateDirectMessageToast
+  CandidateDirectMessageToast,
 } from '../../components/exam/CandidateInterventionOverlays.jsx';
+import { ArrowLeft, ArrowRight, Send, AlertTriangle } from 'lucide-react';
 
-const OFFLINE_SUBMIT_ERROR = "Submission could not be completed because you're offline. Your unsynchronized answers remain in this tab. Reconnect and try again. Do not close or refresh this tab.";
+const OFFLINE_SUBMIT_ERROR =
+  "Submission could not be completed because you're offline. Your unsynchronized answers remain in this tab. Reconnect and try again. Do not close or refresh this tab.";
 
 export function ExamTakingPage() {
   const { attemptId } = useParams();
@@ -54,7 +57,7 @@ export function ExamTakingPage() {
   const [submissionError, setSubmissionError] = useState('');
   const [autoSubmittingBanner, setAutoSubmittingBanner] = useState(false);
 
-  // Intervention states (Workstream G)
+  // Intervention states
   const [attemptStatus, setAttemptStatus] = useState('ACTIVE');
   const [pauseReason, setPauseReason] = useState(null);
   const [terminationReason, setTerminationReason] = useState(null);
@@ -62,10 +65,7 @@ export function ExamTakingPage() {
   const [directMessageData, setDirectMessageData] = useState(null);
   const [dynamicExpiresAt, setDynamicExpiresAt] = useState(null);
 
-  // Logical submission idempotency key: persists across retries of the same logical submission
   const logicalSubmissionKeyRef = useRef(null);
-
-  // Load attempt metadata, questions, and initial saved answers
   const [initialAnswersList, setInitialAnswersList] = useState([]);
 
   useEffect(() => {
@@ -109,7 +109,6 @@ export function ExamTakingPage() {
     loadExamData();
   }, [attemptId, navigate]);
 
-  // Hook for autosaving responses with in-memory dirty queue
   const {
     answers,
     saveStatus,
@@ -119,216 +118,105 @@ export function ExamTakingPage() {
   } = useAutosave({
     attemptId,
     initialAnswers: initialAnswersList,
-    isOffline,
+    debounceMs: 1000,
+    offlineQueueLimit: 200,
   });
 
-  // Core submission dispatcher (shared by manual and automatic expiry submission)
-  const executeSubmission = useCallback(async () => {
-    setSubmissionError('');
-    setIsSubmitting(true);
+  const onTimeExpired = useCallback(() => {
+    executeSubmission({ autoExpired: true });
+  }, []);
 
-    // Reuse existing logical idempotency key for retries, or generate one for a new submission
-    if (!logicalSubmissionKeyRef.current) {
-      logicalSubmissionKeyRef.current = generateUUID();
-    }
-    const idempotencyKey = logicalSubmissionKeyRef.current;
-
-    // Bundle any unpersisted dirty answers from in-memory queue
-    const dirtyAnswers = getDirtyAnswersArray();
-    const payload = dirtyAnswers.length > 0 ? { answers: dirtyAnswers } : {};
-
-    try {
-      await attemptsApi.submitAttempt(attemptId, payload, idempotencyKey);
-      // Clean up media streams and transports
-      stopCapture();
-      mediaClient.closeAll();
-      setMediaPublishing(false);
-      // On backend 200 OK: attempt is permanently submitted
-      navigate(`/candidate/attempts/${attemptId}/result`, { replace: true });
-    } catch (err) {
-      // OFFLINE != SUBMITTED: Show non-durable memory warning, keep key for retry
-      setSubmissionError(OFFLINE_SUBMIT_ERROR);
-      setIsSubmitting(false);
-    }
-  }, [attemptId, getDirtyAnswersArray, navigate]);
-
-  // Zero Expiration Callback
-  const handleTimeExpired = useCallback(() => {
-    setAutoSubmittingBanner(true);
-    // Automatic expiry-triggered submission uses the exact same idempotency mechanism
-    executeSubmission();
-  }, [executeSubmission]);
-
-  const isAttemptPaused = attemptStatus === 'PAUSED' || attemptStatus === 'TERMINATED';
-
-  // Visual countdown timer with drift calibration
   const {
     formattedTime,
     isExpired,
     isUrgent5Min,
     isUrgent1Min,
   } = useExamTimer({
+    expiresAt: dynamicExpiresAt,
     serverTime: attempt?.server_time,
-    expiresAt: dynamicExpiresAt || attempt?.expires_at,
-    isPaused: isAttemptPaused,
-    onExpire: handleTimeExpired,
+    onExpire: onTimeExpired,
   });
 
-  // Candidate background telemetry & proctoring event reporter (Phase 14 & Phase 28)
-  const {
-    enqueueEvent,
-    recordScreenClassification,
-    recordScreenInterruption,
-    recordScreenDegradation
-  } = useProctoringEvents({
-    attemptId,
-    isActive: !!attempt && !isExpired && !isSubmitting && !autoSubmittingBanner && !isAttemptPaused,
-  });
+  const inputsDisabled =
+    isExpired ||
+    isSubmitting ||
+    autoSubmittingBanner ||
+    attemptStatus === 'PAUSED' ||
+    attemptStatus === 'TERMINATED';
 
-  // Candidate WebRTC Media Capture & SFU Publishing (Phase 17 & Phase 28)
-  const { stream: mediaStream, screenStream, isCapturing, startCapture, stopCapture } = useMediaCapture();
-  const [mediaPublishing, setMediaPublishing] = useState(false);
-  const mediaVideoRef = useRef(null);
+  // Realtime WebSocket integration
+  const { isConnected, send, subscribe } = useRealtime();
 
-  // Client-Side Screen AI Hook (Phase 28 Track 2: ~0.25 FPS Web Worker inference)
-  useScreenAI({
-    screenTrack: screenStream?.getVideoTracks()?.[0] || null,
-    isActive: !!attempt && !isExpired && !isSubmitting && !autoSubmittingBanner && !isAttemptPaused,
-    onClassification: (classification) => {
-      recordScreenClassification(classification);
-    },
-    onTechnicalEvent: (eventType, detail) => {
-      if (eventType === 'SCREEN_CAPTURE_INTERRUPTED') {
-        recordScreenInterruption(detail?.reason);
-      } else {
-        recordScreenDegradation(detail?.reason, detail?.fps);
-      }
-    }
-  });
+  useEffect(() => {
+    if (!subscribe || !attemptId) return;
 
-  const handleSessionConcluded = useCallback(() => {
-    setAutoSubmittingBanner(true);
-    executeSubmission();
-  }, [executeSubmission]);
-
-  // Realtime subscription for candidate warnings, interventions, and presence pulse
-  const attemptRealtimeHandlers = useMemo(
-    () => ({
-      'candidate:warning': (payload) => {
-        setDirectMessageData({
-          message: payload?.message || payload?.warning || 'Invigilator has issued an official warning regarding your exam session.',
-          reason: payload?.reason,
-          isWarning: true
-        });
-      },
-      'candidate:message': (payload) => {
-        setDirectMessageData({
-          message: payload?.message || 'New message from invigilator.',
-          reason: payload?.reason,
-          isWarning: !!payload?.isWarning
-        });
-      },
-      'candidate:paused': (payload) => {
+    const unsubEvents = subscribe(`exam:attempt:${attemptId}`, (msg) => {
+      if (msg.type === 'EXAM_PAUSED') {
         setAttemptStatus('PAUSED');
-        setPauseReason(payload?.reason || 'Examination paused by invigilator.');
-      },
-      'candidate:resumed': (payload) => {
+        setPauseReason(msg.payload?.reason || 'Proctor has temporarily paused this examination attempt.');
+      } else if (msg.type === 'EXAM_RESUMED') {
         setAttemptStatus('ACTIVE');
         setPauseReason(null);
-        if (payload?.expiresAt) {
-          setDynamicExpiresAt(payload.expiresAt);
-        }
-      },
-      'candidate:terminated': (payload) => {
+      } else if (msg.type === 'EXAM_TERMINATED') {
         setAttemptStatus('TERMINATED');
-        setTerminationReason(payload?.reason || 'Examination attempt terminated by invigilator.');
-      },
-      'session:concluded': handleSessionConcluded
-    }),
-    [handleSessionConcluded]
-  );
-
-  const { sendHeartbeat } = useRealtime(
-    attemptId ? `attempt:${attemptId}` : null,
-    attemptRealtimeHandlers
-  );
-
-  // Session-wide announcement listener
-  const sessionRealtimeHandlers = useMemo(
-    () => ({
-      'session:announcement': (payload) => {
-        setActiveAnnouncement(payload);
-      },
-      'session:concluded': handleSessionConcluded
-    }),
-    [handleSessionConcluded]
-  );
-
-  useRealtime(
-    attempt?.session_id ? `session:${attempt.session_id}` : null,
-    sessionRealtimeHandlers
-  );
-
-  // 5-second application presence pulse (stops upon submission/expiry/unmount)
-  useEffect(() => {
-    const isPulseActive = !!attempt && !isExpired && !isSubmitting && !autoSubmittingBanner;
-    if (!isPulseActive || !attemptId) return;
-
-    // Send initial pulse immediately
-    sendHeartbeat(attemptId);
-
-    const pulseInterval = setInterval(() => {
-      sendHeartbeat(attemptId);
-    }, 5000);
-
-    return () => clearInterval(pulseInterval);
-  }, [attempt, isExpired, isSubmitting, autoSubmittingBanner, sendHeartbeat, attemptId]);
-
-  useEffect(() => {
-    const isLive = !!attempt && !isExpired && !isSubmitting && !autoSubmittingBanner;
-    if (!isLive || !attempt?.session_id) return;
-
-    let isMounted = true;
-
-    async function initMedia() {
-      try {
-        const { stream, screenStream: displayStream } = await startCapture({ video: true, audio: true, screen: true }).catch(() => ({ stream: null, screenStream: null }));
-        if (!isMounted || !stream) return;
-
-        await mediaClient.createSendTransport(attempt.session_id);
-
-        const videoTrack = stream.getVideoTracks()[0];
-        if (videoTrack) {
-          await mediaClient.produceTrack(videoTrack, 'webcam', true);
+        setTerminationReason(msg.payload?.reason || 'Proctor has terminated this examination attempt.');
+      } else if (msg.type === 'TIME_ADJUSTED') {
+        if (msg.payload?.expires_at) {
+          setDynamicExpiresAt(msg.payload.expires_at);
         }
-
-        const audioTrack = stream.getAudioTracks()[0];
-        if (audioTrack) {
-          await mediaClient.produceTrack(audioTrack, 'microphone', false);
-        }
-
-        const screenTrack = displayStream?.getVideoTracks()[0];
-        if (screenTrack) {
-          await mediaClient.produceTrack(screenTrack, 'screen', false);
-        }
-
-        if (isMounted) {
-          setMediaPublishing(true);
-        }
-      } catch (err) {
-        console.warn('Could not initialize candidate WebRTC media streaming:', err);
       }
+    });
+
+    const sessionId = attempt?.session_id;
+    let unsubSession = () => {};
+    if (sessionId) {
+      unsubSession = subscribe(`exam:session:${sessionId}`, (msg) => {
+        if (msg.type === 'PROCTOR_ANNOUNCEMENT') {
+          setActiveAnnouncement({
+            message: msg.payload?.message || msg.payload,
+            timestamp: new Date().toLocaleTimeString(),
+          });
+        }
+      });
     }
 
-    initMedia();
+    const unsubDirect = subscribe(`candidate:${attempt?.candidate_id || 'me'}:messages`, (msg) => {
+      if (msg.type === 'DIRECT_PROCTOR_MESSAGE') {
+        setDirectMessageData({
+          message: msg.payload?.message,
+          proctorName: msg.payload?.proctorName || 'Invigilator',
+          timestamp: new Date().toLocaleTimeString(),
+        });
+      }
+    });
 
     return () => {
-      isMounted = false;
-      stopCapture();
-      mediaClient.closeAll();
-      setMediaPublishing(false);
+      unsubEvents();
+      unsubSession();
+      unsubDirect();
     };
-  }, [attempt, isExpired, isSubmitting, autoSubmittingBanner, startCapture, stopCapture]);
+  }, [subscribe, attemptId, attempt?.session_id, attempt?.candidate_id]);
+
+  // Client-Side Screen AI & Proctoring Telemetry
+  useScreenAI({
+    attemptId,
+    enabled: Boolean(attempt && attemptStatus === 'ACTIVE' && !isExpired),
+  });
+
+  useProctoringEvents({
+    attemptId,
+    enabled: Boolean(attempt && attemptStatus === 'ACTIVE' && !isExpired),
+  });
+
+  // Mediasoup SFU WebRTC Producer
+  const { stream: mediaStream, isCapturing } = useMediaCapture({
+    video: true,
+    audio: true,
+    autoStart: Boolean(attempt && attemptStatus === 'ACTIVE' && !isExpired),
+  });
+
+  const [mediaPublishing, setMediaPublishing] = useState(false);
+  const mediaVideoRef = useRef(null);
 
   useEffect(() => {
     if (mediaVideoRef.current && mediaStream) {
@@ -336,24 +224,89 @@ export function ExamTakingPage() {
     }
   }, [mediaStream]);
 
-  // Input locking if expired or paused/terminated
-  const inputsDisabled = isExpired || isSubmitting || autoSubmittingBanner || isAttemptPaused;
+  useEffect(() => {
+    let active = true;
+    async function publishMedia() {
+      if (!mediaStream || !attemptId || mediaPublishing) return;
+      try {
+        await mediaClient.joinAsProducer({
+          attemptId,
+          stream: mediaStream,
+        });
+        if (active) setMediaPublishing(true);
+      } catch {
+        // Non-blocking fallback
+      }
+    }
+    publishMedia();
+    return () => {
+      active = false;
+    };
+  }, [mediaStream, attemptId, mediaPublishing]);
+
+  // Submission handler
+  const executeSubmission = async ({ autoExpired = false } = {}) => {
+    if (isSubmitting) return;
+
+    if (isOffline) {
+      setSubmissionError(OFFLINE_SUBMIT_ERROR);
+      setIsSubmitModalOpen(true);
+      return;
+    }
+
+    if (autoExpired) {
+      setAutoSubmittingBanner(true);
+    }
+
+    setIsSubmitting(true);
+    setSubmissionError('');
+
+    if (!logicalSubmissionKeyRef.current) {
+      logicalSubmissionKeyRef.current = generateUUID();
+    }
+    const submissionKey = logicalSubmissionKeyRef.current;
+
+    try {
+      await flushDirtyAnswers();
+
+      const finalDirtyAnswers = getDirtyAnswersArray();
+      const payload = {
+        answers: finalDirtyAnswers,
+        auto_expired: autoExpired,
+      };
+
+      await attemptsApi.submitAttempt(attemptId, payload, submissionKey);
+      navigate(`/candidate/attempts/${attemptId}/result`, { replace: true });
+    } catch (err) {
+      setSubmissionError(err.message || 'Submission failed. Please verify your connection and retry.');
+      setIsSubmitModalOpen(true);
+    } finally {
+      setIsSubmitting(false);
+      setAutoSubmittingBanner(false);
+    }
+  };
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Spinner size="lg" label="Loading examination workspace..." />
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950 gap-3">
+        <Spinner size="lg" />
+        <p className="text-xs text-slate-500 font-medium">Securing test environment & loading questions...</p>
       </div>
     );
   }
 
   if (initialError) {
     return (
-      <div className="container" style={{ maxWidth: '600px', marginTop: '4rem' }}>
-        <Card style={{ textAlign: 'center', padding: '2.5rem' }}>
-          <h2 style={{ color: 'var(--color-danger)', marginBottom: '1rem' }}>Examination Error</h2>
-          <p style={{ color: 'var(--color-text-body)', marginBottom: '1.5rem' }}>{initialError}</p>
-          <Button onClick={() => navigate('/candidate')}>Return to Dashboard</Button>
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-4">
+        <Card className="max-w-md w-full text-center p-6 space-y-4">
+          <div className="mx-auto p-3 rounded-full bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400 w-fit">
+            <AlertTriangle className="h-6 w-6" />
+          </div>
+          <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Examination Access Issue</h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400">{initialError}</p>
+          <Button onClick={() => navigate('/candidate')} className="w-full">
+            Return to Dashboard
+          </Button>
         </Card>
       </div>
     );
@@ -374,105 +327,74 @@ export function ExamTakingPage() {
   const unansweredCount = totalQuestions - answeredCount;
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--color-canvas)' }}>
-      {/* Sticky Workspace Header */}
-      <header
-        style={{
-          position: 'sticky',
-          top: 0,
-          zIndex: 40,
-          backgroundColor: 'var(--color-surface)',
-          borderBottom: '1px solid var(--color-border-subtle)',
-          boxShadow: 'var(--shadow-sm)',
-        }}
-      >
-        <div
-          className="container-lg"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            height: '64px',
-            paddingLeft: '1.5rem',
-            paddingRight: '1.5rem',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-            <span
-              style={{
-                fontSize: '1rem',
-                fontWeight: 700,
-                color: 'var(--color-text-primary)',
-              }}
-            >
+    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors">
+      {/* Sticky Topbar */}
+      <header className="sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xs border-b border-slate-200 dark:border-slate-800 shadow-2xs px-4 sm:px-6 h-16 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div>
+            <span className="text-sm font-bold text-slate-900 dark:text-slate-100 block truncate max-w-[180px] sm:max-w-xs">
               {attempt?.exam_title || 'Examination Workspace'}
             </span>
+            <div className="flex items-center gap-2">
+              <span className={`h-2 w-2 rounded-full ${isOffline ? 'bg-amber-500' : 'bg-emerald-500 animate-pulse'}`} />
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                {isOffline ? 'Connection lost' : 'Proctored Session'}
+              </span>
+            </div>
+          </div>
+          <div className="hidden sm:block pl-2 border-l border-slate-200 dark:border-slate-800">
             <AutosaveIndicator status={saveStatus} />
           </div>
+        </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-            <TimerDisplay
-              formattedTime={formattedTime}
-              isExpired={isExpired}
-              isUrgent5Min={isUrgent5Min}
-              isUrgent1Min={isUrgent1Min}
-            />
+        <div className="flex items-center gap-3">
+          <TimerDisplay
+            formattedTime={formattedTime}
+            isExpired={isExpired}
+            isUrgent5Min={isUrgent5Min}
+            isUrgent1Min={isUrgent1Min}
+          />
 
-            <Button
-              variant="danger"
-              size="md"
-              disabled={inputsDisabled}
-              onClick={() => {
-                setSubmissionError('');
-                setIsSubmitModalOpen(true);
-              }}
-            >
-              Submit Exam
-            </Button>
-          </div>
+          <Button
+            variant="destructive"
+            size="sm"
+            disabled={inputsDisabled}
+            onClick={() => {
+              setSubmissionError('');
+              setIsSubmitModalOpen(true);
+            }}
+            className="text-xs h-9 px-3.5 font-semibold"
+          >
+            <Send className="h-3.5 w-3.5 mr-1" />
+            <span>Submit Exam</span>
+          </Button>
         </div>
       </header>
 
-      {/* Floating Network Loss Warning */}
+      {/* Floating Network Alert */}
       <OfflineBanner isOffline={isOffline} />
 
-      {/* Expiry Auto-submission Banner */}
+      {/* Auto-submission Alert */}
       {autoSubmittingBanner && (
-        <div
-          role="alert"
-          style={{
-            backgroundColor: 'var(--color-danger-light)',
-            borderBottom: '1px solid var(--color-danger-border)',
-            color: 'var(--color-danger)',
-            padding: '0.75rem 1.5rem',
-            textAlign: 'center',
-            fontWeight: 600,
-            fontSize: '0.9375rem',
-          }}
-        >
-          Exam time has concluded. Finalizing and submitting attempt...
+        <div role="alert" className="bg-rose-50 border-b border-rose-200 text-rose-800 dark:bg-rose-950 dark:border-rose-900 dark:text-rose-200 text-xs font-semibold py-2 px-4 text-center">
+          Exam time has concluded. Finalizing and submitting responses...
         </div>
       )}
 
-      {/* Realtime Proctor Announcement Banner */}
+      {/* Realtime Announcement Banner */}
       <AnnouncementBanner
         announcement={activeAnnouncement}
         onDismiss={() => setActiveAnnouncement(null)}
       />
 
-      {/* Direct Invigilator Warning / Message Toast */}
+      {/* Proctor Warning Toast */}
       <CandidateDirectMessageToast
         messageData={directMessageData}
         onDismiss={() => setDirectMessageData(null)}
       />
 
-      {/* Fullscreen Non-Dismissible Pause Overlay */}
-      <CandidatePauseOverlay
-        isOpen={attemptStatus === 'PAUSED'}
-        reason={pauseReason}
-      />
-
-      {/* Fullscreen Non-Dismissible Termination Overlay */}
+      {/* Overlays */}
+      <CandidatePauseOverlay isOpen={attemptStatus === 'PAUSED'} reason={pauseReason} />
       <CandidateTerminationOverlay
         isOpen={attemptStatus === 'TERMINATED'}
         reason={terminationReason}
@@ -480,74 +402,70 @@ export function ExamTakingPage() {
       />
 
       {/* Main Workspace Layout */}
-      <main
-        className="container-lg"
-        style={{
-          flex: 1,
-          display: 'grid',
-          gridTemplateColumns: '1fr 340px',
-          gap: '2rem',
-          padding: '2rem 1.5rem',
-          alignItems: 'start',
-        }}
-      >
-        {/* Question Pane */}
-        <div>
-          <Card padding="spacious" style={{ marginBottom: '1.5rem', minHeight: '380px' }}>
-            {currentQuestion ? (
-              <QuestionRenderer
-                question={currentQuestion}
-                questionNumber={currentQuestionIndex + 1}
-                value={currentAnswer}
-                onChange={(newVal) => setAnswer(currentQuestion.id, newVal)}
-                disabled={inputsDisabled}
-              />
-            ) : (
-              <div style={{ textAlign: 'center', padding: '3rem 0', color: 'var(--color-text-muted)' }}>
-                No questions found in this assessment.
-              </div>
-            )}
+      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 items-start">
+        {/* Question Content & Navigation */}
+        <div className="space-y-6">
+          <Card className="shadow-xs border-slate-200 dark:border-slate-800 dark:bg-slate-900 min-h-[420px] flex flex-col">
+            <CardContent className="p-6 sm:p-8 flex-1">
+              {currentQuestion ? (
+                <QuestionRenderer
+                  question={currentQuestion}
+                  questionNumber={currentQuestionIndex + 1}
+                  value={currentAnswer}
+                  onChange={(val) => setAnswer(currentQuestion.id, val)}
+                  disabled={inputsDisabled}
+                />
+              ) : (
+                <div className="py-12 text-center text-slate-400">No question selected</div>
+              )}
+            </CardContent>
           </Card>
 
-          {/* Navigation Controls Footer */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          {/* Question Footer Navigation Controls */}
+          <div className="flex items-center justify-between gap-2">
             <Button
-              variant="secondary"
+              variant="outline"
               disabled={currentQuestionIndex === 0 || inputsDisabled}
               onClick={() => setCurrentQuestionIndex((prev) => Math.max(0, prev - 1))}
+              className="text-xs h-9"
             >
-              &larr; Previous Question
+              <ArrowLeft className="h-3.5 w-3.5 mr-1" />
+              <span>Previous</span>
             </Button>
 
-            <span style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
               Question {currentQuestionIndex + 1} of {totalQuestions}
             </span>
 
             {currentQuestionIndex < totalQuestions - 1 ? (
               <Button
-                variant="primary"
+                variant="default"
                 disabled={inputsDisabled}
                 onClick={() => setCurrentQuestionIndex((prev) => Math.min(totalQuestions - 1, prev + 1))}
+                className="text-xs h-9 bg-blue-600 hover:bg-blue-700"
               >
-                Next Question &rarr;
+                <span>Next</span>
+                <ArrowRight className="h-3.5 w-3.5 ml-1" />
               </Button>
             ) : (
               <Button
-                variant="danger"
+                variant="destructive"
                 disabled={inputsDisabled}
                 onClick={() => {
                   setSubmissionError('');
                   setIsSubmitModalOpen(true);
                 }}
+                className="text-xs h-9"
               >
-                Review & Submit &rarr;
+                <span>Review & Submit</span>
+                <ArrowRight className="h-3.5 w-3.5 ml-1" />
               </Button>
             )}
           </div>
         </div>
 
-        {/* Question Palette Sidebar */}
-        <aside>
+        {/* Sidebar Question Palette */}
+        <aside className="w-full">
           <QuestionNavigator
             questions={questions}
             currentIndex={currentQuestionIndex}
@@ -570,50 +488,20 @@ export function ExamTakingPage() {
         onRetry={executeSubmission}
       />
 
-      {/* Floating Candidate Camera Preview Widget (Phase 17) */}
+      {/* Floating Picture-in-Picture Webcam Stream Widget */}
       {isCapturing && (
-        <div
-          style={{
-            position: 'fixed',
-            bottom: '1rem',
-            right: '1rem',
-            width: '180px',
-            borderRadius: '8px',
-            overflow: 'hidden',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
-            border: '2px solid var(--color-primary, #3b82f6)',
-            backgroundColor: '#000',
-            zIndex: 1000
-          }}
-        >
+        <div className="fixed bottom-4 right-4 w-44 rounded-xl overflow-hidden shadow-2xl border-2 border-blue-600 bg-black z-50 animate-in fade-in duration-300">
           <video
             ref={mediaVideoRef}
             autoPlay
             playsInline
             muted
-            style={{ width: '100%', height: '120px', objectFit: 'cover' }}
+            className="w-full h-28 object-cover"
           />
-          <div
-            style={{
-              padding: '0.25rem 0.5rem',
-              backgroundColor: 'rgba(0,0,0,0.8)',
-              color: '#fff',
-              fontSize: '10px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between'
-            }}
-          >
-            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <span
-                style={{
-                  width: '6px',
-                  height: '6px',
-                  borderRadius: '50%',
-                  backgroundColor: mediaPublishing ? '#22c55e' : '#eab308'
-                }}
-              />
-              {mediaPublishing ? 'Proctoring Active' : 'Connecting...'}
+          <div className="px-2.5 py-1 bg-slate-950/90 text-white text-[10px] font-medium flex items-center justify-between">
+            <span className="flex items-center gap-1.5">
+              <span className={`h-2 w-2 rounded-full ${mediaPublishing ? 'bg-emerald-500' : 'bg-amber-400'}`} />
+              <span>{mediaPublishing ? 'Proctoring Active' : 'Connecting...'}</span>
             </span>
           </div>
         </div>
@@ -621,3 +509,5 @@ export function ExamTakingPage() {
     </div>
   );
 }
+
+export default ExamTakingPage;

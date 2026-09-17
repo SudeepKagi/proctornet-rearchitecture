@@ -1,9 +1,14 @@
 /**
  * @file QuestionRenderer.jsx
- * @description Accessible question renderer supporting MCQ, True/False, and Numeric questions.
+ * @description Accessible question renderer supporting MCQ, True/False, Numeric, Short Answer, Essay, and Code.
+ * Redesigned with Tailwind CSS and shadcn tokens.
  */
 
 import React from 'react';
+import { Input } from '../ui/input.jsx';
+import { Textarea } from '../ui/textarea.jsx';
+import { Badge } from '../ui/badge.jsx';
+import { cn } from '../../utils/cn.js';
 
 export function QuestionRenderer({
   question,
@@ -35,78 +40,39 @@ export function QuestionRenderer({
   }
 
   return (
-    <fieldset
-      style={{
-        border: 'none',
-        padding: 0,
-        margin: 0,
-      }}
-    >
-      <legend
-        style={{
-          display: 'block',
-          width: '100%',
-          marginBottom: '1.25rem',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-          <span
-            style={{
-              fontSize: '0.8125rem',
-              fontWeight: 600,
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-              color: 'var(--color-primary)',
-            }}
-          >
+    <fieldset className="border-0 p-0 m-0 w-full">
+      <legend className="block w-full mb-6 text-left">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">
             Question {questionNumber}
           </span>
-          <span
-            style={{
-              fontSize: '0.8125rem',
-              color: 'var(--color-text-muted)',
-              backgroundColor: 'var(--color-surface-secondary)',
-              padding: '0.125rem 0.5rem',
-              borderRadius: 'var(--radius-sm)',
-            }}
-          >
+          <Badge variant="secondary" className="text-xs font-medium">
             {points} {points === 1 ? 'mark' : 'marks'}
-          </span>
+          </Badge>
         </div>
 
-        <div
-          style={{
-            fontSize: '1.125rem',
-            lineHeight: 1.6,
-            fontWeight: 500,
-            color: 'var(--color-text-primary)',
-          }}
-        >
+        <div className="text-base sm:text-lg font-medium text-slate-900 dark:text-slate-100 leading-relaxed">
           {prompt}
         </div>
       </legend>
 
-      {/* Multiple Choice Options */}
+      {/* Multiple Choice Options (MCQ) */}
       {question_type === 'MCQ' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        <div className="space-y-3" role="radiogroup" aria-label={`Options for question ${questionNumber}`}>
           {options.map((opt, idx) => {
             const isSelected = currentOptionId === opt.id;
-            const letter = String.fromCharCode(65 + idx); // A, B, C, D...
+            const letter = String.fromCharCode(65 + idx);
 
             return (
               <label
                 key={opt.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '1rem',
-                  padding: '1rem 1.25rem',
-                  borderRadius: 'var(--radius-md)',
-                  border: `2px solid ${isSelected ? 'var(--color-primary)' : 'var(--color-border-subtle)'}`,
-                  backgroundColor: isSelected ? 'var(--color-primary-light)' : 'var(--color-surface)',
-                  cursor: disabled ? 'not-allowed' : 'pointer',
-                  transition: 'border-color var(--transition-fast), background-color var(--transition-fast)',
-                }}
+                className={cn(
+                  'flex items-center gap-3.5 p-4 rounded-xl border-2 transition-all select-none',
+                  disabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer',
+                  isSelected
+                    ? 'border-blue-600 bg-blue-50/60 dark:bg-blue-950/40 dark:border-blue-500 shadow-2xs'
+                    : 'border-slate-200 bg-white hover:bg-slate-50/80 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800/60'
+                )}
               >
                 <input
                   type="radio"
@@ -115,35 +81,25 @@ export function QuestionRenderer({
                   checked={isSelected}
                   disabled={disabled}
                   onChange={() => handleOptionSelect(opt.id)}
-                  style={{
-                    width: '18px',
-                    height: '18px',
-                    accentColor: 'var(--color-primary)',
-                  }}
+                  className="sr-only"
                 />
                 <span
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: '28px',
-                    height: '28px',
-                    borderRadius: 'var(--radius-sm)',
-                    backgroundColor: isSelected ? 'var(--color-primary)' : 'var(--color-surface-secondary)',
-                    color: isSelected ? 'var(--color-text-inverse)' : 'var(--color-text-body)',
-                    fontSize: '0.8125rem',
-                    fontWeight: 600,
-                    flexShrink: 0,
-                  }}
+                  className={cn(
+                    'h-7 w-7 rounded-lg text-xs font-bold flex items-center justify-center shrink-0 transition-colors',
+                    isSelected
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+                  )}
                 >
                   {letter}
                 </span>
                 <span
-                  style={{
-                    fontSize: '0.9375rem',
-                    color: isSelected ? 'var(--color-text-primary)' : 'var(--color-text-body)',
-                    fontWeight: isSelected ? 500 : 400,
-                  }}
+                  className={cn(
+                    'text-sm sm:text-base leading-snug',
+                    isSelected
+                      ? 'font-semibold text-blue-950 dark:text-blue-100'
+                      : 'text-slate-800 dark:text-slate-200'
+                  )}
                 >
                   {opt.text}
                 </span>
@@ -155,89 +111,43 @@ export function QuestionRenderer({
 
       {/* True / False Options */}
       {question_type === 'TRUE_FALSE' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-          {options.length > 0 ? (
-            options.map((opt) => {
-              const isSelected = currentOptionId === opt.id;
-              return (
-                <label
-                  key={opt.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.75rem',
-                    padding: '1.25rem',
-                    borderRadius: 'var(--radius-md)',
-                    border: `2px solid ${isSelected ? 'var(--color-primary)' : 'var(--color-border-subtle)'}`,
-                    backgroundColor: isSelected ? 'var(--color-primary-light)' : 'var(--color-surface)',
-                    cursor: disabled ? 'not-allowed' : 'pointer',
-                    fontSize: '1rem',
-                    fontWeight: isSelected ? 600 : 500,
-                    transition: 'all var(--transition-fast)',
-                  }}
-                >
-                  <input
-                    type="radio"
-                    name={`question-${question.id}`}
-                    value={opt.id}
-                    checked={isSelected}
-                    disabled={disabled}
-                    onChange={() => handleOptionSelect(opt.id)}
-                    style={{ width: '18px', height: '18px', accentColor: 'var(--color-primary)' }}
-                  />
-                  <span>{opt.text}</span>
-                </label>
-              );
-            })
-          ) : (
-            // Fallback if options array is not explicitly expanded
-            ['True', 'False'].map((label) => {
-              const isSelected = currentOptionId === label.toLowerCase();
-              return (
-                <label
-                  key={label}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.75rem',
-                    padding: '1.25rem',
-                    borderRadius: 'var(--radius-md)',
-                    border: `2px solid ${isSelected ? 'var(--color-primary)' : 'var(--color-border-subtle)'}`,
-                    backgroundColor: isSelected ? 'var(--color-primary-light)' : 'var(--color-surface)',
-                    cursor: disabled ? 'not-allowed' : 'pointer',
-                    fontSize: '1rem',
-                    fontWeight: isSelected ? 600 : 500,
-                  }}
-                >
-                  <input
-                    type="radio"
-                    name={`question-${question.id}`}
-                    value={label.toLowerCase()}
-                    checked={isSelected}
-                    disabled={disabled}
-                    onChange={() => handleOptionSelect(label.toLowerCase())}
-                    style={{ width: '18px', height: '18px', accentColor: 'var(--color-primary)' }}
-                  />
-                  <span>{label}</span>
-                </label>
-              );
-            })
-          )}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {(options.length > 0 ? options : [{ id: 'true', text: 'True' }, { id: 'false', text: 'False' }]).map((opt) => {
+            const isSelected = currentOptionId === opt.id;
+            return (
+              <label
+                key={opt.id}
+                className={cn(
+                  'flex items-center justify-center p-6 rounded-xl border-2 text-base font-semibold transition-all select-none',
+                  disabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer',
+                  isSelected
+                    ? 'border-blue-600 bg-blue-50/60 dark:bg-blue-950/40 dark:border-blue-500 text-blue-700 dark:text-blue-300 shadow-2xs'
+                    : 'border-slate-200 bg-white hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 text-slate-800 dark:text-slate-200'
+                )}
+              >
+                <input
+                  type="radio"
+                  name={`question-${question.id}`}
+                  value={opt.id}
+                  checked={isSelected}
+                  disabled={disabled}
+                  onChange={() => handleOptionSelect(opt.id)}
+                  className="sr-only"
+                />
+                <span>{opt.text}</span>
+              </label>
+            );
+          })}
         </div>
       )}
 
       {/* Numeric Input */}
       {question_type === 'NUMERIC' && (
-        <div style={{ maxWidth: '320px' }}>
-          <label
-            htmlFor={`numeric-${question.id}`}
-            style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.5rem', color: 'var(--color-text-muted)' }}
-          >
+        <div className="max-w-xs space-y-2">
+          <label htmlFor={`numeric-${question.id}`} className="text-xs font-medium text-slate-500 dark:text-slate-400">
             Enter your numeric response:
           </label>
-          <input
+          <Input
             id={`numeric-${question.id}`}
             type="number"
             step="any"
@@ -245,96 +155,62 @@ export function QuestionRenderer({
             onChange={handleNumericChange}
             disabled={disabled}
             placeholder="e.g. 42.5"
-            style={{
-              width: '100%',
-              padding: '0.75rem 1rem',
-              fontSize: '1.125rem',
-              fontWeight: 500,
-              fontFamily: 'var(--font-family-mono)',
-              borderRadius: 'var(--radius-md)',
-              border: '2px solid var(--color-border-subtle)',
-              backgroundColor: disabled ? 'var(--color-surface-secondary)' : 'var(--color-surface)',
-              color: 'var(--color-text-primary)',
-            }}
+            className="font-mono text-base h-11"
           />
         </div>
       )}
 
       {/* Short Answer Input */}
       {question_type === 'SHORT_ANSWER' && (
-        <div style={{ width: '100%', maxWidth: '600px' }}>
-          <label
-            htmlFor={`short-answer-${question.id}`}
-            style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.5rem', color: 'var(--color-text-muted)' }}
-          >
+        <div className="max-w-xl space-y-2">
+          <label htmlFor={`short-answer-${question.id}`} className="text-xs font-medium text-slate-500 dark:text-slate-400">
             Enter your short answer response:
           </label>
-          <input
+          <Input
             id={`short-answer-${question.id}`}
             type="text"
             value={value?.text_response || ''}
             onChange={(e) => !disabled && onChange({ text_response: e.target.value })}
             disabled={disabled}
             placeholder="Type your answer here..."
-            style={{
-              width: '100%',
-              padding: '0.75rem 1rem',
-              fontSize: '1rem',
-              borderRadius: 'var(--radius-md)',
-              border: '2px solid var(--color-border-subtle)',
-              backgroundColor: disabled ? 'var(--color-surface-secondary)' : 'var(--color-surface)',
-              color: 'var(--color-text-primary)',
-            }}
+            className="text-base h-11"
           />
         </div>
       )}
 
       {/* Essay Input */}
       {question_type === 'ESSAY' && (
-        <div style={{ width: '100%' }}>
-          <label
-            htmlFor={`essay-${question.id}`}
-            style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.5rem', color: 'var(--color-text-muted)' }}
-          >
-            Provide your comprehensive essay response:
-          </label>
-          <textarea
+        <div className="w-full space-y-2">
+          <div className="flex justify-between items-center">
+            <label htmlFor={`essay-${question.id}`} className="text-xs font-medium text-slate-500 dark:text-slate-400">
+              Provide your comprehensive essay response:
+            </label>
+            <span className="text-xs text-slate-400">
+              {((value?.text_response || '').trim().split(/\s+/).filter(Boolean)).length} words
+            </span>
+          </div>
+          <Textarea
             id={`essay-${question.id}`}
             rows={10}
             value={value?.text_response || ''}
             onChange={(e) => !disabled && onChange({ text_response: e.target.value })}
             disabled={disabled}
             placeholder="Structure your analysis, arguments, and evidence here..."
-            style={{
-              width: '100%',
-              padding: '1rem',
-              fontSize: '1rem',
-              lineHeight: 1.6,
-              borderRadius: 'var(--radius-md)',
-              border: '2px solid var(--color-border-subtle)',
-              backgroundColor: disabled ? 'var(--color-surface-secondary)' : 'var(--color-surface)',
-              color: 'var(--color-text-primary)',
-              resize: 'vertical',
-            }}
+            className="leading-relaxed text-sm"
           />
         </div>
       )}
 
       {/* Code Input */}
       {question_type === 'CODE' && (
-        <div style={{ width: '100%' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-            <label
-              htmlFor={`code-${question.id}`}
-              style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}
-            >
-              Write your solution code:
+        <div className="w-full space-y-2">
+          <div className="flex justify-between items-center">
+            <label htmlFor={`code-${question.id}`} className="text-xs font-medium text-slate-500 dark:text-slate-400">
+              Source code solution:
             </label>
-            <span style={{ fontSize: '0.75rem', fontFamily: 'var(--font-family-mono)', color: 'var(--color-text-muted)' }}>
-              Plain text / Source code
-            </span>
+            <span className="text-[11px] font-mono text-slate-400">Monospace editor</span>
           </div>
-          <textarea
+          <Textarea
             id={`code-${question.id}`}
             rows={12}
             value={value?.text_response || ''}
@@ -342,22 +218,12 @@ export function QuestionRenderer({
             disabled={disabled}
             placeholder="// Write your code implementation here..."
             spellCheck={false}
-            style={{
-              width: '100%',
-              padding: '1rem',
-              fontSize: '0.9375rem',
-              fontFamily: 'monospace, Consolas, Courier New',
-              lineHeight: 1.5,
-              borderRadius: 'var(--radius-md)',
-              border: '2px solid var(--color-border-subtle)',
-              backgroundColor: disabled ? 'var(--color-surface-secondary)' : '#0f172a',
-              color: '#f8fafc',
-              tabSize: 2,
-              resize: 'vertical',
-            }}
+            className="font-mono text-xs sm:text-sm bg-slate-950 text-slate-100 border-slate-800 dark:bg-slate-950"
           />
         </div>
       )}
     </fieldset>
   );
 }
+
+export default QuestionRenderer;

@@ -1,18 +1,26 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Camera, CheckCircle2, AlertCircle, RefreshCw, ArrowLeft, Shield, Eye, Lock } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import FaceOvalGuide from '../../components/biometrics/FaceOvalGuide.jsx';
 import LightingIndicator from '../../components/biometrics/LightingIndicator.jsx';
 import {
   getEnrollmentStatus,
   requestEnrollmentUrl,
   confirmEnrollment,
-  uploadBlobToPresignedUrl
+  uploadBlobToPresignedUrl,
 } from '../../api/biometricsApi.js';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card.jsx';
+import { Button } from '../../components/ui/button.jsx';
+import { Badge } from '../../components/ui/badge.jsx';
+import { Alert, AlertDescription, AlertTitle } from '../../components/ui/alert.jsx';
+import { Separator } from '../../components/ui/separator.jsx';
 
 /**
  * @component CandidateFaceEnrollmentPage
- * @description Dedicated candidate self-service portal for initial reference face enrollment and status inspection.
+ * @description Academic candidate self-service portal for initial reference face enrollment and biometric profile inspection.
  */
 export default function CandidateFaceEnrollmentPage() {
+  const navigate = useNavigate();
   const [enrollment, setEnrollment] = useState(null);
   const [loading, setLoading] = useState(true);
   const [capturing, setCapturing] = useState(false);
@@ -40,7 +48,6 @@ export default function CandidateFaceEnrollmentPage() {
     fetchStatus();
   }, []);
 
-  // Camera start / stop management
   const startCamera = async () => {
     try {
       setFeedback(null);
@@ -54,9 +61,9 @@ export default function CandidateFaceEnrollmentPage() {
         video: {
           width: { ideal: 640 },
           height: { ideal: 480 },
-          facingMode: 'user'
+          facingMode: 'user',
         },
-        audio: false
+        audio: false,
       });
 
       streamRef.current = mediaStream;
@@ -67,9 +74,10 @@ export default function CandidateFaceEnrollmentPage() {
     } catch (err) {
       setFeedback({
         type: 'error',
-        message: err.name === 'NotAllowedError'
-          ? 'Camera permission denied. Please allow access in browser settings.'
-          : 'Failed to access camera. Please check your video device.'
+        message:
+          err.name === 'NotAllowedError'
+            ? 'Camera permission denied. Please allow camera access in your browser settings.'
+            : 'Unable to access your camera. Please ensure no other application is using it.',
       });
     }
   };
@@ -122,18 +130,20 @@ export default function CandidateFaceEnrollmentPage() {
       const { biometricId, uploadUrl } = await requestEnrollmentUrl({
         fileName: 'reference_face.jpg',
         mimeType: 'image/jpeg',
-        byteSize: capturedBlob.size
+        byteSize: capturedBlob.size,
       });
 
-      // 2. Upload raw image to S3
+      // 2. Upload raw image directly to storage
       await uploadBlobToPresignedUrl(uploadUrl, capturedBlob, 'image/jpeg');
 
-      // 3. Server-authoritative embedding extraction & quality evaluation
+      // 3. Server-authoritative embedding extraction & validation
       const confirmRes = await confirmEnrollment({ biometricId });
 
       setFeedback({
         type: 'success',
-        message: `Face enrolled successfully! Quality Score: ${(confirmRes.qualityScore * 100).toFixed(1)}%`
+        message: `Face enrolled successfully! Quality evaluation score: ${(
+          confirmRes.qualityScore * 100
+        ).toFixed(1)}%`,
       });
 
       // Refresh enrollment record
@@ -144,7 +154,8 @@ export default function CandidateFaceEnrollmentPage() {
         setPreviewUrl(null);
       }
     } catch (err) {
-      const msg = err.data?.message || err.message || 'Failed to enroll face. Please ensure clear lighting and pose.';
+      const msg =
+        err.data?.message || err.message || 'Failed to enroll face. Please ensure proper lighting and front-facing pose.';
       setFeedback({ type: 'error', message: msg });
     } finally {
       setProcessing(false);
@@ -152,87 +163,102 @@ export default function CandidateFaceEnrollmentPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 p-6 md:p-12">
-      <div className="max-w-4xl mx-auto space-y-8">
-        {/* Page Header */}
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight bg-gradient-to-r from-white via-slate-200 to-indigo-300 bg-clip-text text-transparent">
-            Biometric Face Enrollment
-          </h1>
-          <p className="text-sm text-slate-400 mt-1">
-            Enroll your reference facial identity for automated pre-exam identity verification.
-          </p>
+    <div className="w-full max-w-4xl mx-auto space-y-6 pb-12">
+      {/* Top Breadcrumb / Navigation */}
+      <div className="flex items-center gap-3">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => navigate('/candidate')}
+          className="text-xs h-8 gap-1.5 text-slate-700"
+        >
+          <ArrowLeft size={13} />
+          <span>Back to Dashboard</span>
+        </Button>
+      </div>
+
+      {/* Header */}
+      <div className="border-b border-slate-200 pb-4">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Identity & Verification</span>
+          <span className="text-slate-300">•</span>
+          <span className="text-xs font-medium text-slate-500">Self-Service Profile</span>
         </div>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+          Biometric Face Enrollment
+        </h1>
+        <p className="text-sm text-slate-600 mt-1">
+          Enroll an official reference facial photo used by ProctorNet's automated liveness verification during exam check-in.
+        </p>
+      </div>
 
-        {/* Feedback Alert */}
-        {feedback && (
-          <div
-            className={`p-4 rounded-xl border text-sm flex items-start gap-3 backdrop-blur-md ${
-              feedback.type === 'success'
-                ? 'bg-emerald-950/60 border-emerald-800/60 text-emerald-200'
-                : 'bg-red-950/60 border-red-800/60 text-red-200'
-            }`}
-          >
-            <span className="text-lg">{feedback.type === 'success' ? '✓' : '⚠'}</span>
-            <div>{feedback.message}</div>
-          </div>
-        )}
+      {/* Feedback Banner */}
+      {feedback && (
+        <Alert variant={feedback.type === 'success' ? 'success' : 'destructive'}>
+          {feedback.type === 'success' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+          <AlertTitle>{feedback.type === 'success' ? 'Enrollment Complete' : 'Verification Issue'}</AlertTitle>
+          <AlertDescription>{feedback.message}</AlertDescription>
+        </Alert>
+      )}
 
-        {/* Current Enrollment Status Card */}
-        <div className="rounded-2xl bg-slate-900/80 border border-slate-800 p-6 backdrop-blur-xl shadow-xl">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <div className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
-                Current Enrollment Status
-              </div>
-              <div className="flex items-center gap-3">
-                <span
-                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${
-                    enrollment?.isEnrolled
-                      ? 'bg-emerald-950/80 border-emerald-700/60 text-emerald-300'
-                      : 'bg-amber-950/80 border-amber-700/60 text-amber-300'
-                  }`}
-                >
-                  <span
-                    className={`w-2 h-2 rounded-full ${
-                      enrollment?.isEnrolled ? 'bg-emerald-400' : 'bg-amber-400'
-                    }`}
-                  />
-                  {enrollment?.isEnrolled ? 'ENROLLED' : 'NOT ENROLLED'}
+      {/* Enrollment Status Card */}
+      <Card className="border-slate-200 bg-white shadow-xs">
+        <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+              Current Enrollment Status
+            </span>
+            <div className="flex items-center gap-2.5">
+              <Badge variant={enrollment?.isEnrolled ? 'success' : 'warning'} size="default">
+                {enrollment?.isEnrolled ? 'Active Reference Enrolled' : 'Not Enrolled'}
+              </Badge>
+              {enrollment?.qualityScore && (
+                <span className="text-xs font-mono text-slate-600">
+                  Quality Score: {(enrollment.qualityScore * 100).toFixed(1)}%
                 </span>
-                {enrollment?.qualityScore && (
-                  <span className="text-xs text-slate-400 font-mono">
-                    Quality: {(enrollment.qualityScore * 100).toFixed(1)}%
-                  </span>
-                )}
-                {enrollment?.modelVersion && (
-                  <span className="text-xs text-slate-500 font-mono">
-                    Model: {enrollment.modelVersion}
-                  </span>
-                )}
-              </div>
+              )}
+              {enrollment?.modelVersion && (
+                <span className="text-xs font-mono text-slate-500">
+                  Model: {enrollment.modelVersion}
+                </span>
+              )}
             </div>
-
-            {!capturing && !previewUrl && (
-              <button
-                onClick={startCamera}
-                className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm transition-all duration-200 shadow-lg shadow-indigo-900/30 cursor-pointer"
-              >
-                {enrollment?.isEnrolled ? 'Update Enrolled Face' : 'Start Enrollment'}
-              </button>
-            )}
+            <p className="text-xs text-slate-500 mt-1">
+              {enrollment?.isEnrolled
+                ? 'Your biometric profile is ready. You will be authenticated against this reference before proctored exams.'
+                : 'A clean front-facing reference photo is required to participate in monitored assessments.'}
+            </p>
           </div>
-        </div>
 
-        {/* Camera / Capture Section */}
-        {capturing && (
-          <div className="rounded-2xl bg-slate-900/80 border border-slate-800 p-6 backdrop-blur-xl shadow-xl flex flex-col items-center">
-            <div className="w-full flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold text-white">Live Camera Capture</h2>
+          {!capturing && !previewUrl && (
+            <Button
+              onClick={startCamera}
+              className="sm:self-center shrink-0"
+              size="default"
+            >
+              <Camera size={15} />
+              {enrollment?.isEnrolled ? 'Update Reference Face' : 'Start Enrollment'}
+            </Button>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Live Camera Viewport */}
+      {capturing && (
+        <Card className="border-slate-200 bg-white shadow-xs">
+          <CardHeader className="pb-3 border-b border-slate-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-base font-semibold">Live Camera Alignment</CardTitle>
+                <CardDescription className="text-xs mt-0.5">
+                  Center your face within the guide oval. Look directly at the camera with neutral expression.
+                </CardDescription>
+              </div>
               <LightingIndicator videoRef={videoRef} active={capturing} />
             </div>
-
-            <div className="relative w-full max-w-md aspect-[4/3] bg-black rounded-xl overflow-hidden shadow-inner">
+          </CardHeader>
+          <CardContent className="p-6 flex flex-col items-center">
+            <div className="relative w-full max-w-md aspect-[4/3] bg-slate-900 rounded-lg overflow-hidden border border-slate-300 shadow-inner">
               <video
                 ref={videoRef}
                 autoPlay
@@ -240,70 +266,87 @@ export default function CandidateFaceEnrollmentPage() {
                 muted
                 className="w-full h-full object-cover transform -scale-x-100"
               />
-              <FaceOvalGuide status="aligning" message="Center your face inside the oval" />
+              <FaceOvalGuide status="aligning" message="Align face within the frame" />
             </div>
 
-            <div className="flex gap-4 mt-6">
-              <button
+            <div className="flex items-center gap-3 mt-6">
+              <Button
+                variant="outline"
+                size="default"
                 onClick={stopCamera}
-                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium transition cursor-pointer"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
+                size="default"
                 onClick={handleCapturePhoto}
-                className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-semibold text-sm shadow-lg shadow-indigo-900/40 transition cursor-pointer flex items-center gap-2"
+                className="gap-2 bg-slate-900 text-white hover:bg-slate-800"
               >
-                <span className="w-3 h-3 rounded-full bg-white animate-ping" />
+                <Camera size={16} />
                 Capture Reference Photo
-              </button>
+              </Button>
             </div>
-          </div>
-        )}
+          </CardContent>
+        </Card>
+      )}
 
-        {/* Preview & Confirmation Section */}
-        {previewUrl && (
-          <div className="rounded-2xl bg-slate-900/80 border border-slate-800 p-6 backdrop-blur-xl shadow-xl flex flex-col items-center">
-            <h2 className="text-sm font-semibold text-white mb-4">Review Reference Photo</h2>
-            <div className="relative w-full max-w-md aspect-[4/3] bg-black rounded-xl overflow-hidden shadow-md">
+      {/* Photo Preview & Submission */}
+      {previewUrl && (
+        <Card className="border-slate-200 bg-white shadow-xs">
+          <CardHeader className="pb-3 border-b border-slate-100">
+            <CardTitle className="text-base font-semibold">Review Reference Photo</CardTitle>
+            <CardDescription className="text-xs mt-0.5">
+              Ensure lighting is uniform across your face and features are unobstructed.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-6 flex flex-col items-center">
+            <div className="relative w-full max-w-md aspect-[4/3] bg-slate-900 rounded-lg overflow-hidden border border-slate-300 shadow-sm">
               <img src={previewUrl} alt="Captured face preview" className="w-full h-full object-cover" />
             </div>
 
-            <p className="text-xs text-slate-400 mt-4 max-w-md text-center">
-              Ensure your face is clearly illuminated, eyes are open and looking at the camera, and no hats or sunglasses are worn.
-            </p>
-
-            <div className="flex gap-4 mt-6">
-              <button
-                onClick={startCamera}
+            <div className="flex items-center gap-3 mt-6">
+              <Button
+                variant="outline"
+                size="default"
                 disabled={processing}
-                className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium transition disabled:opacity-50 cursor-pointer"
+                onClick={startCamera}
               >
                 Retake Photo
-              </button>
-              <button
-                onClick={handleConfirmEnrollment}
+              </Button>
+              <Button
+                size="default"
                 disabled={processing}
-                className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm shadow-lg shadow-emerald-900/30 transition disabled:opacity-50 flex items-center gap-2 cursor-pointer"
+                onClick={handleConfirmEnrollment}
+                className="gap-2 bg-emerald-700 hover:bg-emerald-800 text-white"
               >
-                {processing && <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-                {processing ? 'Processing Server Extraction...' : 'Confirm & Save Enrollment'}
-              </button>
+                {processing && <RefreshCw size={15} className="animate-spin" />}
+                {processing ? 'Extracting Server Embedding...' : 'Confirm & Save Enrollment'}
+              </Button>
             </div>
-          </div>
-        )}
+          </CardContent>
+        </Card>
+      )}
 
-        {/* Enrollment Instructions Guideline */}
-        <div className="rounded-2xl bg-slate-900/40 border border-slate-800/80 p-6 text-xs text-slate-400 space-y-3">
-          <h3 className="font-semibold text-slate-300 text-sm">Enrollment Guidelines & Privacy Safeguards</h3>
-          <ul className="list-disc pl-5 space-y-1.5">
-            <li>Your facial photo is securely stored in an encrypted institutional storage bucket.</li>
-            <li>Raw facial embeddings (128-dimensional vectors) are generated strictly on the server and are never exposed to clients.</li>
-            <li>Biometric matching occurs only when entering scheduled proctored exam sessions.</li>
-            <li>Candidates with institutional medical accommodations are exempt from biometric verification.</li>
-          </ul>
-        </div>
-      </div>
+      {/* Institutional Privacy & Governance Standards */}
+      <Card className="border-slate-200 bg-slate-50/70">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-xs font-semibold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+            <Lock size={13} />
+            Institutional Biometric Standards & Privacy Safeguards
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 pt-0 text-xs text-slate-600 leading-relaxed">
+          <p>
+            • Biometric embeddings are extracted server-authoritatively and stored with AES-256 encryption.
+          </p>
+          <p>
+            • Raw reference photographs are restricted to institutional identity matching and are never shared with third parties or external commercial platforms.
+          </p>
+          <p>
+            • If you have approved institutional accommodations or require manual identity verification, please contact your university examinations coordinator.
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -1,9 +1,12 @@
 /**
  * @file TimerDisplay.jsx
  * @description Tabular visual countdown timer with 5-minute and 1-minute urgency styles.
+ * Restyled with Tailwind CSS and shadcn tokens.
  */
 
 import React from 'react';
+import { Clock, AlertTriangle } from 'lucide-react';
+import { cn } from '../../utils/cn.js';
 
 export function TimerDisplay({
   formattedTime,
@@ -11,25 +14,17 @@ export function TimerDisplay({
   isUrgent5Min,
   isUrgent1Min,
 }) {
-  let borderColor = 'var(--color-border-medium)';
-  let textColor = 'var(--color-text-primary)';
-  let bgColor = 'var(--color-surface)';
+  let colorStyles = 'border-slate-200 bg-white text-slate-900 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100';
   let urgencyLabel = 'Time Remaining';
 
   if (isExpired) {
-    borderColor = 'var(--color-danger-border)';
-    textColor = 'var(--color-danger)';
-    bgColor = 'var(--color-danger-light)';
+    colorStyles = 'border-rose-300 bg-rose-50 text-rose-700 dark:border-rose-900/80 dark:bg-rose-950/60 dark:text-rose-300';
     urgencyLabel = 'Time Expired';
   } else if (isUrgent1Min) {
-    borderColor = 'var(--color-danger)';
-    textColor = 'var(--color-danger)';
-    bgColor = 'var(--color-danger-light)';
+    colorStyles = 'border-rose-500 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950/80 dark:text-rose-200 animate-pulse';
     urgencyLabel = 'Final Minute!';
   } else if (isUrgent5Min) {
-    borderColor = 'var(--color-warning)';
-    textColor = 'var(--color-warning)';
-    bgColor = 'var(--color-warning-light)';
+    colorStyles = 'border-amber-400 bg-amber-50 text-amber-800 dark:border-amber-800/80 dark:bg-amber-950/60 dark:text-amber-200';
     urgencyLabel = '< 5 Minutes Remaining';
   }
 
@@ -38,45 +33,22 @@ export function TimerDisplay({
       role="timer"
       aria-label={urgencyLabel}
       aria-live={isUrgent1Min ? 'assertive' : isUrgent5Min ? 'polite' : 'off'}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '0.625rem',
-        padding: '0.375rem 0.875rem',
-        borderRadius: 'var(--radius-sm)',
-        border: `1.5px solid ${borderColor}`,
-        backgroundColor: bgColor,
-        transition: 'all var(--transition-fast)',
-      }}
+      className={cn(
+        'inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border shadow-2xs transition-colors',
+        colorStyles
+      )}
     >
-      <svg
-        width="16"
-        height="16"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        style={{ color: textColor }}
-        aria-hidden="true"
-      >
-        <circle cx="12" cy="12" r="10"></circle>
-        <polyline points="12 6 12 12 16 14"></polyline>
-      </svg>
+      {isUrgent1Min ? (
+        <AlertTriangle className="h-4 w-4 shrink-0 animate-bounce text-rose-600 dark:text-rose-400" aria-hidden="true" />
+      ) : (
+        <Clock className="h-4 w-4 shrink-0 text-slate-500 dark:text-slate-400" aria-hidden="true" />
+      )}
 
-      <span
-        style={{
-          fontFamily: 'var(--font-family-mono)',
-          fontWeight: 700,
-          fontSize: '1rem',
-          letterSpacing: '0.05em',
-          color: textColor,
-          fontVariantNumeric: 'tabular-nums',
-        }}
-      >
+      <span className="font-mono font-bold text-sm sm:text-base tracking-wider tabular-nums select-none">
         {isExpired ? '00:00' : formattedTime}
       </span>
     </div>
   );
 }
+
+export default TimerDisplay;

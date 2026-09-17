@@ -3,17 +3,46 @@
  * @description Pre-exam check-in screen with instructions, biometric identity verification gate, and attempt launch.
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import {
+  ArrowLeft,
+  Clock,
+  MapPin,
+  Calendar,
+  Camera,
+  Mic,
+  ShieldCheck,
+  ShieldAlert,
+  AlertCircle,
+  CheckCircle2,
+  Lock,
+  RefreshCw,
+  Play,
+  FileCheck,
+} from 'lucide-react';
 import * as sessionsApi from '../../api/sessionsApi.js';
 import { getEnrollmentStatus } from '../../api/biometricsApi.js';
-import { Card } from '../../components/common/Card.jsx';
-import { Button } from '../../components/common/Button.jsx';
-import { Badge, getStatusBadgeVariant } from '../../components/common/Badge.jsx';
-import { Spinner } from '../../components/common/Spinner.jsx';
 import { stopMediaStream } from '../../hooks/useMediaCapture.js';
 import { setAntiTamperToken } from '../../api/client.js';
 import BiometricGate from '../../components/biometrics/BiometricGate.jsx';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '../../components/ui/card.jsx';
+import { Button } from '../../components/ui/button.jsx';
+import { Badge } from '../../components/ui/badge.jsx';
+import { Alert, AlertDescription, AlertTitle } from '../../components/ui/alert.jsx';
+import { Separator } from '../../components/ui/separator.jsx';
+import { Checkbox } from '../../components/ui/checkbox.jsx';
+
+function formatDateTime(val) {
+  if (!val) return 'TBA';
+  return new Date(val).toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
 
 export function PreExamReadinessPage() {
   const { sessionId } = useParams();
@@ -31,11 +60,11 @@ export function PreExamReadinessPage() {
   const [biometricVerified, setBiometricVerified] = useState(false);
   const [biometricLocked, setBiometricLocked] = useState(false);
 
-  // Media readiness preview state
+  // Hardware readiness preview state
   const [previewStream, setPreviewStream] = useState(null);
   const [mediaCheckStatus, setMediaCheckStatus] = useState('IDLE'); // 'IDLE' | 'CHECKING' | 'READY' | 'FAILED'
   const [mediaError, setMediaError] = useState('');
-  const previewVideoRef = React.useRef(null);
+  const previewVideoRef = useRef(null);
 
   useEffect(() => {
     async function loadData() {
@@ -44,18 +73,18 @@ export function PreExamReadinessPage() {
         const [sessionData, myAttempt, bioStatus] = await Promise.all([
           sessionsApi.getSession(sessionId),
           sessionsApi.getMyAttempt(sessionId).catch(() => null),
-          getEnrollmentStatus().catch(() => null)
+          getEnrollmentStatus().catch(() => null),
         ]);
         setSession(sessionData);
         setExistingAttempt(myAttempt);
         setEnrollment(bioStatus);
 
-        // If resuming active attempt, biometric check is already passed
+        // If resuming active attempt, biometric check is already validated
         if (myAttempt?.id && myAttempt.status === 'ACTIVE') {
           setBiometricVerified(true);
         }
       } catch (err) {
-        setError(err.message || 'Failed to load examination readiness data');
+        setError(err?.message || 'Failed to load examination readiness information.');
       } finally {
         setLoading(false);
       }
@@ -63,7 +92,7 @@ export function PreExamReadinessPage() {
     loadData();
   }, [sessionId]);
 
-  const cleanupPreview = React.useCallback(() => {
+  const cleanupPreview = useCallback(() => {
     if (previewVideoRef.current) {
       previewVideoRef.current.srcObject = null;
     }
@@ -71,7 +100,7 @@ export function PreExamReadinessPage() {
     setPreviewStream(null);
   }, [previewStream]);
 
-  // Clean up preview stream on unmount or beforeunload to prevent hardware locks
+  // Clean up preview stream on unmount or beforeunload
   useEffect(() => {
     const handleBeforeUnload = () => {
       cleanupPreview();
@@ -91,12 +120,12 @@ export function PreExamReadinessPage() {
 
     try {
       if (!navigator.mediaDevices?.getUserMedia) {
-        throw new Error('WebRTC camera and microphone access not supported in this browser');
+        throw new Error('Camera and microphone access not supported in this browser');
       }
 
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 20 } },
-        audio: true
+        audio: true,
       });
 
       setPreviewStream(stream);
@@ -107,15 +136,17 @@ export function PreExamReadinessPage() {
       setMediaCheckStatus('READY');
     } catch (err) {
       setMediaCheckStatus('FAILED');
-      setMediaError(err.name === 'NotAllowedError' ? 'Camera and microphone permission denied' : err.message);
+      setMediaError(
+        err.name === 'NotAllowedError'
+          ? 'Camera or microphone access denied. Please grant permissions in your browser.'
+          : err.message
+      );
       cleanupPreview();
     }
   }
 
   async function handleStartOrResume() {
     setError('');
-
-    // Mandatory hardware release before route change
     cleanupPreview();
 
     // If attempt already active, resume directly
@@ -138,7 +169,7 @@ export function PreExamReadinessPage() {
       }
       navigate(`/candidate/attempts/${attempt.id}`);
     } catch (err) {
-      setError(err.message || 'Could not start examination attempt');
+      setError(err?.message || 'Could not start examination attempt');
     } finally {
       setStarting(false);
     }
@@ -146,19 +177,21 @@ export function PreExamReadinessPage() {
 
   if (loading) {
     return (
-      <div className="container" style={{ textAlign: 'center', padding: '4rem 0' }}>
-        <Spinner size="lg" label="Checking examination readiness..." />
+      <div className="w-full max-w-3xl mx-auto py-16 text-center space-y-3">
+        <RefreshCw size={28} className="animate-spin mx-auto text-slate-400" />
+        <p className="text-sm font-medium text-slate-600">Verifying assessment readiness and session security...</p>
       </div>
     );
   }
 
   if (!session) {
     return (
-      <div className="container" style={{ maxWidth: '600px' }}>
-        <Card style={{ textAlign: 'center', padding: '2rem' }}>
-          <h2>Session Not Found</h2>
-          <p style={{ color: 'var(--color-text-muted)', margin: '1rem 0' }}>
-            The requested examination session could not be found or you are not enrolled.
+      <div className="w-full max-w-lg mx-auto py-12">
+        <Card className="text-center p-8 border-slate-200">
+          <AlertCircle size={36} className="mx-auto text-slate-400 stroke-1" />
+          <h2 className="text-lg font-semibold text-slate-900 mt-3">Examination Session Not Found</h2>
+          <p className="text-sm text-slate-500 mt-1 mb-6">
+            The requested examination session could not be found or you are not enrolled in this roster.
           </p>
           <Button onClick={() => navigate('/candidate')}>Return to Dashboard</Button>
         </Card>
@@ -168,178 +201,325 @@ export function PreExamReadinessPage() {
 
   const isSessionLive = session.status === 'ACTIVE';
   const isResuming = existingAttempt?.status === 'ACTIVE';
+  const isSubmitted = existingAttempt?.status === 'SUBMITTED';
 
   return (
-    <div className="container" style={{ maxWidth: '760px', paddingBottom: '3rem' }}>
-      <div style={{ marginBottom: '1.5rem' }}>
-        <Button variant="secondary" size="sm" onClick={() => navigate('/candidate')} style={{ marginBottom: '1rem' }}>
-          &larr; Back to Sessions
+    <div className="w-full max-w-4xl mx-auto space-y-6 pb-12">
+      {/* Back Button */}
+      <div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            cleanupPreview();
+            navigate('/candidate');
+          }}
+          className="text-xs h-8 gap-1.5 text-slate-700"
+        >
+          <ArrowLeft size={13} />
+          <span>Back to Dashboard</span>
         </Button>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 700 }}>
-            {session.exam_title || `Examination #${(session.session_id || session.id || '').slice(0, 8)}`}
+      </div>
+
+      {/* Header */}
+      <div className="border-b border-slate-200 pb-4">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Pre-Assessment</span>
+          <span className="text-slate-300">•</span>
+          <span className="text-xs font-medium text-slate-500">Readiness & Verification Gate</span>
+        </div>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+            {session.exam_title || 'Assigned Examination'}
           </h1>
-          <Badge variant={getStatusBadgeVariant(session.status)}>
-            {session.status}
+          <Badge
+            variant={isSessionLive ? 'success' : session.status === 'COMPLETED' ? 'outline' : 'secondary'}
+            size="default"
+            className="self-start sm:self-auto"
+          >
+            {isSessionLive ? 'Session Live' : session.status || 'SCHEDULED'}
           </Badge>
         </div>
-        <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9375rem' }}>
-          Pre-assessment readiness check and integrity instructions.
+        <p className="text-sm text-slate-600 mt-1">
+          Verify your hardware peripherals, confirm biometric identity, and review exam guidelines before launching.
         </p>
       </div>
 
       {error && (
-        <div
-          role="alert"
-          style={{
-            marginBottom: '1.5rem',
-            padding: '1rem',
-            borderRadius: 'var(--radius-md)',
-            backgroundColor: 'var(--color-danger-light, rgba(239, 68, 68, 0.1))',
-            border: '1px solid var(--color-danger-border, rgba(239, 68, 68, 0.3))',
-            color: 'var(--color-danger, #ef4444)',
-          }}
-        >
-          {error}
-        </div>
+        <Alert variant="destructive">
+          <AlertCircle size={16} />
+          <AlertTitle>Assessment Gate Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
 
-      {/* Step 1: Assessment Specifications */}
-      <Card style={{ marginBottom: '1.5rem' }}>
-        <h3 style={{ fontSize: '1.125rem', marginBottom: '1rem', color: 'var(--color-text-primary)' }}>
-          Assessment Specifications
-        </h3>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', fontSize: '0.875rem' }}>
-          <div>
-            <span style={{ color: 'var(--color-text-muted)' }}>Allocated Time:</span>{' '}
-            <strong>{session.exam_duration_minutes || 60} Minutes</strong>
+      {/* Step 1: Session & Schedule Parameters */}
+      <Card className="border-slate-200 bg-white shadow-xs">
+        <CardHeader className="pb-3 border-b border-slate-100">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <Calendar size={16} className="text-slate-600" />
+            1. Examination Parameters
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+            <div className="space-y-0.5">
+              <span className="text-slate-500">Duration</span>
+              <p className="text-sm font-semibold text-slate-900 flex items-center gap-1.5">
+                <Clock size={14} className="text-slate-600" />
+                {session.exam_duration_minutes || 60} Minutes
+              </p>
+            </div>
+            <div className="space-y-0.5">
+              <span className="text-slate-500">Location / Room</span>
+              <p className="text-sm font-semibold text-slate-900 flex items-center gap-1.5">
+                <MapPin size={14} className="text-slate-600" />
+                {session.room_name || 'Online Assessment'}
+              </p>
+            </div>
+            <div className="space-y-0.5">
+              <span className="text-slate-500">Window Start</span>
+              <p className="text-xs font-semibold text-slate-900">
+                {formatDateTime(session.scheduled_start_time)}
+              </p>
+            </div>
+            <div className="space-y-0.5">
+              <span className="text-slate-500">Window Close</span>
+              <p className="text-xs font-semibold text-slate-900">
+                {formatDateTime(session.scheduled_end_time)}
+              </p>
+            </div>
           </div>
-          <div>
-            <span style={{ color: 'var(--color-text-muted)' }}>Campus Room:</span>{' '}
-            <strong>{session.room_name || 'Virtual / Online'}</strong>
-          </div>
-          <div>
-            <span style={{ color: 'var(--color-text-muted)' }}>Start Window:</span>{' '}
-            <strong>{new Date(session.start_time).toLocaleString()}</strong>
-          </div>
-          <div>
-            <span style={{ color: 'var(--color-text-muted)' }}>Closing Window:</span>{' '}
-            <strong>{new Date(session.end_time).toLocaleString()}</strong>
-          </div>
-        </div>
+        </CardContent>
       </Card>
 
-      {/* Step 2: Biometric Identity Verification Gate */}
-      {!isResuming && (
-        <div style={{ marginBottom: '1.5rem' }}>
-          {!enrollment?.isEnrolled ? (
-            <Card style={{ textAlign: 'center', padding: '2rem', border: '1px solid #f59e0b' }}>
-              <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📸</div>
-              <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem', color: '#f59e0b' }}>
-                Biometric Enrollment Required
-              </h3>
-              <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem', marginBottom: '1.5rem', maxWidth: '480px', margin: '0 auto 1.5rem' }}>
-                You must complete reference face enrollment before taking proctored exams. Enrollment takes less than a minute.
+      {/* Step 2: System Diagnostic & Peripheral Test */}
+      <Card className="border-slate-200 bg-white shadow-xs">
+        <CardHeader className="pb-3 border-b border-slate-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <Camera size={16} className="text-slate-600" />
+                2. Hardware & Peripheral Diagnostic
+              </CardTitle>
+              <CardDescription className="text-xs mt-0.5">
+                Test your webcam and microphone before entering the proctored test environment.
+              </CardDescription>
+            </div>
+            {mediaCheckStatus === 'READY' && (
+              <Badge variant="success" size="sm">
+                Peripherals Operational
+              </Badge>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="p-5 space-y-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-xs font-medium text-slate-800">
+                <Mic size={14} className="text-slate-500" />
+                <span>Webcam & Microphone Check</span>
+              </div>
+              <p className="text-xs text-slate-500">
+                Continuous video feeds and audio telemetry are streamed during proctored sessions.
               </p>
-              <Button variant="primary" onClick={() => navigate('/candidate/biometrics/enroll')}>
-                Enroll Reference Face Now
-              </Button>
-            </Card>
-          ) : biometricVerified ? (
-            <Card style={{ padding: '1.25rem', backgroundColor: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.4)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <span style={{ color: '#10b981', fontSize: '1.5rem' }}>✓</span>
+            </div>
+
+            <Button
+              variant={mediaCheckStatus === 'READY' ? 'outline' : 'default'}
+              size="sm"
+              onClick={testCameraAndMic}
+              disabled={mediaCheckStatus === 'CHECKING'}
+              className="text-xs h-8 shrink-0"
+            >
+              {mediaCheckStatus === 'CHECKING' && <RefreshCw size={13} className="animate-spin" />}
+              {mediaCheckStatus === 'READY' ? 'Retest Hardware' : 'Test Camera & Mic'}
+            </Button>
+          </div>
+
+          {mediaError && (
+            <Alert variant="destructive">
+              <AlertCircle size={15} />
+              <AlertDescription>{mediaError}</AlertDescription>
+            </Alert>
+          )}
+
+          {previewStream && (
+            <div className="flex flex-col items-center pt-2">
+              <div className="relative w-full max-w-sm aspect-[4/3] bg-slate-900 rounded-md overflow-hidden border border-slate-300 shadow-inner">
+                <video
+                  ref={previewVideoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full h-full object-cover transform -scale-x-100"
+                />
+                <div className="absolute bottom-2 left-2 bg-slate-900/80 backdrop-blur-xs text-white text-[11px] px-2 py-0.5 rounded-sm flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  Live Video Feed Active
+                </div>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Step 3: Biometric Identity Verification Gate */}
+      {!isResuming && !isSubmitted && (
+        <Card className="border-slate-200 bg-white shadow-xs">
+          <CardHeader className="pb-3 border-b border-slate-100">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <ShieldCheck size={16} className="text-slate-600" />
+              3. Biometric Identity Verification
+            </CardTitle>
+            <CardDescription className="text-xs mt-0.5">
+              Automated facial identity match against your enrolled institutional reference profile.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-5">
+            {!enrollment?.isEnrolled ? (
+              <div className="p-6 text-center space-y-3 bg-amber-50/50 rounded-lg border border-amber-200">
+                <ShieldAlert size={28} className="mx-auto text-amber-700" />
                 <div>
-                  <h4 style={{ margin: 0, fontSize: '1rem', color: '#10b981', fontWeight: 600 }}>
-                    Biometric Identity Verified
-                  </h4>
-                  <p style={{ margin: '0.25rem 0 0', fontSize: '0.8125rem', color: 'var(--color-text-muted)' }}>
-                    Your facial identity and anti-spoofing checks have been confirmed for this session.
+                  <h4 className="text-sm font-semibold text-amber-900">Reference Photo Enrollment Required</h4>
+                  <p className="text-xs text-amber-800/80 max-w-md mx-auto mt-1">
+                    You must enroll a reference face photo prior to entering this proctored examination.
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    cleanupPreview();
+                    navigate('/candidate/biometrics/enroll');
+                  }}
+                  className="bg-amber-800 hover:bg-amber-900 text-white"
+                >
+                  Enroll Reference Face Now
+                </Button>
+              </div>
+            ) : biometricVerified ? (
+              <div className="flex items-center gap-3 p-4 bg-emerald-50 rounded-lg border border-emerald-200 text-emerald-900">
+                <CheckCircle2 size={20} className="text-emerald-700 shrink-0" />
+                <div>
+                  <h4 className="text-xs font-semibold text-emerald-900">Biometric Identity Verified</h4>
+                  <p className="text-xs text-emerald-800/80 mt-0.5">
+                    Your facial liveness challenge has been verified authoritatively for this session.
                   </p>
                 </div>
               </div>
-            </Card>
-          ) : (
-            <BiometricGate
-              sessionId={sessionId}
-              onVerified={(result) => {
-                setBiometricVerified(true);
-                setBiometricLocked(false);
-              }}
-              onLocked={() => {
-                setBiometricLocked(true);
-                setBiometricVerified(false);
-              }}
-            />
-          )}
-        </div>
+            ) : (
+              <BiometricGate
+                sessionId={sessionId}
+                onVerified={() => {
+                  setBiometricVerified(true);
+                  setBiometricLocked(false);
+                }}
+                onLocked={() => {
+                  setBiometricLocked(true);
+                  setBiometricVerified(false);
+                }}
+              />
+            )}
+          </CardContent>
+        </Card>
       )}
 
-      {/* Step 3: Candidate Rules & Integrity Guidelines */}
-      <Card style={{ marginBottom: '1.5rem' }}>
-        <h3 style={{ fontSize: '1.125rem', marginBottom: '0.75rem', color: 'var(--color-text-primary)' }}>
-          Candidate Rules & Integrity Guidelines
-        </h3>
-        <ul style={{ paddingLeft: '1.25rem', fontSize: '0.875rem', color: 'var(--color-text-body)', lineHeight: 1.7 }}>
-          <li>
-            <strong>Authoritative Server Countdown</strong>: The remaining time is validated authoritatively against server timestamps. Local clock adjustments will not extend your attempt.
-          </li>
-          <li>
-            <strong>Automatic Autosave</strong>: Your responses are continuously debounced and synchronized to the server every second.
-          </li>
-          <li>
-            <strong>Continuous Biometric & Media Surveillance</strong>: Video and audio feeds are continuously audited during this attempt.
-          </li>
-          <li>
-            <strong>Irreversible Submission</strong>: Submitting an exam is permanent. Once submitted, answers cannot be edited or rescinded.
-          </li>
-        </ul>
+      {/* Step 4: Academic Integrity Acknowledgment */}
+      <Card className="border-slate-200 bg-white shadow-xs">
+        <CardHeader className="pb-3 border-b border-slate-100">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <Lock size={16} className="text-slate-600" />
+            4. Academic Integrity & Proctored Rules
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-5 space-y-3 text-xs text-slate-600 leading-relaxed">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="p-3 bg-slate-50 rounded-md border border-slate-200/60">
+              <strong className="text-slate-900 block font-medium">Authoritative Countdown</strong>
+              Remaining time is calculated authoritatively by the server. Local device clock adjustments will not extend test duration.
+            </div>
+            <div className="p-3 bg-slate-50 rounded-md border border-slate-200/60">
+              <strong className="text-slate-900 block font-medium">Automatic Synchronization</strong>
+              Your answers are debounced and autosaved securely with optimistic concurrency revision tracking.
+            </div>
+            <div className="p-3 bg-slate-50 rounded-md border border-slate-200/60">
+              <strong className="text-slate-900 block font-medium">Proctoring Telemetry</strong>
+              Fullscreen exits, tab changes, and audio anomalies are recorded and flagged for faculty review.
+            </div>
+            <div className="p-3 bg-slate-50 rounded-md border border-slate-200/60">
+              <strong className="text-slate-900 block font-medium">Irreversible Submission</strong>
+              Once submitted or when time expires, final answers cannot be modified or reopened.
+            </div>
+          </div>
 
-        <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--color-border-subtle)' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', cursor: 'pointer', fontSize: '0.875rem' }}>
-            <input
-              type="checkbox"
+          <Separator className="my-3" />
+
+          <div className="flex items-start gap-2.5 pt-1 select-none">
+            <Checkbox
+              id="agree-honor-code"
               checked={agreed}
-              onChange={(e) => setAgreed(e.target.checked)}
-              style={{ width: '18px', height: '18px', accentColor: 'var(--color-primary)' }}
+              onCheckedChange={(checked) => setAgreed(Boolean(checked))}
+              className="mt-0.5"
             />
-            <span>I acknowledge and agree to adhere to all assessment rules and academic integrity policies.</span>
-          </label>
-        </div>
-      </Card>
+            <label
+              htmlFor="agree-honor-code"
+              className="text-xs text-slate-800 dark:text-slate-200 font-medium cursor-pointer leading-relaxed"
+            >
+              I acknowledge that I am in a private space and agree to adhere strictly to the ProctorNet Assessment Honor Code and Institutional Examination Guidelines.
+            </label>
+          </div>
+        </CardContent>
 
-      {/* Footer controls */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-        <Button variant="secondary" onClick={() => navigate('/candidate')}>
-          Cancel
-        </Button>
-        <Button
-          variant="primary"
-          size="lg"
-          disabled={
-            !agreed ||
-            (!isSessionLive && !existingAttempt) ||
-            (!isResuming && !biometricVerified) ||
-            biometricLocked ||
-            starting
-          }
-          loading={starting}
-          onClick={handleStartOrResume}
-        >
-          {existingAttempt?.status === 'ACTIVE'
-            ? 'Resume Active Attempt'
-            : existingAttempt?.status === 'SUBMITTED'
-            ? 'View Submitted Results'
-            : biometricLocked
-            ? 'Biometrics Locked'
-            : !biometricVerified
-            ? 'Biometric Verification Required'
-            : isSessionLive
-            ? 'Begin Examination'
-            : 'Session Not Active'}
-        </Button>
-      </div>
+        <CardFooter className="p-5 border-t border-slate-100 flex items-center justify-between gap-3 bg-slate-50/50">
+          <Button
+            variant="outline"
+            size="default"
+            onClick={() => {
+              cleanupPreview();
+              navigate('/candidate');
+            }}
+          >
+            Cancel
+          </Button>
+
+          <Button
+            size="default"
+            disabled={
+              !agreed ||
+              (!isSessionLive && !existingAttempt) ||
+              (!isResuming && !isSubmitted && !biometricVerified) ||
+              biometricLocked ||
+              starting
+            }
+            onClick={handleStartOrResume}
+            className="gap-2 bg-slate-900 hover:bg-slate-800 text-white min-w-[180px]"
+          >
+            {starting ? (
+              <RefreshCw size={15} className="animate-spin" />
+            ) : isResuming ? (
+              <Play size={15} />
+            ) : isSubmitted ? (
+              <FileCheck size={15} />
+            ) : (
+              <Play size={15} />
+            )}
+
+            {isResuming
+              ? 'Resume Active Attempt'
+              : isSubmitted
+              ? 'View Scorecard'
+              : biometricLocked
+              ? 'Biometrics Locked'
+              : !biometricVerified
+              ? 'Biometric Verification Required'
+              : isSessionLive
+              ? 'Begin Examination'
+              : 'Session Not Live'}
+          </Button>
+        </CardFooter>
+      </Card>
     </div>
   );
 }
+
 export default PreExamReadinessPage;
