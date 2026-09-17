@@ -5,11 +5,37 @@
 
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import {
+  Shield,
+  Clock,
+  MapPin,
+  Calendar,
+  AlertCircle,
+  RefreshCw,
+  Eye,
+  ArrowRight,
+  Video,
+} from 'lucide-react';
 import * as sessionsApi from '../../api/sessionsApi.js';
-import { Card } from '../../components/common/Card.jsx';
-import { Button } from '../../components/common/Button.jsx';
-import { Badge, getStatusBadgeVariant } from '../../components/common/Badge.jsx';
-import { Spinner } from '../../components/common/Spinner.jsx';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card.jsx';
+import { Button } from '../../components/ui/button.jsx';
+import { Badge } from '../../components/ui/badge.jsx';
+import { Alert, AlertDescription, AlertTitle } from '../../components/ui/alert.jsx';
+
+function getSessionStatusBadge(status) {
+  switch (status) {
+    case 'ACTIVE':
+      return <Badge variant="success">Active Session</Badge>;
+    case 'SCHEDULED':
+      return <Badge variant="secondary">Scheduled</Badge>;
+    case 'COMPLETED':
+      return <Badge variant="outline">Concluded</Badge>;
+    case 'CANCELLED':
+      return <Badge variant="destructive">Cancelled</Badge>;
+    default:
+      return <Badge variant="outline">{status}</Badge>;
+  }
+}
 
 export function InvigilatorDashboardPage() {
   const navigate = useNavigate();
@@ -17,88 +43,141 @@ export function InvigilatorDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    async function loadSessions() {
-      try {
-        setLoading(true);
-        const data = await sessionsApi.listSessions();
-        setSessions(data);
-      } catch (err) {
-        setError(err.message || 'Failed to load assigned sessions');
-      } finally {
-        setLoading(false);
-      }
+  async function loadSessions() {
+    try {
+      setLoading(true);
+      setError('');
+      const data = await sessionsApi.listSessions();
+      setSessions(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setError(err.message || 'Failed to load assigned sessions');
+    } finally {
+      setLoading(false);
     }
+  }
+
+  useEffect(() => {
     loadSessions();
   }, []);
 
   return (
-    <div className="container">
-      <div style={{ marginBottom: '2rem' }}>
-        <h1 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '0.25rem' }}>
-          Invigilator Proctoring Dashboard
-        </h1>
-        <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9375rem' }}>
-          Monitor enrolled candidate attempt status and oversee in-session academic integrity.
-        </p>
+    <div className="w-full max-w-6xl mx-auto space-y-6 pb-12">
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
+        <div>
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Invigilation Operations
+            </span>
+            <span className="text-slate-300 dark:text-slate-700">•</span>
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+              Live Proctoring Hub
+            </span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+            Invigilator Proctoring Dashboard
+          </h1>
+          <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+            Monitor enrolled candidate attempt status, view multi-stream telemetry, and oversee in-session academic integrity.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2.5 self-start sm:self-auto">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={loadSessions}
+            disabled={loading}
+            className="text-xs h-9 gap-1.5 text-slate-700 dark:text-slate-300"
+          >
+            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
+            <span>Refresh</span>
+          </Button>
+        </div>
       </div>
 
       {error && (
-        <div
-          role="alert"
-          style={{
-            marginBottom: '1.5rem',
-            padding: '1rem',
-            borderRadius: 'var(--radius-md)',
-            backgroundColor: 'var(--color-danger-light)',
-            border: '1px solid var(--color-danger-border)',
-            color: 'var(--color-danger)',
-          }}
-        >
-          {error}
-        </div>
+        <Alert variant="destructive">
+          <AlertCircle size={16} />
+          <AlertTitle>Proctoring Sessions Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
 
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '4rem 0' }}>
-          <Spinner size="lg" label="Loading invigilation assignments..." />
+        <div className="py-20 text-center space-y-3">
+          <RefreshCw size={28} className="animate-spin mx-auto text-slate-400" />
+          <p className="text-sm font-medium text-slate-500">Loading invigilation assignments...</p>
         </div>
       ) : sessions.length === 0 ? (
-        <Card style={{ textAlign: 'center', padding: '3.5rem 1.5rem' }}>
-          <h3>No Assigned Invigilation Sessions</h3>
-          <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem', marginTop: '0.5rem' }}>
-            You do not currently have any proctoring duties assigned to your user account.
-          </p>
+        <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-center py-16 px-4">
+          <CardContent className="space-y-3 max-w-md mx-auto">
+            <Shield size={32} className="mx-auto text-slate-400 dark:text-slate-600 stroke-1" />
+            <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">No Assigned Invigilation Sessions</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              You do not currently have any proctoring duties assigned to your account. You will be alerted when new sessions are rostered.
+            </p>
+          </CardContent>
         </Card>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div className="grid gap-4">
           {sessions.map((sess) => {
             const sid = sess.session_id || sess.id || '';
             const sStart = sess.scheduled_start_time || sess.start_time;
             const sEnd = sess.scheduled_end_time || sess.end_time;
-            return (
-              <Card key={sid} padding="normal" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.375rem' }}>
-                    <h3 style={{ fontSize: '1.125rem', margin: 0 }}>
-                      {sess.exam_title || `Session #${sid.slice(0, 8)}`}
-                    </h3>
-                    <Badge variant={getStatusBadgeVariant(sess.status)}>{sess.status}</Badge>
-                  </div>
-                  <div style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)', display: 'flex', gap: '1.5rem' }}>
-                    <span>Room: <strong>{sess.room_name || 'Virtual / Unassigned'}</strong></span>
-                    <span>Start: <strong>{sStart ? new Date(sStart).toLocaleString() : 'N/A'}</strong></span>
-                    <span>End: <strong>{sEnd ? new Date(sEnd).toLocaleString() : 'N/A'}</strong></span>
-                  </div>
-                </div>
+            const isLive = sess.status === 'ACTIVE';
 
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => navigate(`/invigilator/sessions/${sid}`)}
-                >
-                  Launch Session Monitor &rarr;
-                </Button>
+            return (
+              <Card
+                key={sid}
+                className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:border-slate-300 dark:hover:border-slate-700 transition-colors"
+              >
+                <CardContent className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-5">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2.5">
+                      {getSessionStatusBadge(sess.status)}
+                      <span className="text-xs font-mono text-slate-400">
+                        #{sid.slice(0, 8)}
+                      </span>
+                    </div>
+
+                    <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight">
+                      {sess.exam_title || `Session ${sid.slice(0, 8)}`}
+                    </h2>
+
+                    <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-slate-600 dark:text-slate-400">
+                      <span className="flex items-center gap-1.5">
+                        <MapPin size={13} className="text-slate-400 dark:text-slate-500" />
+                        Room: <strong className="font-semibold text-slate-800 dark:text-slate-200">{sess.room_name || 'Virtual / Unassigned'}</strong>
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <Clock size={13} className="text-slate-400 dark:text-slate-500" />
+                        Start: <strong className="font-semibold text-slate-800 dark:text-slate-200">{sStart ? new Date(sStart).toLocaleString() : 'TBA'}</strong>
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <Clock size={13} className="text-slate-400 dark:text-slate-500" />
+                        End: <strong className="font-semibold text-slate-800 dark:text-slate-200">{sEnd ? new Date(sEnd).toLocaleString() : 'TBA'}</strong>
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2.5 shrink-0 self-end md:self-center">
+                    <Button
+                      variant={isLive ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => navigate(`/invigilator/sessions/${sid}`)}
+                      className={`gap-1.5 h-9 text-xs font-medium ${
+                        isLive
+                          ? 'bg-emerald-700 hover:bg-emerald-800 text-white'
+                          : ''
+                      }`}
+                    >
+                      <Eye size={13} />
+                      <span>Launch Session Monitor</span>
+                      <ArrowRight size={13} />
+                    </Button>
+                  </div>
+                </CardContent>
               </Card>
             );
           })}
@@ -107,3 +186,5 @@ export function InvigilatorDashboardPage() {
     </div>
   );
 }
+
+export default InvigilatorDashboardPage;
