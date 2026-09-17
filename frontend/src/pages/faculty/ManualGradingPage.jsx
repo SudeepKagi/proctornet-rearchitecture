@@ -1,15 +1,37 @@
 /**
  * @file ManualGradingPage.jsx
  * @description Faculty subjective evaluation workspace, rubric scoring, and score overrides.
- * Conforms to Phase 26 Track 1 Workstream C.
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card } from '../../components/common/Card.jsx';
-import { Button } from '../../components/common/Button.jsx';
-import { Badge } from '../../components/common/Badge.jsx';
-import { Spinner } from '../../components/common/Spinner.jsx';
+import {
+  ArrowLeft,
+  Award,
+  History,
+  Scale,
+  CheckCircle2,
+  AlertCircle,
+  Clock,
+  RefreshCw,
+  FileText,
+  Code,
+  Sparkles,
+} from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card.jsx';
+import { Button } from '../../components/ui/button.jsx';
+import { Badge } from '../../components/ui/badge.jsx';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog.jsx';
+import { Input } from '../../components/ui/input.jsx';
+import { Alert, AlertDescription, AlertTitle } from '../../components/ui/alert.jsx';
+import { Separator } from '../../components/ui/separator.jsx';
 import * as mgApi from '../../api/manualGradingApi.js';
 
 export function ManualGradingPage() {
@@ -48,10 +70,13 @@ export function ManualGradingPage() {
         data.breakdown.forEach((item) => {
           if (['SHORT_ANSWER', 'ESSAY', 'CODE'].includes(item.question_type)) {
             initial[item.question_id] = {
-              pointsAwarded: item.points_awarded !== null && item.points_awarded !== undefined ? item.points_awarded : 0,
+              pointsAwarded:
+                item.points_awarded !== null && item.points_awarded !== undefined
+                  ? item.points_awarded
+                  : 0,
               feedback: item.manual_grade?.feedback || '',
               rationale: '',
-              rubricScores: item.manual_grade?.rubric_breakdown || {}
+              rubricScores: item.manual_grade?.rubric_breakdown || {},
             };
           }
         });
@@ -79,8 +104,8 @@ export function ManualGradingPage() {
         [qId]: {
           ...currentQ,
           rubricScores: updatedRubric,
-          pointsAwarded: totalFromRubric
-        }
+          pointsAwarded: totalFromRubric,
+        },
       };
     });
   };
@@ -107,10 +132,10 @@ export function ManualGradingPage() {
         pointsAwarded: Number(state.pointsAwarded),
         rubricBreakdown: state.rubricScores,
         feedback: state.feedback,
-        rationale: state.rationale
+        rationale: state.rationale,
       });
 
-      setSuccessMsg('Grade recorded and exam score atomically recalculated.');
+      setSuccessMsg('Grade recorded and assessment score atomically recalculated.');
       await loadEvaluation();
     } catch (err) {
       setError(err.message || 'Failed to submit manual grade');
@@ -122,7 +147,7 @@ export function ManualGradingPage() {
     setLoadingAudits(true);
     try {
       const data = await mgApi.getGradeAudits(resultId);
-      setAudits(data);
+      setAudits(Array.isArray(data) ? data : []);
     } catch (err) {
       setError(err.message || 'Failed to load audit history');
     } finally {
@@ -141,12 +166,12 @@ export function ManualGradingPage() {
     try {
       await mgApi.overrideScore(resultId, {
         newScore: Number(overrideScore),
-        rationale: overrideRationale
+        rationale: overrideRationale,
       });
       setIsOverrideOpen(false);
       setOverrideScore('');
       setOverrideRationale('');
-      setSuccessMsg('Overall score override recorded.');
+      setSuccessMsg('Overall score override recorded successfully.');
       await loadEvaluation();
     } catch (err) {
       setError(err.message || 'Failed to override score');
@@ -157,324 +182,427 @@ export function ManualGradingPage() {
 
   if (loading) {
     return (
-      <div className="container" style={{ textAlign: 'center', padding: '4rem 0' }}>
-        <Spinner size="lg" label="Loading subjective evaluation workspace..." />
+      <div className="w-full max-w-5xl mx-auto py-20 text-center space-y-3">
+        <RefreshCw size={28} className="animate-spin mx-auto text-slate-400" />
+        <p className="text-sm font-medium text-slate-500">Loading subjective evaluation workspace...</p>
       </div>
     );
   }
 
   return (
-    <div className="container" style={{ padding: '2rem 1.5rem' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
-          <Button variant="secondary" size="sm" onClick={() => navigate(-1)} style={{ marginBottom: '0.5rem' }}>
-            &larr; Back
-          </Button>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--color-text-primary)' }}>
-            Subjective Grading Workspace
-          </h1>
-          <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>
-            Candidate: <strong>{evaluation?.candidate_name || 'Candidate'}</strong> | Exam: <strong>{evaluation?.exam_title || 'Assessment'}</strong>
-          </p>
-        </div>
+    <div className="w-full max-w-5xl mx-auto space-y-6 pb-12">
+      {/* Top Header */}
+      <div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => navigate(-1)}
+          className="text-xs h-8 gap-1.5 text-slate-700 dark:text-slate-300 mb-4"
+        >
+          <ArrowLeft size={13} />
+          <span>Back to Results</span>
+        </Button>
 
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
-          <Button variant="secondary" size="sm" onClick={handleLoadAudits}>
-            📜 Audit History
-          </Button>
-          <Button variant="secondary" size="sm" onClick={() => setIsOverrideOpen(true)}>
-            ⚖️ Override Total Score
-          </Button>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
+          <div>
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Subjective Evaluation
+              </span>
+              <span className="text-slate-300 dark:text-slate-700">•</span>
+              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                Rubric Scoring Workspace
+              </span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+              Manual Grading & Rubric Evaluation
+            </h1>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+              Candidate: <strong className="text-slate-800 dark:text-slate-200">{evaluation?.candidate_name || 'Candidate'}</strong> • Exam: <strong className="text-slate-800 dark:text-slate-200">{evaluation?.exam_title || 'Assessment'}</strong>
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleLoadAudits}
+              className="text-xs h-9 gap-1.5"
+            >
+              <History size={14} />
+              <span>Audit History</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsOverrideOpen(true)}
+              className="text-xs h-9 gap-1.5"
+            >
+              <Scale size={14} />
+              <span>Override Score</span>
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* Score Summary KPI Card */}
-      <Card padding="normal" style={{ marginBottom: '1.5rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', textAlign: 'center' }}>
-          <div>
-            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>
-              Current Total Score
-            </div>
-            <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-primary)' }}>
-              {evaluation?.score} / {evaluation?.total_marks}
-            </div>
-          </div>
-          <div>
-            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>
-              Percentage
-            </div>
-            <div style={{ fontSize: '2rem', fontWeight: 800 }}>
-              {evaluation?.percentage !== undefined ? `${Number(evaluation.percentage).toFixed(2)}%` : '—'}
-            </div>
-          </div>
-          <div>
-            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>
-              Evaluation Status
-            </div>
-            <div style={{ marginTop: '0.25rem' }}>
-              <Badge variant={evaluation?.needs_manual_grading ? 'warning' : 'success'}>
-                {evaluation?.needs_manual_grading ? 'NEEDS MANUAL GRADING' : 'FULLY EVALUATED'}
-              </Badge>
-            </div>
-          </div>
-        </div>
-      </Card>
-
+      {/* Global Alerts */}
       {error && (
-        <div style={{ padding: '0.75rem 1rem', marginBottom: '1.5rem', borderRadius: '0.5rem', backgroundColor: 'var(--color-danger-light)', border: '1px solid var(--color-danger-border)', color: 'var(--color-danger)', fontSize: '0.875rem' }}>
-          {error}
-        </div>
+        <Alert variant="destructive">
+          <AlertCircle size={16} />
+          <AlertTitle>Grading Notice</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
 
       {successMsg && (
-        <div style={{ padding: '0.75rem 1rem', marginBottom: '1.5rem', borderRadius: '0.5rem', backgroundColor: 'var(--color-success-light)', border: '1px solid var(--color-success-border)', color: 'var(--color-success)', fontSize: '0.875rem' }}>
-          {successMsg}
-        </div>
+        <Alert variant="success">
+          <CheckCircle2 size={16} />
+          <AlertTitle>Success</AlertTitle>
+          <AlertDescription>{successMsg}</AlertDescription>
+        </Alert>
       )}
 
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs text-center p-4">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            Total Score
+          </span>
+          <p className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1">
+            {evaluation?.score} <span className="text-sm font-normal text-slate-500">/ {evaluation?.total_marks}</span>
+          </p>
+        </Card>
+
+        <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs text-center p-4">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            Score Percentage
+          </span>
+          <p className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1">
+            {evaluation?.percentage !== undefined ? `${Number(evaluation.percentage).toFixed(2)}%` : '—'}
+          </p>
+        </Card>
+
+        <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs text-center p-4">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            Evaluation Status
+          </span>
+          <div className="mt-2">
+            <Badge variant={evaluation?.needs_manual_grading ? 'warning' : 'success'} size="default">
+              {evaluation?.needs_manual_grading ? 'Needs Manual Grading' : 'Fully Evaluated'}
+            </Badge>
+          </div>
+        </Card>
+      </div>
+
       {/* Questions Breakdown */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <div className="space-y-4">
         {evaluation?.breakdown?.map((item, idx) => {
           const isSubjective = ['SHORT_ANSWER', 'ESSAY', 'CODE'].includes(item.question_type);
-          const state = gradingState[item.question_id] || { pointsAwarded: 0, feedback: '', rationale: '', rubricScores: {} };
+          const state =
+            gradingState[item.question_id] || {
+              pointsAwarded: 0,
+              feedback: '',
+              rationale: '',
+              rubricScores: {},
+            };
 
           return (
-            <Card key={item.question_id} padding="normal">
-              {/* Question Header */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid var(--color-border-subtle)', paddingBottom: '0.75rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span style={{ fontWeight: 700, fontSize: '1rem' }}>Question {idx + 1}</span>
-                  <Badge variant="primary">{item.question_type}</Badge>
-                  <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)' }}>
-                    Max: {item.max_points} pt{item.max_points === 1 ? '' : 's'}
-                  </span>
-                </div>
-                <div>
-                  <Badge variant={item.points_awarded !== null ? 'success' : 'warning'}>
-                    {item.points_awarded !== null ? `Awarded: ${item.points_awarded} / ${item.max_points}` : 'Pending Evaluation'}
+            <Card
+              key={item.question_id}
+              className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs"
+            >
+              <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                      Question {idx + 1}
+                    </span>
+                    <Badge variant="outline" size="sm">
+                      {item.question_type}
+                    </Badge>
+                    <span className="text-xs text-slate-500">
+                      Max: {item.max_points} pts
+                    </span>
+                  </div>
+
+                  <Badge
+                    variant={item.points_awarded !== null ? 'success' : 'warning'}
+                    size="sm"
+                  >
+                    {item.points_awarded !== null
+                      ? `Awarded: ${item.points_awarded} / ${item.max_points} pts`
+                      : 'Pending Evaluation'}
                   </Badge>
                 </div>
-              </div>
+              </CardHeader>
 
-              {/* Prompt */}
-              <div style={{ fontSize: '0.9375rem', fontWeight: 500, marginBottom: '1rem', lineHeight: 1.5 }}>
-                {item.prompt}
-              </div>
+              <CardContent className="p-5 space-y-4">
+                <p className="text-sm font-medium text-slate-900 dark:text-slate-100 leading-relaxed">
+                  {item.prompt}
+                </p>
 
-              {/* Candidate Response */}
-              <div style={{ marginBottom: '1.25rem' }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
-                  Candidate Submitted Answer:
-                </div>
-                {item.question_type === 'CODE' ? (
-                  <pre style={{ padding: '1rem', borderRadius: '0.5rem', backgroundColor: '#0f172a', color: '#f8fafc', fontSize: '0.875rem', overflowX: 'auto', fontFamily: 'monospace' }}>
-                    {item.candidate_response || '(No code submitted)'}
-                  </pre>
-                ) : (
-                  <div style={{ padding: '0.75rem 1rem', borderRadius: '0.5rem', backgroundColor: 'var(--color-surface-secondary)', border: '1px solid var(--color-border-subtle)', fontSize: '0.9375rem', lineHeight: 1.6 }}>
-                    {item.candidate_response || '(No response recorded)'}
-                  </div>
-                )}
-              </div>
+                {/* Candidate Response Section */}
+                <div className="space-y-1.5">
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    Candidate Submitted Answer:
+                  </span>
 
-              {/* Subjective Grading Form */}
-              {isSubjective && (
-                <div style={{ backgroundColor: 'var(--color-surface-secondary)', padding: '1.25rem', borderRadius: '0.5rem', border: '1px solid var(--color-border-subtle)' }}>
-                  <h4 style={{ fontSize: '0.875rem', fontWeight: 700, marginBottom: '0.75rem', color: 'var(--color-text-primary)' }}>
-                    Subjective Rubric & Evaluation
-                  </h4>
-
-                  {/* Rubric Breakdown if defined */}
-                  {item.rubric?.criteria && item.rubric.criteria.length > 0 && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1rem' }}>
-                      <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)' }}>
-                        Criteria Rubric Breakdown:
-                      </div>
-                      {item.rubric.criteria.map((crit) => (
-                        <div key={crit.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', backgroundColor: 'var(--color-surface)', padding: '0.5rem 0.75rem', borderRadius: '0.375rem' }}>
-                          <div>
-                            <div style={{ fontSize: '0.8125rem', fontWeight: 600 }}>{crit.name}</div>
-                            {crit.description && (
-                              <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>{crit.description}</div>
-                            )}
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <input
-                              type="number"
-                              min="0"
-                              max={crit.max_points}
-                              value={state.rubricScores[crit.name] ?? 0}
-                              onChange={(e) => handleRubricScoreChange(item.question_id, crit.name, e.target.value, crit.max_points)}
-                              style={{ width: '60px', padding: '0.25rem', textAlign: 'center', borderRadius: '0.25rem', border: '1px solid var(--color-border-subtle)' }}
-                            />
-                            <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>/ {crit.max_points}</span>
-                          </div>
-                        </div>
-                      ))}
+                  {item.question_type === 'CODE' ? (
+                    <pre className="p-3.5 rounded-md bg-slate-950 text-slate-100 text-xs font-mono overflow-x-auto border border-slate-800">
+                      {item.candidate_response || '(No code submitted)'}
+                    </pre>
+                  ) : (
+                    <div className="p-3.5 rounded-md bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-200 leading-relaxed">
+                      {item.candidate_response || '(No response recorded)'}
                     </div>
                   )}
+                </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.25rem' }}>
-                        Points Awarded * (Max: {item.max_points})
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        max={item.max_points}
-                        step="0.5"
-                        value={state.pointsAwarded}
-                        onChange={(e) => {
-                          const val = Number(e.target.value);
-                          setGradingState((prev) => ({
-                            ...prev,
-                            [item.question_id]: { ...prev[item.question_id], pointsAwarded: val }
-                          }));
-                        }}
-                        style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--color-border-subtle)' }}
-                      />
+                {/* Subjective Grading Form */}
+                {isSubjective && (
+                  <div className="p-4 rounded-md bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 space-y-4">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                      Rubric Scoring & Auditor Rationale
+                    </h4>
+
+                    {/* Criteria Rubric Breakdown */}
+                    {item.rubric?.criteria && item.rubric.criteria.length > 0 && (
+                      <div className="space-y-2">
+                        <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">
+                          Rubric Criteria:
+                        </span>
+                        <div className="space-y-2">
+                          {item.rubric.criteria.map((crit) => (
+                            <div
+                              key={crit.name}
+                              className="flex items-center justify-between gap-4 p-2.5 rounded-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs"
+                            >
+                              <div>
+                                <strong className="font-semibold text-slate-800 dark:text-slate-200">
+                                  {crit.name}
+                                </strong>
+                                {crit.description && (
+                                  <p className="text-[11px] text-slate-500 mt-0.5">{crit.description}</p>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  max={crit.max_points}
+                                  value={state.rubricScores[crit.name] ?? 0}
+                                  onChange={(e) =>
+                                    handleRubricScoreChange(
+                                      item.question_id,
+                                      crit.name,
+                                      e.target.value,
+                                      crit.max_points
+                                    )
+                                  }
+                                  className="w-16 h-7 text-xs text-center"
+                                />
+                                <span className="text-xs text-slate-500">/ {crit.max_points}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                          Points Awarded * (Max: {item.max_points})
+                        </label>
+                        <Input
+                          type="number"
+                          min="0"
+                          max={item.max_points}
+                          step="0.5"
+                          value={state.pointsAwarded}
+                          onChange={(e) => {
+                            const val = Number(e.target.value);
+                            setGradingState((prev) => ({
+                              ...prev,
+                              [item.question_id]: { ...prev[item.question_id], pointsAwarded: val },
+                            }));
+                          }}
+                          className="h-8 text-xs"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                          Mandatory Rationale * (Audit Requirement)
+                        </label>
+                        <Input
+                          type="text"
+                          placeholder="Rationale for awarded credit / partial score..."
+                          value={state.rationale}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setGradingState((prev) => ({
+                              ...prev,
+                              [item.question_id]: { ...prev[item.question_id], rationale: val },
+                            }));
+                          }}
+                          className="h-8 text-xs"
+                        />
+                      </div>
                     </div>
 
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.25rem' }}>
-                        Mandatory Rationale * (Audit Requirement)
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                        Candidate Feedback (Visible after release)
                       </label>
-                      <input
-                        type="text"
-                        placeholder="Rationale for awarded credit / partial score..."
-                        value={state.rationale}
+                      <textarea
+                        rows={2}
+                        placeholder="Constructive feedback for candidate..."
+                        value={state.feedback}
                         onChange={(e) => {
                           const val = e.target.value;
                           setGradingState((prev) => ({
                             ...prev,
-                            [item.question_id]: { ...prev[item.question_id], rationale: val }
+                            [item.question_id]: { ...prev[item.question_id], feedback: val },
                           }));
                         }}
-                        style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--color-border-subtle)' }}
+                        className="w-full p-2 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-slate-100 focus:outline-hidden"
                       />
                     </div>
-                  </div>
 
-                  <div style={{ marginBottom: '1rem' }}>
-                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.25rem' }}>
-                      Candidate Feedback (Optional)
-                    </label>
-                    <textarea
-                      rows={2}
-                      placeholder="Feedback visible to candidate after results release..."
-                      value={state.feedback}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setGradingState((prev) => ({
-                          ...prev,
-                          [item.question_id]: { ...prev[item.question_id], feedback: val }
-                        }));
-                      }}
-                      style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--color-border-subtle)', fontSize: '0.8125rem' }}
-                    />
+                    <div className="flex justify-end pt-1">
+                      <Button
+                        size="sm"
+                        onClick={() => handleSubmitQuestionGrade(item.question_id, item.max_points)}
+                        className="text-xs h-8 bg-slate-900 text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900"
+                      >
+                        Save Question Grade
+                      </Button>
+                    </div>
                   </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onClick={() => handleSubmitQuestionGrade(item.question_id, item.max_points)}
-                    >
-                      Save Question Grade
-                    </Button>
-                  </div>
-                </div>
-              )}
+                )}
+              </CardContent>
             </Card>
           );
         })}
       </div>
 
-      {/* Audit History Modal */}
-      {isAuditsOpen && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <div style={{ maxWidth: '640px', width: '100%', maxHeight: '80vh', overflowY: 'auto', backgroundColor: 'var(--color-surface)', borderRadius: '0.75rem', padding: '1.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.3)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h3 style={{ fontSize: '1.125rem', fontWeight: 700 }}>Grading Audit History</h3>
-              <button onClick={() => setIsAuditsOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem' }}>✕</button>
+      {/* Audit History Dialog */}
+      <Dialog open={isAuditsOpen} onOpenChange={setIsAuditsOpen}>
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold">Grading Audit History</DialogTitle>
+            <DialogDescription className="text-xs text-slate-500 dark:text-slate-400">
+              Complete chronological ledger of score adjustments and reviewer rationales.
+            </DialogDescription>
+          </DialogHeader>
+
+          {loadingAudits ? (
+            <div className="py-12 text-center space-y-2">
+              <RefreshCw size={24} className="animate-spin mx-auto text-slate-400" />
+              <p className="text-xs text-slate-500">Loading audit logs...</p>
+            </div>
+          ) : audits.length === 0 ? (
+            <p className="py-8 text-center text-xs text-slate-500">
+              No manual grading audits recorded for this attempt.
+            </p>
+          ) : (
+            <div className="max-h-80 overflow-y-auto space-y-2 divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+              {audits.map((a, idx) => (
+                <div key={idx} className="pt-2 space-y-1">
+                  <div className="flex items-center justify-between text-slate-500">
+                    <span className="font-semibold text-slate-800 dark:text-slate-200">
+                      Evaluator: {a.grader_name || a.grader_user_id || 'Staff'}
+                    </span>
+                    <span>{new Date(a.created_at).toLocaleString()}</span>
+                  </div>
+                  <div className="text-slate-700 dark:text-slate-300">
+                    Score Adjustment: {a.old_score ?? 0} &rarr; <strong className="font-bold">{a.new_score}</strong>
+                  </div>
+                  <div className="text-slate-500 italic">
+                    Rationale: {a.rationale}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <DialogFooter className="pt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsAuditsOpen(false)}
+              className="h-9 text-xs"
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Score Override Dialog */}
+      <Dialog open={isOverrideOpen} onOpenChange={setIsOverrideOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold">Override Total Score</DialogTitle>
+            <DialogDescription className="text-xs text-slate-500 dark:text-slate-400">
+              Directly adjust candidate total score with mandatory institutional rationale and immutable audit logging.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSubmitOverride} className="space-y-4 pt-1">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                New Total Score *
+              </label>
+              <Input
+                required
+                type="number"
+                step="0.5"
+                max={evaluation?.total_marks}
+                value={overrideScore}
+                onChange={(e) => setOverrideScore(e.target.value)}
+                placeholder={`Current: ${evaluation?.score}`}
+                className="h-9 text-xs"
+              />
             </div>
 
-            {loadingAudits ? (
-              <div style={{ textAlign: 'center', padding: '2rem 0' }}>
-                <Spinner size="md" label="Loading audit logs..." />
-              </div>
-            ) : audits.length === 0 ? (
-              <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem', textAlign: 'center', padding: '2rem 0' }}>
-                No manual grading audits recorded for this attempt.
-              </p>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {audits.map((a, idx) => (
-                  <div key={idx} style={{ padding: '0.75rem', borderRadius: '0.5rem', backgroundColor: 'var(--color-surface-secondary)', border: '1px solid var(--color-border-subtle)', fontSize: '0.8125rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                      <span style={{ fontWeight: 600 }}>Grader: {a.grader_name || a.grader_user_id || 'Staff'}</span>
-                      <span style={{ color: 'var(--color-text-muted)' }}>{new Date(a.created_at).toLocaleString()}</span>
-                    </div>
-                    <div>Score Shift: {a.old_score ?? 0} &rarr; <strong>{a.new_score}</strong></div>
-                    <div style={{ color: 'var(--color-text-muted)', marginTop: '0.25rem' }}>Rationale: {a.rationale}</div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                Mandatory Institutional Rationale *
+              </label>
+              <textarea
+                required
+                rows={3}
+                value={overrideRationale}
+                onChange={(e) => setOverrideRationale(e.target.value)}
+                placeholder="State formal reason for administrative score adjustment..."
+                className="w-full p-2.5 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-slate-100 focus:outline-hidden"
+              />
+            </div>
 
-      {/* Score Override Modal */}
-      {isOverrideOpen && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <div style={{ maxWidth: '480px', width: '100%', backgroundColor: 'var(--color-surface)', borderRadius: '0.75rem', padding: '1.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.3)' }}>
-            <h3 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '0.75rem' }}>Override Total Score</h3>
-            <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)', marginBottom: '1rem' }}>
-              Directly adjust candidate total score with mandatory institutional rationale and immutable audit logging.
-            </p>
-
-            <form onSubmit={handleSubmitOverride} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.25rem' }}>New Total Score *</label>
-                <input
-                  required
-                  type="number"
-                  step="0.5"
-                  max={evaluation?.total_marks}
-                  value={overrideScore}
-                  onChange={(e) => setOverrideScore(e.target.value)}
-                  placeholder={`Current: ${evaluation?.score}`}
-                  style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--color-border-subtle)' }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.25rem' }}>Mandatory Institutional Rationale *</label>
-                <textarea
-                  required
-                  rows={3}
-                  value={overrideRationale}
-                  onChange={(e) => setOverrideRationale(e.target.value)}
-                  placeholder="State reason for administrative score adjustment..."
-                  style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--color-border-subtle)' }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
-                <Button variant="secondary" size="sm" type="button" onClick={() => setIsOverrideOpen(false)}>
-                  Cancel
-                </Button>
-                <Button variant="danger" size="sm" type="submit" disabled={submittingOverride}>
-                  {submittingOverride ? 'Recording...' : 'Confirm Override'}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+            <DialogFooter className="gap-2 pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                type="button"
+                onClick={() => setIsOverrideOpen(false)}
+                className="h-9 text-xs"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                disabled={submittingOverride}
+                className="h-9 text-xs bg-red-600 hover:bg-red-700 text-white"
+              >
+                {submittingOverride ? 'Recording...' : 'Confirm Override'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

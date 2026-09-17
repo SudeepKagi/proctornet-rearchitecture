@@ -1,16 +1,49 @@
 /**
  * @file ExamEditorPage.jsx
- * @description Exam authoring page for blueprint metadata, topic question rules, and publishing.
+ * @description Exam authoring page for blueprint metadata, topic question rules, inventory validation, and publishing.
  */
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import {
+  ArrowLeft,
+  CheckCircle2,
+  AlertTriangle,
+  AlertCircle,
+  Plus,
+  Trash2,
+  RefreshCw,
+  Search,
+  BookOpen,
+  Clock,
+  Award,
+  Layers,
+  Sparkles,
+  Lock,
+} from 'lucide-react';
 import * as examsApi from '../../api/examsApi.js';
-import { Card } from '../../components/common/Card.jsx';
-import { Button } from '../../components/common/Button.jsx';
-import { Input } from '../../components/common/Input.jsx';
-import { Badge, getStatusBadgeVariant } from '../../components/common/Badge.jsx';
-import { Spinner } from '../../components/common/Spinner.jsx';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card.jsx';
+import { Button } from '../../components/ui/button.jsx';
+import { Input } from '../../components/ui/input.jsx';
+import { Badge } from '../../components/ui/badge.jsx';
+import { Alert, AlertDescription, AlertTitle } from '../../components/ui/alert.jsx';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table.jsx';
+import { Separator } from '../../components/ui/separator.jsx';
+
+function getStatusBadge(status) {
+  switch (status) {
+    case 'DRAFT':
+      return <Badge variant="secondary">Draft Blueprint</Badge>;
+    case 'PUBLISHED':
+      return <Badge variant="success">Published & Locked</Badge>;
+    case 'ACTIVE':
+      return <Badge variant="success">Active Session</Badge>;
+    case 'COMPLETED':
+      return <Badge variant="outline">Concluded</Badge>;
+    default:
+      return <Badge variant="outline">{status}</Badge>;
+  }
+}
 
 export function ExamEditorPage() {
   const { examId } = useParams();
@@ -35,6 +68,7 @@ export function ExamEditorPage() {
   const loadExam = useCallback(async () => {
     try {
       setLoading(true);
+      setError('');
       const data = await examsApi.getExam(examId);
       setExam(data);
     } catch (err) {
@@ -68,7 +102,7 @@ export function ExamEditorPage() {
 
     try {
       await examsApi.addTopicRule(examId, {
-        topic,
+        topic: topic.trim(),
         question_count: parseInt(questionCount, 10),
         difficulty,
         bloom_level: bloomLevel,
@@ -109,20 +143,23 @@ export function ExamEditorPage() {
 
   if (loading) {
     return (
-      <div className="container" style={{ textAlign: 'center', padding: '4rem 0' }}>
-        <Spinner size="lg" label="Loading exam blueprint..." />
+      <div className="w-full max-w-5xl mx-auto py-20 text-center space-y-3">
+        <RefreshCw size={28} className="animate-spin mx-auto text-slate-400" />
+        <p className="text-sm font-medium text-slate-500">Loading exam blueprint details...</p>
       </div>
     );
   }
 
   if (!exam) {
     return (
-      <div className="container" style={{ maxWidth: '600px' }}>
-        <Card style={{ textAlign: 'center', padding: '2rem' }}>
-          <h2>Exam Not Found</h2>
-          <Button onClick={() => navigate('/faculty')} style={{ marginTop: '1rem' }}>
-            Return to Exams
-          </Button>
+      <div className="w-full max-w-lg mx-auto py-16">
+        <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-center p-8 space-y-4">
+          <AlertCircle size={36} className="mx-auto text-slate-400 stroke-1" />
+          <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Exam Blueprint Not Found</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            The requested examination blueprint does not exist or has been removed.
+          </p>
+          <Button onClick={() => navigate('/faculty')}>Return to Faculty Dashboard</Button>
         </Card>
       </div>
     );
@@ -137,283 +174,359 @@ export function ExamEditorPage() {
   const isPointsBalanced = totalRulePoints === exam.total_marks;
 
   return (
-    <div className="container">
-      <div style={{ marginBottom: '1.5rem' }}>
-        <Button variant="secondary" size="sm" onClick={() => navigate('/faculty')} style={{ marginBottom: '1rem' }}>
-          &larr; Back to Faculty Dashboard
+    <div className="w-full max-w-6xl mx-auto space-y-6 pb-12">
+      {/* Back Button */}
+      <div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => navigate('/faculty')}
+          className="text-xs h-8 gap-1.5 text-slate-700 dark:text-slate-300"
+        >
+          <ArrowLeft size={13} />
+          <span>Back to Faculty Dashboard</span>
         </Button>
+      </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <h1 style={{ fontSize: '1.75rem', fontWeight: 700 }}>{exam.title}</h1>
-            <Badge variant={getStatusBadgeVariant(exam.status)}>
-              {exam.status}
-            </Badge>
+      {/* Blueprint Header */}
+      <div className="border-b border-slate-200 dark:border-slate-800 pb-5">
+        <div className="flex items-center gap-2 mb-1.5">
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            Blueprint Authoring
+          </span>
+          <span className="text-slate-300 dark:text-slate-700">•</span>
+          <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+            Assessment Specification
+          </span>
+        </div>
+
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+              {exam.title}
+            </h1>
+            {getStatusBadge(exam.status)}
           </div>
 
-          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          <div className="flex items-center gap-2.5">
             <Button
-              variant="secondary"
+              variant="outline"
               size="sm"
-              loading={validating}
+              disabled={validating}
               onClick={handleValidateBlueprint}
+              className="text-xs h-9 gap-1.5"
             >
-              🔍 Validate Blueprint Inventory
+              {validating ? <RefreshCw size={13} className="animate-spin" /> : <Search size={13} />}
+              <span>Validate Inventory</span>
             </Button>
+
             {isDraft && (
               <Button
-                variant="success"
+                size="sm"
                 disabled={!isPointsBalanced || rules.length === 0 || publishing}
-                loading={publishing}
                 onClick={handlePublish}
+                className="text-xs h-9 gap-1.5 bg-emerald-700 hover:bg-emerald-800 text-white"
               >
-                Publish & Freeze Blueprint
+                {publishing ? <RefreshCw size={13} className="animate-spin" /> : <Lock size={13} />}
+                <span>Publish Blueprint</span>
               </Button>
             )}
           </div>
         </div>
       </div>
 
+      {/* Action Error Alert */}
+      {actionError && (
+        <Alert variant="destructive">
+          <AlertCircle size={16} />
+          <AlertTitle>Action Failed</AlertTitle>
+          <AlertDescription>{actionError}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* Inventory Validation Card */}
       {validationResult && (
-        <Card padding="compact" style={{ marginBottom: '1.5rem', borderLeft: `4px solid ${validationResult.valid ? 'var(--color-success)' : 'var(--color-warning)'}` }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: '0.9375rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span>{validationResult.valid ? '✅ Blueprint Inventory Verified' : '⚠️ Blueprint Inventory Deficient'}</span>
-                <Badge variant={validationResult.valid ? 'success' : 'warning'}>
+        <Alert
+          variant={validationResult.valid ? 'success' : 'warning'}
+          className="border-l-4"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                {validationResult.valid ? <CheckCircle2 size={16} /> : <AlertTriangle size={16} />}
+                <AlertTitle className="text-sm font-semibold">
+                  {validationResult.valid ? 'Blueprint Inventory Verified' : 'Blueprint Inventory Deficient'}
+                </AlertTitle>
+                <Badge variant={validationResult.valid ? 'success' : 'warning'} size="sm">
                   {validationResult.valid ? 'ALL RULES SATISFIED' : 'DEFICIENCIES DETECTED'}
                 </Badge>
               </div>
-              <div style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)', marginTop: '0.25rem' }}>
-                Required: {validationResult.summary?.total_required_questions || 0} questions • Pool Available: {validationResult.summary?.total_pool_questions || 0} questions
-              </div>
+
+              <AlertDescription className="text-xs">
+                Required Pool Questions: {validationResult.summary?.total_required_questions || 0} • Available in Pool: {validationResult.summary?.total_pool_questions || 0}
+              </AlertDescription>
+
+              {!validationResult.valid && validationResult.deficiencies && validationResult.deficiencies.length > 0 && (
+                <div className="pt-2 text-xs">
+                  <span className="font-semibold text-red-800 dark:text-red-300">Shortfalls:</span>
+                  <ul className="list-disc pl-5 mt-1 space-y-0.5 text-slate-700 dark:text-slate-300">
+                    {validationResult.deficiencies.map((d, i) => (
+                      <li key={i}>
+                        Topic &quot;{d.topic}&quot; ({d.difficulty}): requires {d.required_count}, but question pool only has {d.available_count} (shortfall of {d.shortfall}).
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
-            <button
+
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => setValidationResult(null)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)' }}
+              className="h-7 w-7 p-0 text-slate-500 hover:text-slate-900"
             >
               ✕
-            </button>
+            </Button>
           </div>
-          {!validationResult.valid && validationResult.deficiencies && validationResult.deficiencies.length > 0 && (
-            <div style={{ marginTop: '0.75rem', fontSize: '0.8125rem', color: 'var(--color-danger)' }}>
-              <strong>Deficiencies:</strong>
-              <ul style={{ margin: '0.25rem 0 0 1.25rem' }}>
-                {validationResult.deficiencies.map((d, i) => (
-                  <li key={i}>
-                    Topic &quot;{d.topic}&quot; ({d.difficulty}): requires {d.required_count}, but question pool only has {d.available_count} (shortfall of {d.shortfall}).
-                  </li>
-                ))}
-              </ul>
+        </Alert>
+      )}
+
+      {/* Blueprint Parameters Card */}
+      <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
+        <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <BookOpen size={16} className="text-slate-600 dark:text-slate-400" />
+            Blueprint Configuration
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-5">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+            <div className="space-y-0.5">
+              <span className="text-slate-500 dark:text-slate-400">Subject</span>
+              <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                {exam.subject || exam.subject_name || 'Assigned Subject'}
+              </p>
             </div>
-          )}
-        </Card>
-      )}
-
-      {actionError && (
-        <div
-          role="alert"
-          style={{
-            marginBottom: '1.5rem',
-            padding: '1rem',
-            borderRadius: 'var(--radius-md)',
-            backgroundColor: 'var(--color-danger-light)',
-            border: '1px solid var(--color-danger-border)',
-            color: 'var(--color-danger)',
-          }}
-        >
-          {actionError}
-        </div>
-      )}
-
-      {/* Blueprint Metadata Overview */}
-      <Card style={{ marginBottom: '1.5rem' }}>
-        <h3 style={{ fontSize: '1.125rem', marginBottom: '1rem' }}>Blueprint Configuration</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', fontSize: '0.875rem' }}>
-          <div>
-            <span style={{ color: 'var(--color-text-muted)' }}>Subject:</span>{' '}
-            <strong>{exam.subject}</strong>
+            <div className="space-y-0.5">
+              <span className="text-slate-500 dark:text-slate-400">Duration</span>
+              <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-1">
+                <Clock size={13} className="text-slate-400" />
+                {exam.duration_minutes} Minutes
+              </p>
+            </div>
+            <div className="space-y-0.5">
+              <span className="text-slate-500 dark:text-slate-400">Total Marks</span>
+              <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-1">
+                <Award size={13} className="text-slate-400" />
+                {exam.total_marks} Marks
+              </p>
+            </div>
+            <div className="space-y-0.5">
+              <span className="text-slate-500 dark:text-slate-400">Passing Threshold</span>
+              <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                {exam.passing_marks} Marks ({((exam.passing_marks / (exam.total_marks || 1)) * 100).toFixed(0)}%)
+              </p>
+            </div>
           </div>
-          <div>
-            <span style={{ color: 'var(--color-text-muted)' }}>Duration:</span>{' '}
-            <strong>{exam.duration_minutes} Minutes</strong>
-          </div>
-          <div>
-            <span style={{ color: 'var(--color-text-muted)' }}>Total Marks:</span>{' '}
-            <strong>{exam.total_marks}</strong>
-          </div>
-          <div>
-            <span style={{ color: 'var(--color-text-muted)' }}>Passing Threshold:</span>{' '}
-            <strong>{exam.passing_marks} Marks</strong>
-          </div>
-        </div>
+        </CardContent>
       </Card>
 
-      {/* Topic Question Rules */}
-      <Card style={{ marginBottom: '1.5rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-          <h3 style={{ fontSize: '1.125rem', margin: 0 }}>Topic Question Allocation Rules</h3>
-          <div style={{ fontSize: '0.875rem' }}>
-            Total Allocated Points:{' '}
-            <strong style={{ color: isPointsBalanced ? 'var(--color-success)' : 'var(--color-danger)' }}>
-              {totalRulePoints} / {exam.total_marks}
-            </strong>
-          </div>
-        </div>
-
-        {rules.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '2rem 0', color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>
-            No topic rules configured yet. Add rules below to compose the examination blueprint.
-          </div>
-        ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
-            <thead>
-              <tr style={{ borderBottom: '2px solid var(--color-border-subtle)', color: 'var(--color-text-muted)' }}>
-                <th style={{ padding: '0.75rem 0.5rem' }}>Topic</th>
-                <th style={{ padding: '0.75rem 0.5rem' }}>Difficulty</th>
-                <th style={{ padding: '0.75rem 0.5rem' }}>Count</th>
-                <th style={{ padding: '0.75rem 0.5rem' }}>Points / Q</th>
-                <th style={{ padding: '0.75rem 0.5rem' }}>Subtotal</th>
-                {isDraft && <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>Actions</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {rules.map((rule) => (
-                <tr key={rule.id} style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
-                  <td style={{ padding: '0.75rem 0.5rem', fontWeight: 500 }}>{rule.topic}</td>
-                  <td style={{ padding: '0.75rem 0.5rem' }}>
-                    <Badge variant="neutral" size="sm">{rule.difficulty}</Badge>
-                  </td>
-                  <td style={{ padding: '0.75rem 0.5rem' }}>{rule.question_count}</td>
-                  <td style={{ padding: '0.75rem 0.5rem' }}>{rule.points_per_question}</td>
-                  <td style={{ padding: '0.75rem 0.5rem', fontWeight: 600 }}>
-                    {rule.question_count * rule.points_per_question}
-                  </td>
-                  {isDraft && (
-                    <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        onClick={() => handleDeleteRule(rule.id)}
-                      >
-                        Remove
-                      </Button>
-                    </td>
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-
-        {/* Add Topic Rule Form (Draft Only) */}
-        {isDraft && (
-          <form
-            onSubmit={handleAddRule}
-            style={{
-              marginTop: '1.5rem',
-              paddingTop: '1.5rem',
-              borderTop: '1px solid var(--color-border-subtle)',
-              display: 'grid',
-              gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr auto',
-              gap: '0.75rem',
-              alignItems: 'end',
-            }}
-          >
-            <Input
-              id="rule-topic"
-              label="Topic Name"
-              value={topic}
-              onChange={(e) => setTopic(e.target.value)}
-              placeholder="e.g. Binary Search Trees"
-              required
-            />
-
+      {/* Topic Allocation Rules */}
+      <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
+        <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
-              <label
-                htmlFor="rule-difficulty"
-                style={{ display: 'block', marginBottom: '0.375rem', fontSize: '0.875rem', fontWeight: 500 }}
-              >
-                Difficulty
-              </label>
-              <select
-                id="rule-difficulty"
-                value={difficulty}
-                onChange={(e) => setDifficulty(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '0.5rem 0.75rem',
-                  fontSize: '0.9375rem',
-                  border: '1px solid var(--color-border-subtle)',
-                  borderRadius: 'var(--radius-sm)',
-                  backgroundColor: 'var(--color-surface)',
-                  marginBottom: '1rem',
-                }}
-              >
-                <option value="EASY">EASY</option>
-                <option value="MEDIUM">MEDIUM</option>
-                <option value="HARD">HARD</option>
-              </select>
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <Layers size={16} className="text-slate-600 dark:text-slate-400" />
+                Topic Question Allocation Rules
+              </CardTitle>
+              <CardDescription className="text-xs mt-0.5">
+                Rules govern the dynamic sampling of questions from the pool when attempts are generated.
+              </CardDescription>
             </div>
 
-            <div>
-              <label
-                htmlFor="rule-bloom"
-                style={{ display: 'block', marginBottom: '0.375rem', fontSize: '0.875rem', fontWeight: 500 }}
-              >
-                Bloom Level
-              </label>
-              <select
-                id="rule-bloom"
-                value={bloomLevel}
-                onChange={(e) => setBloomLevel(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '0.5rem 0.75rem',
-                  fontSize: '0.9375rem',
-                  border: '1px solid var(--color-border-subtle)',
-                  borderRadius: 'var(--radius-sm)',
-                  backgroundColor: 'var(--color-surface)',
-                  marginBottom: '1rem',
-                }}
-              >
-                <option value="REMEMBER">REMEMBER</option>
-                <option value="UNDERSTAND">UNDERSTAND</option>
-                <option value="APPLY">APPLY</option>
-                <option value="ANALYZE">ANALYZE</option>
-                <option value="EVALUATE">EVALUATE</option>
-                <option value="CREATE">CREATE</option>
-              </select>
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-slate-500 dark:text-slate-400">Allocated Points:</span>
+              <Badge variant={isPointsBalanced ? 'success' : 'destructive'} size="sm">
+                {totalRulePoints} / {exam.total_marks} Marks
+              </Badge>
             </div>
+          </div>
+        </CardHeader>
 
-            <Input
-              id="rule-count"
-              label="Question Count"
-              type="number"
-              min="1"
-              value={questionCount}
-              onChange={(e) => setQuestionCount(e.target.value)}
-              required
-            />
-
-            <Input
-              id="rule-points"
-              label="Points per Question"
-              type="number"
-              min="1"
-              value={pointsPerQuestion}
-              onChange={(e) => setPointsPerQuestion(e.target.value)}
-              required
-            />
-
-            <div style={{ marginBottom: '1rem' }}>
-              <Button type="submit" variant="primary" loading={addingRule}>
-                + Add Rule
-              </Button>
+        <CardContent className="p-0">
+          {rules.length === 0 ? (
+            <div className="text-center py-12 px-4 text-xs text-slate-500 dark:text-slate-400 space-y-1">
+              <Layers size={28} className="mx-auto text-slate-400 dark:text-slate-600 stroke-1 mb-2" />
+              <p className="font-semibold text-slate-800 dark:text-slate-200">No topic rules defined yet</p>
+              <p>Add topic rules below to define question count and difficulty mix for this blueprint.</p>
             </div>
-          </form>
-        )}
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[30%]">Topic / Domain</TableHead>
+                    <TableHead className="w-[15%]">Difficulty</TableHead>
+                    <TableHead className="w-[15%]">Cognitive Level</TableHead>
+                    <TableHead className="w-[12%]">Questions</TableHead>
+                    <TableHead className="w-[12%]">Points / Q</TableHead>
+                    <TableHead className="w-[10%]">Subtotal</TableHead>
+                    {isDraft && <TableHead className="w-[6%] text-right">Action</TableHead>}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {rules.map((rule) => {
+                    const subtotal = rule.question_count * rule.points_per_question;
+                    return (
+                      <TableRow key={rule.id} className="h-12">
+                        <TableCell className="font-semibold text-slate-900 dark:text-slate-100 text-xs">
+                          {rule.topic}
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          <Badge variant="outline" size="sm">
+                            {rule.difficulty}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-xs text-slate-600 dark:text-slate-400">
+                          {rule.bloom_level || 'APPLY'}
+                        </TableCell>
+                        <TableCell className="text-xs text-slate-800 dark:text-slate-200 font-medium">
+                          {rule.question_count}
+                        </TableCell>
+                        <TableCell className="text-xs text-slate-600 dark:text-slate-400">
+                          {rule.points_per_question} pts
+                        </TableCell>
+                        <TableCell className="text-xs font-bold text-slate-900 dark:text-slate-100">
+                          {subtotal} pts
+                        </TableCell>
+                        {isDraft && (
+                          <TableCell className="text-right">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteRule(rule.id)}
+                              className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30"
+                            >
+                              <Trash2 size={13} />
+                            </Button>
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+
+          {/* Add Rule Form (Draft Only) */}
+          {isDraft && (
+            <div className="p-5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-1.5">
+                <Plus size={14} />
+                Add Topic Rule Specification
+              </h4>
+
+              <form onSubmit={handleAddRule} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-3">
+                <div className="md:col-span-2 space-y-1">
+                  <label htmlFor="rule-topic" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                    Topic Name *
+                  </label>
+                  <Input
+                    id="rule-topic"
+                    value={topic}
+                    onChange={(e) => setTopic(e.target.value)}
+                    placeholder="e.g. Asymptotic Analysis"
+                    required
+                    className="h-8 text-xs"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label htmlFor="rule-difficulty" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                    Difficulty
+                  </label>
+                  <select
+                    id="rule-difficulty"
+                    value={difficulty}
+                    onChange={(e) => setDifficulty(e.target.value)}
+                    className="w-full h-8 px-2 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-slate-100 focus:outline-hidden"
+                  >
+                    <option value="EASY">EASY</option>
+                    <option value="MEDIUM">MEDIUM</option>
+                    <option value="HARD">HARD</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label htmlFor="rule-bloom" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                    Bloom Level
+                  </label>
+                  <select
+                    id="rule-bloom"
+                    value={bloomLevel}
+                    onChange={(e) => setBloomLevel(e.target.value)}
+                    className="w-full h-8 px-2 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-slate-100 focus:outline-hidden"
+                  >
+                    <option value="REMEMBER">REMEMBER</option>
+                    <option value="UNDERSTAND">UNDERSTAND</option>
+                    <option value="APPLY">APPLY</option>
+                    <option value="ANALYZE">ANALYZE</option>
+                    <option value="EVALUATE">EVALUATE</option>
+                    <option value="CREATE">CREATE</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label htmlFor="rule-count" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                    Questions
+                  </label>
+                  <Input
+                    id="rule-count"
+                    type="number"
+                    min="1"
+                    value={questionCount}
+                    onChange={(e) => setQuestionCount(e.target.value)}
+                    required
+                    className="h-8 text-xs"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label htmlFor="rule-points" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                    Points / Q
+                  </label>
+                  <Input
+                    id="rule-points"
+                    type="number"
+                    min="1"
+                    value={pointsPerQuestion}
+                    onChange={(e) => setPointsPerQuestion(e.target.value)}
+                    required
+                    className="h-8 text-xs"
+                  />
+                </div>
+
+                <div className="md:col-span-6 flex justify-end pt-2">
+                  <Button
+                    type="submit"
+                    size="sm"
+                    disabled={addingRule}
+                    className="h-8 text-xs gap-1.5 bg-slate-900 hover:bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200"
+                  >
+                    {addingRule && <RefreshCw size={13} className="animate-spin" />}
+                    <span>Add Topic Rule</span>
+                  </Button>
+                </div>
+              </form>
+            </div>
+          )}
+        </CardContent>
       </Card>
     </div>
   );
 }
+
+export default ExamEditorPage;

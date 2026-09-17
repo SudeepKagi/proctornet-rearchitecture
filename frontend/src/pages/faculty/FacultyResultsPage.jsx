@@ -2,18 +2,58 @@
  * @file FacultyResultsPage.jsx
  * @description Staff results portal with KPI summary cards, candidate scores, manual grading entry points,
  * psychometric analytics (item difficulty P-value, discrimination index Di/r_pbis, 10-bin score histograms),
- * and release policies. Conforms to Phase 26 Track 1 Workstream D.
+ * and release policies.
  */
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import {
+  ArrowLeft,
+  Award,
+  Users,
+  CheckCircle2,
+  XCircle,
+  BarChart3,
+  Calendar,
+  Layers,
+  RefreshCw,
+  Clock,
+  Send,
+  SlidersHorizontal,
+  AlertCircle,
+  ChevronRight,
+  TrendingUp,
+} from 'lucide-react';
 import * as resultsApi from '../../api/resultsApi.js';
 import * as examsApi from '../../api/examsApi.js';
-import { Card } from '../../components/common/Card.jsx';
-import { Button } from '../../components/common/Button.jsx';
-import { Badge, getStatusBadgeVariant } from '../../components/common/Badge.jsx';
-import { Modal } from '../../components/common/Modal.jsx';
-import { Spinner } from '../../components/common/Spinner.jsx';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card.jsx';
+import { Button } from '../../components/ui/button.jsx';
+import { Badge } from '../../components/ui/badge.jsx';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog.jsx';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs.jsx';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table.jsx';
+import { Alert, AlertDescription, AlertTitle } from '../../components/ui/alert.jsx';
+import { Input } from '../../components/ui/input.jsx';
+
+function getExamStatusBadge(status) {
+  switch (status) {
+    case 'RESULT_PUBLISHED':
+      return <Badge variant="success">Results Published</Badge>;
+    case 'COMPLETED':
+      return <Badge variant="outline">Exam Concluded</Badge>;
+    case 'ACTIVE':
+      return <Badge variant="default">Active Exam</Badge>;
+    default:
+      return <Badge variant="secondary">{status || 'Draft'}</Badge>;
+  }
+}
 
 export function FacultyResultsPage() {
   const { examId } = useParams();
@@ -26,7 +66,7 @@ export function FacultyResultsPage() {
   const [loading, setLoading] = useState(true);
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
   const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState('roster'); // 'roster' | 'analytics'
+  const [activeTab, setActiveTab] = useState('roster');
 
   // Publication Modal
   const [isPublishOpen, setIsPublishOpen] = useState(false);
@@ -43,6 +83,7 @@ export function FacultyResultsPage() {
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
+      setError('');
       const [examData, summaryData, resultsData] = await Promise.all([
         examsApi.getExam(examId),
         resultsApi.getExamResultsSummary(examId).catch(() => null),
@@ -50,7 +91,7 @@ export function FacultyResultsPage() {
       ]);
       setExam(examData);
       setSummary(summaryData);
-      setResults(resultsData);
+      setResults(Array.isArray(resultsData) ? resultsData : []);
       if (examData?.results_release_policy) {
         setPolicyType(examData.results_release_policy);
       }
@@ -119,432 +160,564 @@ export function FacultyResultsPage() {
 
   if (loading) {
     return (
-      <div className="container" style={{ textAlign: 'center', padding: '4rem 0' }}>
-        <Spinner size="lg" label="Loading examination results..." />
+      <div className="w-full max-w-5xl mx-auto py-20 text-center space-y-3">
+        <RefreshCw size={28} className="animate-spin mx-auto text-slate-400" />
+        <p className="text-sm font-medium text-slate-500">Loading examination results and evaluation data...</p>
       </div>
     );
   }
 
   return (
-    <div className="container">
-      <div style={{ marginBottom: '1.5rem' }}>
-        <Button variant="secondary" size="sm" onClick={() => navigate('/faculty')} style={{ marginBottom: '1rem' }}>
-          &larr; Back to Exams
+    <div className="w-full max-w-6xl mx-auto space-y-6 pb-12">
+      {/* Back Button */}
+      <div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => navigate('/faculty')}
+          className="text-xs h-8 gap-1.5 text-slate-700 dark:text-slate-300"
+        >
+          <ArrowLeft size={13} />
+          <span>Back to Faculty Dashboard</span>
         </Button>
+      </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+      {/* Header */}
+      <div className="border-b border-slate-200 dark:border-slate-800 pb-5">
+        <div className="flex items-center gap-2 mb-1.5">
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            Assessment Analytics
+          </span>
+          <span className="text-slate-300 dark:text-slate-700">•</span>
+          <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+            Results & Scoring Summary
+          </span>
+        </div>
+
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
-              <h1 style={{ fontSize: '1.75rem', fontWeight: 700 }}>{exam?.title || 'Exam Results'}</h1>
-              <Badge variant={getStatusBadgeVariant(exam?.status)}>{exam?.status}</Badge>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+                {exam?.title || 'Exam Results'}
+              </h1>
+              {getExamStatusBadge(exam?.status)}
             </div>
-            <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9375rem' }}>
-              Policy: <strong>{exam?.results_release_policy || 'IMMEDIATE'}</strong>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-2">
+              <span>Release Policy: <strong className="font-semibold text-slate-700 dark:text-slate-300">{exam?.results_release_policy || 'IMMEDIATE'}</strong></span>
+              <span>•</span>
+              <span>Total Marks: <strong className="font-semibold text-slate-700 dark:text-slate-300">{exam?.total_marks || 100}</strong></span>
+              <span>•</span>
+              <span>Passing: <strong className="font-semibold text-slate-700 dark:text-slate-300">{exam?.passing_marks || 40}</strong></span>
             </p>
           </div>
 
-          <div style={{ display: 'flex', gap: '0.75rem' }}>
-            <Button variant="outline" size="sm" onClick={() => setIsPolicyOpen(true)}>
-              Configure Policy
+          <div className="flex items-center gap-2.5">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsPolicyOpen(true)}
+              className="text-xs h-9 gap-1.5"
+            >
+              <SlidersHorizontal size={13} />
+              <span>Configure Policy</span>
             </Button>
             <Button
-              variant="primary"
               size="sm"
               disabled={exam?.status === 'DRAFT' || exam?.status === 'RESULT_PUBLISHED'}
               onClick={() => setIsPublishOpen(true)}
+              className="text-xs h-9 gap-1.5 bg-slate-900 hover:bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200"
             >
-              Publish Results Now
+              <Send size={13} />
+              <span>Publish Results</span>
             </Button>
           </div>
         </div>
       </div>
 
       {error && (
-        <div
-          role="alert"
-          style={{
-            marginBottom: '1.5rem',
-            padding: '1rem',
-            borderRadius: 'var(--radius-md)',
-            backgroundColor: 'var(--color-danger-light)',
-            border: '1px solid var(--color-danger-border)',
-            color: 'var(--color-danger)',
-          }}
-        >
-          {error}
-        </div>
+        <Alert variant="destructive">
+          <AlertCircle size={16} />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
 
       {/* Summary KPI Cards */}
       {summary && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
-          <Card padding="compact">
-            <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginBottom: '0.25rem' }}>TOTAL ATTEMPTS</div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>{summary.total_attempts}</div>
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3.5">
+          <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
+            <CardContent className="p-4 space-y-1">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Total Attempts
+              </span>
+              <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                {summary.total_attempts}
+              </p>
+            </CardContent>
           </Card>
-          <Card padding="compact">
-            <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginBottom: '0.25rem' }}>EVALUATED</div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-primary)' }}>{summary.evaluated_count}</div>
+
+          <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
+            <CardContent className="p-4 space-y-1">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Evaluated
+              </span>
+              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                {summary.evaluated_count}
+              </p>
+            </CardContent>
           </Card>
-          <Card padding="compact">
-            <div style={{ fontSize: '0.75rem', color: 'var(--color-success)', marginBottom: '0.25rem' }}>PASSED</div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-success)' }}>{summary.pass_count}</div>
+
+          <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
+            <CardContent className="p-4 space-y-1">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                Passed
+              </span>
+              <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                {summary.pass_count}
+              </p>
+            </CardContent>
           </Card>
-          <Card padding="compact">
-            <div style={{ fontSize: '0.75rem', color: 'var(--color-danger)', marginBottom: '0.25rem' }}>FAILED</div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-danger)' }}>{summary.fail_count}</div>
+
+          <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
+            <CardContent className="p-4 space-y-1">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-red-700 dark:text-red-400">
+                Failed
+              </span>
+              <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+                {summary.fail_count}
+              </p>
+            </CardContent>
           </Card>
-          <Card padding="compact">
-            <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginBottom: '0.25rem' }}>AVERAGE SCORE</div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>
-              {summary.average_score !== null && summary.average_score !== undefined
-                ? Number(summary.average_score).toFixed(1)
-                : '—'}
-            </div>
+
+          <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
+            <CardContent className="p-4 space-y-1">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Average Score
+              </span>
+              <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                {summary.average_score !== null && summary.average_score !== undefined
+                  ? Number(summary.average_score).toFixed(1)
+                  : '—'}
+              </p>
+            </CardContent>
           </Card>
         </div>
       )}
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--color-border-subtle)', paddingBottom: '0.5rem' }}>
-        <Button
-          variant={activeTab === 'roster' ? 'primary' : 'secondary'}
-          size="sm"
-          onClick={() => setActiveTab('roster')}
-        >
-          Candidate Records ({results.length})
-        </Button>
-        <Button
-          variant={activeTab === 'analytics' ? 'primary' : 'secondary'}
-          size="sm"
-          onClick={() => setActiveTab('analytics')}
-        >
-          📊 Psychometrics & Histograms
-        </Button>
-      </div>
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+          <TabsList>
+            <TabsTrigger value="roster">
+              Candidate Records ({results.length})
+            </TabsTrigger>
+            <TabsTrigger value="analytics">
+              Psychometrics & Histograms
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
-      {activeTab === 'roster' && (
-        /* Evaluated Candidate Results Table */
-        <Card padding="normal">
-          <h3 style={{ fontSize: '1.125rem', marginBottom: '1.25rem' }}>
-            Candidate Performance Records ({results.length})
-          </h3>
+        {/* Tab 1: Candidates Roster */}
+        <TabsContent value="roster" className="pt-2">
+          <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
+            <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <Users size={16} className="text-slate-600 dark:text-slate-400" />
+                Candidate Performance Records ({results.length})
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Review automated scores, percentage rankings, and proceed to subjective manual grading.
+              </CardDescription>
+            </CardHeader>
 
-          {results.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '2rem 0', color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>
-              No evaluated candidate results available for this examination yet.
-            </div>
-          ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
-              <thead>
-                <tr style={{ borderBottom: '2px solid var(--color-border-subtle)', color: 'var(--color-text-muted)' }}>
-                  <th style={{ padding: '0.75rem 0.5rem' }}>Candidate</th>
-                  <th style={{ padding: '0.75rem 0.5rem' }}>Email</th>
-                  <th style={{ padding: '0.75rem 0.5rem' }}>Score</th>
-                  <th style={{ padding: '0.75rem 0.5rem' }}>Percentage</th>
-                  <th style={{ padding: '0.75rem 0.5rem' }}>Status</th>
-                  <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {results.map((r) => (
-                  <tr key={r.attempt_id} style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
-                    <td style={{ padding: '0.75rem 0.5rem', fontWeight: 500 }}>{r.student_name || 'Candidate'}</td>
-                    <td style={{ padding: '0.75rem 0.5rem', color: 'var(--color-text-muted)' }}>{r.student_email || '—'}</td>
-                    <td style={{ padding: '0.75rem 0.5rem', fontWeight: 600 }}>
-                      {r.score} / {r.total_marks}
-                    </td>
-                    <td style={{ padding: '0.75rem 0.5rem' }}>
-                      {r.percentage !== undefined ? `${Number(r.percentage).toFixed(2)}%` : '—'}
-                    </td>
-                    <td style={{ padding: '0.75rem 0.5rem' }}>
-                      <Badge variant={r.is_passed ? 'success' : 'danger'} size="sm">
-                        {r.is_passed ? 'PASSED' : 'FAILED'}
-                      </Badge>
-                    </td>
-                    <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => navigate(`/faculty/grading/${r.id || r.attempt_id}`)}
-                      >
-                        Grade / Review
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </Card>
-      )}
+            <CardContent className="p-0">
+              {results.length === 0 ? (
+                <div className="p-12 text-center text-xs text-slate-500 dark:text-slate-400 space-y-1">
+                  <Users size={28} className="mx-auto text-slate-400 dark:text-slate-600 stroke-1 mb-2" />
+                  <p className="font-semibold text-slate-800 dark:text-slate-200">No Candidate Records Yet</p>
+                  <p>Evaluated attempts and submitted responses will appear here as students complete the exam.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[30%]">Candidate</TableHead>
+                        <TableHead className="w-[25%]">Email</TableHead>
+                        <TableHead className="w-[15%]">Score</TableHead>
+                        <TableHead className="w-[12%]">Percentage</TableHead>
+                        <TableHead className="w-[10%]">Status</TableHead>
+                        <TableHead className="w-[8%] text-right">Action</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {results.map((r) => {
+                        const id = r.id || r.attempt_id;
+                        return (
+                          <TableRow key={r.attempt_id} className="h-12">
+                            <TableCell className="font-semibold text-slate-900 dark:text-slate-100 text-xs">
+                              {r.student_name || 'Candidate'}
+                            </TableCell>
+                            <TableCell className="text-xs text-slate-500 dark:text-slate-400 font-mono">
+                              {r.student_email || '—'}
+                            </TableCell>
+                            <TableCell className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                              {r.score} / {r.total_marks}
+                            </TableCell>
+                            <TableCell className="text-xs text-slate-600 dark:text-slate-400">
+                              {r.percentage !== undefined ? `${Number(r.percentage).toFixed(2)}%` : '—'}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={r.is_passed ? 'success' : 'destructive'} size="sm">
+                                {r.is_passed ? 'PASSED' : 'FAILED'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => navigate(`/faculty/grading/${id}`)}
+                                className="h-8 text-xs font-medium gap-1"
+                              >
+                                <span>Grade</span>
+                                <ChevronRight size={12} />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-      {activeTab === 'analytics' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        {/* Tab 2: Analytics & Histograms */}
+        <TabsContent value="analytics" className="pt-2 space-y-4">
           {loadingAnalytics ? (
-            <div style={{ textAlign: 'center', padding: '4rem 0' }}>
-              <Spinner size="lg" label="Computing psychometric analytics..." />
+            <div className="py-20 text-center space-y-3">
+              <RefreshCw size={28} className="animate-spin mx-auto text-slate-400" />
+              <p className="text-sm font-medium text-slate-500">Computing psychometric item analytics...</p>
             </div>
           ) : !analytics ? (
-            <Card padding="spacious" style={{ textAlign: 'center', color: 'var(--color-text-muted)' }}>
+            <Card className="border-slate-200 dark:border-slate-800 p-12 text-center text-xs text-slate-500">
               No psychometric analytics computed yet.
             </Card>
           ) : (
-            <>
+            <div className="space-y-4">
               {/* Timing and Sample Size KPIs */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
-                <Card padding="compact">
-                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>ANALYTICS SAMPLE SIZE</div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 700, marginTop: '0.25rem' }}>
-                    {analytics.sampleSize} Completed Attempts
-                  </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+                <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
+                  <CardContent className="p-4 space-y-1">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      Sample Size
+                    </span>
+                    <p className="text-xl font-bold text-slate-900 dark:text-slate-100">
+                      {analytics.sampleSize} Attempts
+                    </p>
+                  </CardContent>
                 </Card>
-                <Card padding="compact">
-                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>MEAN COMPLETION TIME</div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 700, marginTop: '0.25rem' }}>
-                    {analytics.completionTimeStats?.meanMinutes ?? '—'} min
-                  </div>
+
+                <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
+                  <CardContent className="p-4 space-y-1">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      Mean Duration
+                    </span>
+                    <p className="text-xl font-bold text-slate-900 dark:text-slate-100">
+                      {analytics.completionTimeStats?.meanMinutes ?? '—'} mins
+                    </p>
+                  </CardContent>
                 </Card>
-                <Card padding="compact">
-                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>MEDIAN COMPLETION TIME</div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 700, marginTop: '0.25rem' }}>
-                    {analytics.completionTimeStats?.medianMinutes ?? '—'} min
-                  </div>
+
+                <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
+                  <CardContent className="p-4 space-y-1">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      Median Duration
+                    </span>
+                    <p className="text-xl font-bold text-slate-900 dark:text-slate-100">
+                      {analytics.completionTimeStats?.medianMinutes ?? '—'} mins
+                    </p>
+                  </CardContent>
                 </Card>
-                <Card padding="compact">
-                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>90TH PERCENTILE (P90)</div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 700, marginTop: '0.25rem' }}>
-                    {analytics.completionTimeStats?.p90Minutes ?? '—'} min
-                  </div>
+
+                <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
+                  <CardContent className="p-4 space-y-1">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      P90 Duration
+                    </span>
+                    <p className="text-xl font-bold text-slate-900 dark:text-slate-100">
+                      {analytics.completionTimeStats?.p90Minutes ?? '—'} mins
+                    </p>
+                  </CardContent>
                 </Card>
               </div>
 
               {/* 10-Bin Score Histogram */}
-              <Card padding="normal">
-                <h3 style={{ fontSize: '1.125rem', marginBottom: '1rem' }}>
-                  10-Bin Score Distribution Histogram
-                </h3>
-                <div style={{ display: 'flex', alignItems: 'flex-end', height: '180px', gap: '0.5rem', paddingTop: '1.5rem' }}>
-                  {analytics.scoreHistogram?.bins?.map((b) => {
-                    const maxCount = Math.max(1, ...analytics.scoreHistogram.bins.map((x) => x.count));
-                    const heightPct = Math.round((b.count / maxCount) * 100);
-                    return (
-                      <div key={b.bin} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' }}>
-                        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: '0.25rem' }}>
-                          {b.count}
-                        </span>
-                        <div
-                          style={{
-                            width: '100%',
-                            height: `${Math.max(4, heightPct)}%`,
-                            backgroundColor: b.count > 0 ? 'var(--color-primary)' : 'var(--color-border-subtle)',
-                            borderRadius: '0.25rem 0.25rem 0 0',
-                            transition: 'height 0.3s ease'
-                          }}
-                        />
-                        <span style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)', marginTop: '0.35rem', transform: 'rotate(-20deg)', whiteSpace: 'nowrap' }}>
-                          {b.bin}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
+              <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
+                <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <BarChart3 size={16} className="text-slate-600 dark:text-slate-400" />
+                    10-Bin Score Distribution Histogram
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="flex items-end h-44 gap-2 pt-6">
+                    {analytics.scoreHistogram?.bins?.map((b) => {
+                      const maxCount = Math.max(1, ...(analytics.scoreHistogram.bins.map((x) => x.count) || [1]));
+                      const heightPct = Math.round((b.count / maxCount) * 100);
+                      return (
+                        <div key={b.bin} className="flex-1 flex flex-col items-center h-full justify-end">
+                          <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">
+                            {b.count}
+                          </span>
+                          <div
+                            style={{ height: `${Math.max(4, heightPct)}%` }}
+                            className={`w-full rounded-t-sm transition-all duration-300 ${
+                              b.count > 0
+                                ? 'bg-blue-600 dark:bg-blue-500'
+                                : 'bg-slate-100 dark:bg-slate-800'
+                            }`}
+                          />
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-2 rotate-[-25deg] whitespace-nowrap">
+                            {b.bin}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
               </Card>
 
               {/* Psychometric Item Metrics Table */}
-              <Card padding="normal">
-                <h3 style={{ fontSize: '1.125rem', marginBottom: '1rem' }}>
-                  Item Difficulty (P-Value) & Upper/Lower 27% Discrimination Index
-                </h3>
-                {analytics.itemMetrics && analytics.itemMetrics.length > 0 ? (
-                  <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
-                      <thead>
-                        <tr style={{ borderBottom: '2px solid var(--color-border-subtle)', color: 'var(--color-text-muted)' }}>
-                          <th style={{ padding: '0.75rem 0.5rem' }}>Question Prompt</th>
-                          <th style={{ padding: '0.75rem 0.5rem' }}>Difficulty (P-Value)</th>
-                          <th style={{ padding: '0.75rem 0.5rem' }}>Difficulty Rating</th>
-                          <th style={{ padding: '0.75rem 0.5rem' }}>Discrimination (Di)</th>
-                          <th style={{ padding: '0.75rem 0.5rem' }}>Point-Biserial (rpbis)</th>
-                          <th style={{ padding: '0.75rem 0.5rem' }}>Discrimination Rating</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {analytics.itemMetrics.map((item) => (
-                          <tr key={item.questionId} style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
-                            <td style={{ padding: '0.75rem 0.5rem', maxWidth: '300px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              {item.prompt}
-                            </td>
-                            <td style={{ padding: '0.75rem 0.5rem', fontWeight: 600 }}>
-                              {item.pValue !== undefined ? Number(item.pValue).toFixed(2) : '—'}
-                            </td>
-                            <td style={{ padding: '0.75rem 0.5rem' }}>
-                              <Badge
-                                variant={
-                                  item.difficultyRating === 'HARD'
-                                    ? 'danger'
-                                    : item.difficultyRating === 'MODERATE'
-                                    ? 'primary'
-                                    : 'success'
-                                }
-                                size="sm"
-                              >
-                                {item.difficultyRating}
-                              </Badge>
-                            </td>
-                            <td style={{ padding: '0.75rem 0.5rem', fontWeight: 600 }}>
-                              {item.discriminationIndex !== undefined ? Number(item.discriminationIndex).toFixed(2) : '—'}
-                            </td>
-                            <td style={{ padding: '0.75rem 0.5rem' }}>
-                              {item.pointBiserial !== undefined ? Number(item.pointBiserial).toFixed(2) : '—'}
-                            </td>
-                            <td style={{ padding: '0.75rem 0.5rem' }}>
-                              <Badge
-                                variant={
-                                  item.discriminationRating === 'EXCELLENT'
-                                    ? 'success'
-                                    : item.discriminationRating === 'GOOD'
-                                    ? 'primary'
-                                    : 'warning'
-                                }
-                                size="sm"
-                              >
-                                {item.discriminationRating}
-                              </Badge>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>
-                    No item difficulty metrics recorded yet.
-                  </p>
-                )}
+              <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
+                <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <TrendingUp size={16} className="text-slate-600 dark:text-slate-400" />
+                    Item Difficulty (P-Value) & Upper/Lower 27% Discrimination Index
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Evaluates question quality and ability to discriminate top-performing candidates.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-0">
+                  {analytics.itemMetrics && analytics.itemMetrics.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-[40%]">Question Prompt</TableHead>
+                            <TableHead className="w-[12%]">P-Value</TableHead>
+                            <TableHead className="w-[14%]">Difficulty</TableHead>
+                            <TableHead className="w-[12%]">Di (Discrim.)</TableHead>
+                            <TableHead className="w-[12%]">r_pbis</TableHead>
+                            <TableHead className="w-[10%]">Rating</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {analytics.itemMetrics.map((item) => (
+                            <TableRow key={item.questionId} className="h-12">
+                              <TableCell className="font-medium text-xs text-slate-900 dark:text-slate-100 max-w-xs truncate">
+                                {item.prompt}
+                              </TableCell>
+                              <TableCell className="text-xs font-semibold">
+                                {item.pValue !== undefined ? Number(item.pValue).toFixed(2) : '—'}
+                              </TableCell>
+                              <TableCell>
+                                <Badge
+                                  variant={
+                                    item.difficultyRating === 'HARD'
+                                      ? 'destructive'
+                                      : item.difficultyRating === 'MODERATE'
+                                      ? 'secondary'
+                                      : 'success'
+                                  }
+                                  size="sm"
+                                >
+                                  {item.difficultyRating}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-xs font-semibold">
+                                {item.discriminationIndex !== undefined ? Number(item.discriminationIndex).toFixed(2) : '—'}
+                              </TableCell>
+                              <TableCell className="text-xs text-slate-600 dark:text-slate-400">
+                                {item.pointBiserial !== undefined ? Number(item.pointBiserial).toFixed(2) : '—'}
+                              </TableCell>
+                              <TableCell>
+                                <Badge
+                                  variant={
+                                    item.discriminationRating === 'EXCELLENT'
+                                      ? 'success'
+                                      : item.discriminationRating === 'GOOD'
+                                      ? 'secondary'
+                                      : 'warning'
+                                  }
+                                  size="sm"
+                                >
+                                  {item.discriminationRating}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  ) : (
+                    <div className="p-8 text-center text-xs text-slate-500">
+                      No item difficulty metrics recorded yet.
+                    </div>
+                  )}
+                </CardContent>
               </Card>
-            </>
-          )}
-        </div>
-      )}
-
-      {/* Manual Publish Modal */}
-      <Modal isOpen={isPublishOpen} onClose={() => setIsPublishOpen(false)} title="Publish Results to Candidates">
-        <div>
-          {publishMessage && (
-            <div
-              role="alert"
-              style={{
-                marginBottom: '1rem',
-                padding: '0.75rem',
-                borderRadius: 'var(--radius-sm)',
-                backgroundColor: 'var(--color-danger-light)',
-                color: 'var(--color-danger)',
-                fontSize: '0.875rem',
-              }}
-            >
-              {publishMessage}
             </div>
           )}
+        </TabsContent>
+      </Tabs>
 
-          <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', marginBottom: '1.5rem', lineHeight: 1.5 }}>
-            Publishing results will make evaluated scores, percentages, and performance breakdowns visible to all candidates
-            who have completed this assessment. This action cannot be undone.
-          </p>
+      {/* Manual Publish Dialog */}
+      <Dialog open={isPublishOpen} onOpenChange={setIsPublishOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold">Publish Assessment Results</DialogTitle>
+            <DialogDescription className="text-xs text-slate-500 dark:text-slate-400">
+              Publishing will make scores, rank percentiles, and performance breakdowns visible to all candidates who completed this examination.
+            </DialogDescription>
+          </DialogHeader>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
-            <Button variant="outline" size="sm" onClick={() => setIsPublishOpen(false)} disabled={publishing}>
+          {publishMessage && (
+            <Alert variant="destructive">
+              <AlertCircle size={15} />
+              <AlertDescription>{publishMessage}</AlertDescription>
+            </Alert>
+          )}
+
+          <DialogFooter className="gap-2 pt-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsPublishOpen(false)}
+              disabled={publishing}
+              className="h-9 text-xs"
+            >
               Cancel
             </Button>
-            <Button variant="primary" size="sm" onClick={handlePublish} loading={publishing}>
-              Confirm Publication
-            </Button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* Policy Configuration Modal */}
-      <Modal isOpen={isPolicyOpen} onClose={() => setIsPolicyOpen(false)} title="Configure Result Release Policy">
-        <form onSubmit={handleUpdatePolicy}>
-          {policyError && (
-            <div
-              role="alert"
-              style={{
-                marginBottom: '1rem',
-                padding: '0.75rem',
-                borderRadius: 'var(--radius-sm)',
-                backgroundColor: 'var(--color-danger-light)',
-                color: 'var(--color-danger)',
-                fontSize: '0.875rem',
-              }}
+            <Button
+              size="sm"
+              onClick={handlePublish}
+              disabled={publishing}
+              className="h-9 text-xs gap-1.5 bg-slate-900 text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900"
             >
-              {policyError}
-            </div>
-          )}
+              {publishing && <RefreshCw size={13} className="animate-spin" />}
+              <span>Confirm Publication</span>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-          <div style={{ marginBottom: '1rem' }}>
-            <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.5rem' }}>
-              Release Policy
-            </label>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', cursor: 'pointer' }}>
+      {/* Policy Configuration Dialog */}
+      <Dialog open={isPolicyOpen} onOpenChange={setIsPolicyOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold">Configure Release Policy</DialogTitle>
+            <DialogDescription className="text-xs text-slate-500 dark:text-slate-400">
+              Select how and when candidate scorecards become accessible.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleUpdatePolicy} className="space-y-4 pt-1">
+            {policyError && (
+              <Alert variant="destructive">
+                <AlertCircle size={15} />
+                <AlertDescription>{policyError}</AlertDescription>
+              </Alert>
+            )}
+
+            <div className="space-y-2 text-xs">
+              <label className="flex items-center gap-2 p-2.5 rounded-md border border-slate-200 dark:border-slate-800 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-850">
                 <input
                   type="radio"
                   name="policyType"
                   value="IMMEDIATE"
                   checked={policyType === 'IMMEDIATE'}
                   onChange={() => setPolicyType('IMMEDIATE')}
+                  className="accent-slate-900"
                 />
-                Immediate (auto-release on evaluation)
+                <div>
+                  <strong className="block font-semibold text-slate-900 dark:text-slate-100">Immediate Auto-Release</strong>
+                  <span className="text-slate-500">Scorecard unlocks immediately after automated scoring completes.</span>
+                </div>
               </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', cursor: 'pointer' }}>
+
+              <label className="flex items-center gap-2 p-2.5 rounded-md border border-slate-200 dark:border-slate-800 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-850">
                 <input
                   type="radio"
                   name="policyType"
                   value="SCHEDULED"
                   checked={policyType === 'SCHEDULED'}
                   onChange={() => setPolicyType('SCHEDULED')}
+                  className="accent-slate-900"
                 />
-                Scheduled (release at specific date/time)
+                <div>
+                  <strong className="block font-semibold text-slate-900 dark:text-slate-100">Scheduled Release Window</strong>
+                  <span className="text-slate-500">Scorecard unlocks at an institutional future date and time.</span>
+                </div>
               </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', cursor: 'pointer' }}>
+
+              <label className="flex items-center gap-2 p-2.5 rounded-md border border-slate-200 dark:border-slate-800 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-850">
                 <input
                   type="radio"
                   name="policyType"
                   value="MANUAL"
                   checked={policyType === 'MANUAL'}
                   onChange={() => setPolicyType('MANUAL')}
+                  className="accent-slate-900"
                 />
-                Manual Publish Only
+                <div>
+                  <strong className="block font-semibold text-slate-900 dark:text-slate-100">Manual Department Approval</strong>
+                  <span className="text-slate-500">Results remain private until faculty manually clicks 'Publish'.</span>
+                </div>
               </label>
             </div>
-          </div>
 
-          {policyType === 'SCHEDULED' && (
-            <div style={{ marginBottom: '1.5rem' }}>
-              <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.25rem' }}>
-                Scheduled Release Time *
-              </label>
-              <input
-                type="datetime-local"
-                required
-                value={scheduledTime}
-                onChange={(e) => setScheduledTime(e.target.value)}
-                style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--color-border-subtle)' }}
-              />
-            </div>
-          )}
+            {policyType === 'SCHEDULED' && (
+              <div className="space-y-1.5 pt-1">
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  Scheduled Release Date & Time *
+                </label>
+                <Input
+                  type="datetime-local"
+                  required
+                  value={scheduledTime}
+                  onChange={(e) => setScheduledTime(e.target.value)}
+                  className="h-9 text-xs"
+                />
+              </div>
+            )}
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>
-            <Button variant="outline" size="sm" type="button" onClick={() => setIsPolicyOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="primary" size="sm" type="submit" loading={updatingPolicy}>
-              Save Policy
-            </Button>
-          </div>
-        </form>
-      </Modal>
+            <DialogFooter className="gap-2 pt-3">
+              <Button
+                variant="outline"
+                size="sm"
+                type="button"
+                onClick={() => setIsPolicyOpen(false)}
+                className="h-9 text-xs"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                disabled={updatingPolicy}
+                className="h-9 text-xs gap-1.5 bg-slate-900 text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900"
+              >
+                {updatingPolicy && <RefreshCw size={13} className="animate-spin" />}
+                <span>Save Policy</span>
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
