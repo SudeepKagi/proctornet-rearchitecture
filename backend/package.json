@@ -10,25 +10,19 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch --env-file=.env src/server.js",
-    "test": "node --test --test-concurrency=1 --test-skip-pattern=\"Live RabbitMQ\"",
-    "test:broker": "node --test --test-concurrency=1 tests/rabbitmq/brokerSemantics.integration.test.js",
-    "test:all": "node --test --test-concurrency=1",
-    "test:watch": "node --test --watch",
     "db:migrate": "node src/infrastructure/postgres/migrate.js up",
     "db:rollback": "node src/infrastructure/postgres/migrate.js down",
     "db:create": "npx node-pg-migrate create --migrations-dir migrations --migration-file-language js",
-    "seed:users": "node ../scripts/db/seed-default-users.js",
-    "bench:smoke": "k6 run ../scripts/load/k6/smoke-test.js",
-    "bench:seed": "node ../scripts/load/seed-benchmark-data.js",
-    "bench:cleanup": "node ../scripts/load/cleanup-benchmark-data.js",
-    "bench:verify": "node ../scripts/load/verify-data-integrity.js",
-    "bench:run": "node ../scripts/load/run-benchmarks.js"
+    "db:seed": "node ../scripts/db/reset-and-seed.js",
+    "seed:users": "node ../scripts/db/seed-default-users.js"
   },
   "dependencies": {
+    "@aws-sdk/client-rekognition": "^3.1141.0",
     "@aws-sdk/client-s3": "^3.1127.0",
     "@aws-sdk/s3-request-presigner": "^3.1127.0",
     "amqplib": "^0.10.5",
     "bcrypt": "^6.0.0",
+    "compression": "^1.8.2",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
@@ -39,20 +33,18 @@
     "mediasoup": "^3.26.0",
     "multer": "^2.3.0",
     "node-pg-migrate": "^9.0.0",
+    "pdf-parse": "^2.4.5",
     "pg": "^8.13.3",
     "pino": "^9.6.0",
     "pino-http": "^10.4.0",
     "prom-client": "^15.1.3",
+    "sharp": "^0.35.4",
     "tesseract.js": "^7.0.0",
     "ws": "^8.21.3",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "zod": "^3.24.2"
   },
-  "devDependencies": {
-    "artillery": "^2.0.34",
-    "ioredis-mock": "^8.13.1",
-    "supertest": "^7.0.0"
-  },
+  "devDependencies": {},
   "overrides": {
     "qs": "^6.16.0"
   },

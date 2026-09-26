@@ -14,7 +14,6 @@ import { logger } from '../../utils/logger.js';
 import { AttemptStatus } from '../../domain/attempt/attemptStates.js';
 import { transitionAttemptState } from '../../domain/attempt/attemptStateMachine.js';
 import { validateAttemptInvariants } from '../../domain/attempt/attemptInvariants.js';
-import { generateSeed, selectQuestionsDeterministically } from './attempts.shuffler.js';
 import * as attemptsRepo from './attempts.repository.js';
 import * as studentConfigRepo from '../candidate/studentConfig.repository.js';
 import { cacheService } from '../../infrastructure/redis/cacheService.js';
@@ -129,9 +128,19 @@ export async function startAttempt(sessionId, user, requestId = null) {
     await client.query('BEGIN');
 
     // 1. Lock Session (FOR SHARE)
-    const session = await attemptsRepo.findSessionById(sessionId, client, true);
+    let session = await attemptsRepo.findSessionById(sessionId, client, true);
     if (!session) {
-      throw new NotFoundError(`Exam session with ID '${sessionId}' not found`);
+      // Check if sessionId is an exam_id with an active or scheduled session
+      const activeSessionRes = await client.query(
+        `SELECT * FROM exam_sessions WHERE exam_id = $1 AND status IN ('SCHEDULED', 'ACTIVE') ORDER BY scheduled_start_time ASC LIMIT 1`,
+        [sessionId]
+      );
+      if (activeSessionRes.rows.length > 0) {
+        session = activeSessionRes.rows[0];
+        sessionId = session.session_id;
+      } else {
+        throw new NotFoundError(`Exam session with ID '${sessionId}' not found`);
+      }
     }
 
     if (!['SCHEDULED', 'ACTIVE'].includes(session.status)) {
@@ -152,10 +161,28 @@ export async function startAttempt(sessionId, user, requestId = null) {
       );
     }
 
-    // 3. Lock Roster Row (FOR UPDATE)
-    const sessionStudent = await attemptsRepo.findSessionStudentForUpdate(sessionId, user.userId, client);
+    // 3. Lock Roster Row (FOR UPDATE) - auto-assign if student matches target department and semester
+    let sessionStudent = await attemptsRepo.findSessionStudentForUpdate(sessionId, user.userId, client);
     if (!sessionStudent) {
-      throw new ForbiddenError('Access denied: You are not assigned to this exam session roster');
+      const profileRes = await client.query(
+        `SELECT department, semester FROM student_profiles WHERE user_id = $1`,
+        [user.userId]
+      );
+      const studentProfile = profileRes.rows[0];
+      const deptMatch = !session.target_department || (studentProfile && studentProfile.department === session.target_department);
+      const semMatch = !session.target_semester || (studentProfile && Number(studentProfile.semester) === Number(session.target_semester));
+
+      if (deptMatch && semMatch) {
+        await client.query(
+          `INSERT INTO session_students (session_id, student_id, status)
+           VALUES ($1, $2, 'ASSIGNED')
+           ON CONFLICT (session_id, student_id) DO NOTHING`,
+          [sessionId, user.userId]
+        );
+        sessionStudent = { session_id: sessionId, student_id: user.userId, status: 'ASSIGNED' };
+      } else {
+        throw new ForbiddenError('Access denied: You are not assigned to this exam session roster');
+      }
     }
 
     if (sessionStudent.status === 'DISQUALIFIED') {
@@ -163,7 +190,7 @@ export async function startAttempt(sessionId, user, requestId = null) {
     }
 
     // 4. Server-Authoritative Timing Validation (PostgreSQL CURRENT_TIMESTAMP)
-    const serverNow = new Date(session.server_now);
+    const serverNow = new Date(session.server_now || new Date());
     const startTime = new Date(session.scheduled_start_time);
     const endTime = new Date(session.scheduled_end_time);
 
@@ -200,7 +227,10 @@ export async function startAttempt(sessionId, user, requestId = null) {
           );
 
           await client.query('COMMIT');
-          throw new ConflictError('Cannot resume exam: Your exam attempt has expired');
+          const conflictErr = new ConflictError('Cannot resume exam: Your exam attempt has expired');
+          conflictErr.existingAttemptId = existingAttempt.attempt_id;
+          conflictErr.redirectUrl = `/candidate/attempts/${existingAttempt.attempt_id}/result`;
+          throw conflictErr;
         }
 
         // Active and valid: Idempotent return of existing attempt
@@ -213,10 +243,11 @@ export async function startAttempt(sessionId, user, requestId = null) {
         );
 
         return {
+          attemptId: existingAttempt.attempt_id,
           attempt_id: existingAttempt.attempt_id,
           session_id: existingAttempt.session_id,
           student_id: existingAttempt.student_id,
-          status: existingAttempt.status,
+          status: 'RESUMED',
           started_at: existingAttempt.started_at,
           expires_at: existingAttempt.expires_at,
           server_time: serverNow.toISOString(),
@@ -224,6 +255,7 @@ export async function startAttempt(sessionId, user, requestId = null) {
           total_questions: totalQuestions,
           total_marks: Number(exam.total_marks),
           is_new: false,
+          redirectUrl: `/candidate/attempts/${existingAttempt.attempt_id}`,
           anti_tamper_token: deriveAttemptSigningKey(
             config.ANTI_TAMPER_SECRET,
             existingAttempt.attempt_id,
@@ -233,11 +265,21 @@ export async function startAttempt(sessionId, user, requestId = null) {
         };
       }
 
-      // Finalized attempt
+      // Finalized or already submitted attempt
       await client.query('COMMIT');
-      throw new ConflictError(
-        `Cannot start exam: Your exam attempt has already been finalized with status '${existingAttempt.status}'`
-      );
+      return {
+        attemptId: existingAttempt.attempt_id,
+        attempt_id: existingAttempt.attempt_id,
+        session_id: existingAttempt.session_id,
+        student_id: existingAttempt.student_id,
+        status: existingAttempt.status,
+        started_at: existingAttempt.started_at,
+        expires_at: existingAttempt.expires_at,
+        server_time: serverNow.toISOString(),
+        is_new: false,
+        is_finalized: true,
+        redirectUrl: `/candidate/attempts/${existingAttempt.attempt_id}/result`
+      };
     }
 
     // 5a. [PHASE 25 INSERTION] Biometric Verification Gate & Medical Exemption Check
@@ -288,44 +330,11 @@ export async function startAttempt(sessionId, user, requestId = null) {
       }
     }
 
-    // 6. Fetch Topic Rules
-    const topicRules = await attemptsRepo.getTopicRulesForExam(exam.exam_id, client);
+    // 6. Static Question Assignment: Fetch statically configured questions for the exam (same for all candidates)
+    const allSelectedQuestions = await attemptsRepo.getQuestionsForExam(exam.exam_id, client);
 
-    if (!topicRules || topicRules.length === 0) {
-      throw new BadRequestError('Cannot start exam: Exam has no configured topic rules');
-    }
-
-    // 7. Deterministic Question Selection & Mapping
-    const allSelectedQuestions = [];
-    const selectedQuestionIds = new Set();
-    let totalRequiredCount = 0;
-
-    for (const rule of topicRules) {
-      totalRequiredCount += Number(rule.question_count);
-      const eligibleQuestions = await attemptsRepo.getEligibleQuestionsForTopic(rule.topic_id, client);
-
-      if (eligibleQuestions.length < Number(rule.question_count)) {
-        throw new ConflictError(
-          `Cannot start exam: Insufficient question inventory in topic '${rule.topic_id}'. Required: ${rule.question_count}, Available: ${eligibleQuestions.length}`
-        );
-      }
-
-      const seed = generateSeed(sessionId, user.userId, rule.topic_id);
-      const selected = selectQuestionsDeterministically(eligibleQuestions, Number(rule.question_count), seed);
-
-      for (const q of selected) {
-        if (!selectedQuestionIds.has(q.question_id)) {
-          selectedQuestionIds.add(q.question_id);
-          allSelectedQuestions.push(q);
-        }
-      }
-    }
-
-    // Mapping invariant assertion
-    if (allSelectedQuestions.length !== totalRequiredCount) {
-      throw new ConflictError(
-        `Question mapping count mismatch: Expected ${totalRequiredCount}, selected ${allSelectedQuestions.length}`
-      );
+    if (!allSelectedQuestions || allSelectedQuestions.length === 0) {
+      throw new BadRequestError('Cannot start exam: Exam has no assigned questions or question pool');
     }
 
     // 8. Calculate Authoritative Expiration (incorporating per-student extra_time_multiplier)

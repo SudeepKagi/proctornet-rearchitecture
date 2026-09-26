@@ -111,3 +111,44 @@ export async function extractCardDetails(file) {
   return res.data?.extracted || res.extracted;
 }
 
+/**
+ * Enrolls student candidate with reference webcam snapshot and Government ID document.
+ * @param {object} payload
+ * @param {string|File} payload.faceImage
+ * @param {string|File} payload.idDocument
+ * @param {string} [payload.documentType='GOVERNMENT_ID']
+ * @returns {Promise<{ user: object }>}
+ */
+export async function enrollCandidate({ faceImage, idDocument, documentType = 'GOVERNMENT_ID' }) {
+  if (faceImage instanceof File || idDocument instanceof File) {
+    const formData = new FormData();
+    if (faceImage instanceof File) {
+      formData.append('faceImage', faceImage);
+    } else {
+      formData.append('faceImage', faceImage);
+    }
+    if (idDocument instanceof File) {
+      formData.append('idDocument', idDocument);
+    } else {
+      formData.append('idDocument', idDocument);
+    }
+    formData.append('documentType', documentType);
+
+    const res = await apiClient('/api/v1/candidate/enroll', {
+      method: 'POST',
+      body: formData
+    });
+    return res.data;
+  }
+
+  const res = await apiClient('/api/v1/candidate/enroll', {
+    method: 'POST',
+    body: {
+      faceImage,
+      idDocument,
+      documentType
+    }
+  });
+  return res.data;
+}
+

@@ -12,9 +12,11 @@ import {
   Settings,
   Shield,
   Users,
-  X,
   HelpCircle,
   ArrowLeft,
+  UserCircle,
+  Calendar,
+  Sparkles,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth.js';
 import { resolveWorkspace } from '../../routes/roleNavigation.js';
@@ -26,16 +28,17 @@ const WORKSPACES = {
   student: {
     label: 'Student Portal',
     links: [
-      { to: '/candidate', label: 'Dashboard & Exams', icon: LayoutDashboard },
-      { to: '/candidate/biometrics/enroll', label: 'Identity & Verification', icon: Shield },
+      { to: '/candidate', label: 'Dashboard', icon: LayoutDashboard },
+      { to: '/candidate/exams', label: 'My Exams', icon: BookOpen },
+      { to: '/candidate/profile', label: 'Profile', icon: UserCircle },
     ],
   },
   faculty: {
     label: 'Faculty Workspace',
     links: [
-      { to: '/faculty', label: 'Dashboard & Exams', icon: LayoutDashboard },
-      { to: '/faculty/question-banks', label: 'Question Bank', icon: BookOpen },
-      { to: '/faculty/sessions', label: 'Schedules', icon: ClipboardList },
+      { to: '/faculty', label: 'Dashboard', icon: LayoutDashboard },
+      { to: '/faculty/exams', label: 'Exams & Schedules', icon: Calendar },
+      { to: '/faculty/question-pools', label: 'Question Pools (AI)', icon: Sparkles },
     ],
   },
   invigilator: {

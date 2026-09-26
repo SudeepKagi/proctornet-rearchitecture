@@ -90,6 +90,19 @@ export async function verifyFace({ sessionId, liveImageId, livenessToken }) {
 }
 
 /**
+ * Submit a single live webcam snapshot directly to backend for facial comparison and server-side S3 storage.
+ * Bypasses browser-to-S3 direct uploads to avoid CORS errors and presigned URL expiry.
+ * @param {{ sessionId: string, image: string }} payload
+ * @returns {Promise<{ success: boolean, matchVerdict: string, similarityScore: number, finalStatus: string, attemptNumber: number, remainingAttempts: number }>}
+ */
+export async function verifyIdentitySnapshot({ sessionId, image }) {
+  return await apiClient('/api/v1/candidate/biometrics/verify-identity', {
+    method: 'POST',
+    body: { sessionId, image }
+  });
+}
+
+/**
  * Upload a raw image blob or binary buffer directly to pre-signed S3 URL.
  * Does not include Bearer authorization header to avoid S3 SignatureDoesNotMatch errors.
  * @param {string} uploadUrl

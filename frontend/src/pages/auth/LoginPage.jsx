@@ -212,13 +212,12 @@ export function LoginPage() {
                 <Sparkles size={13} className="text-amber-500" />
                 <span>Quick-Fill Evaluation Accounts</span>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+              <div className="grid grid-cols-2 gap-2">
                 {[
                   { role: 'Admin', email: 'admin@proctornet.edu', pass: 'Admin#2026_SecureExams!' },
+                  { role: 'Dev', email: 'dev@proctornet.edu', pass: 'Dev#2026_SecureExams!' },
                   { role: 'Faculty', email: 'faculty@proctornet.edu', pass: 'Faculty#2026_SecureExams!' },
-                  { role: 'Invigilator', email: 'invigilator@proctornet.edu', pass: 'Invigilator#2026_SecureExams!' },
-                  { role: 'Student', email: 'student@proctornet.edu', pass: 'Candidate#2026_SecureExams!' },
-                  { role: 'Developer', email: 'developer@proctornet.edu', pass: 'Dev#2026_SecureExams!' },
+                  { role: 'Student (Sudeep)', email: 'sudeep@proctornet.edu', pass: 'Student#2026_SecureExams!' },
                 ].map((demo) => (
                   <Button
                     key={demo.role}

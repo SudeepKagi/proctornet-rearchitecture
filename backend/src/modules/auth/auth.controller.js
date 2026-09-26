@@ -6,6 +6,7 @@
 
 import { config } from '../../config/env.js';
 import { BadRequestError, UnauthorizedError, ForbiddenError } from '../../utils/errors.js';
+import { logger } from '../../utils/logger.js';
 import { loginSchema, registerSchema } from './auth.schemas.js';
 import * as authService from './auth.service.js';
 
@@ -66,6 +67,15 @@ export async function handleLogin(req, res, next) {
       }
     });
   } catch (err) {
+    logger.error(
+      {
+        err: err.message,
+        stack: err.stack,
+        statusCode: err.statusCode,
+        email: req.body?.email
+      },
+      'handleLogin authentication error'
+    );
     next(err);
   }
 }
@@ -99,6 +109,14 @@ export async function handleRefresh(req, res, next) {
       }
     });
   } catch (err) {
+    logger.warn(
+      {
+        err: err.message,
+        statusCode: err.statusCode,
+        path: req.path
+      },
+      'handleRefresh token refresh rejected/failed'
+    );
     next(err);
   }
 }

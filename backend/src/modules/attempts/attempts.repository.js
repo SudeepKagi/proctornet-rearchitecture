@@ -178,21 +178,55 @@ export async function findAttemptById(attemptId, client = null) {
  * @param {import('pg').PoolClient} [client=null]
  * @returns {Promise<Array<object>>}
  */
-export async function getTopicRulesForExam(examId, client = null) {
+/**
+ * Retrieves the statically configured questions for an exam in stable display order.
+ * If exam_questions has assigned questions, those are returned.
+ * If none are configured, falls back to all published questions from the exam's pool_id.
+ * @param {string} examId
+ * @param {import('pg').PoolClient} [client=null]
+ * @returns {Promise<Array<object>>}
+ */
+export async function getQuestionsForExam(examId, client = null) {
   const sql = `
     SELECT 
-      rule_id, 
-      exam_id, 
-      topic_id, 
-      question_count, 
-      points_per_question
-    FROM exam_topic_rules
-    WHERE exam_id = $1
-    ORDER BY created_at ASC, rule_id ASC;
+      eq.exam_id,
+      eq.question_id,
+      eq.display_order,
+      eq.points,
+      q.topic_id,
+      q.question_type,
+      q.prompt_text,
+      q.default_points
+    FROM exam_questions eq
+    JOIN questions q ON eq.question_id = q.question_id
+    WHERE eq.exam_id = $1
+    ORDER BY eq.display_order ASC;
   `;
   const executor = client ? client.query.bind(client) : query;
   const result = await executor(sql, [examId]);
-  return result.rows;
+
+  if (result.rows.length > 0) {
+    return result.rows;
+  }
+
+  // Fallback: If exam has pool_id, fetch all published questions from that pool statically
+  const poolSql = `
+    SELECT 
+      e.exam_id,
+      q.question_id,
+      ROW_NUMBER() OVER (ORDER BY q.created_at ASC, q.question_id ASC) AS display_order,
+      COALESCE(q.default_points, 1.00) AS points,
+      q.topic_id,
+      q.question_type,
+      q.prompt_text,
+      q.default_points
+    FROM exams e
+    JOIN questions q ON (e.pool_id = q.topic_id OR e.pool_id IS NULL)
+    WHERE e.exam_id = $1 AND q.status = 'PUBLISHED'
+    ORDER BY q.created_at ASC, q.question_id ASC;
+  `;
+  const poolRes = await executor(poolSql, [examId]);
+  return poolRes.rows;
 }
 
 /**
@@ -365,12 +399,16 @@ export async function getAttemptQuestionsSanitized(attemptId, client = null) {
     if (!questionMap.has(row.attempt_question_id)) {
       questionMap.set(row.attempt_question_id, {
         attempt_question_id: row.attempt_question_id,
+        id: row.attempt_question_id,
         display_order: Number(row.display_order),
         question_id: row.question_id,
         topic_id: row.topic_id,
         question_type: row.question_type,
+        type: row.question_type,
         prompt_text: row.prompt_text,
+        prompt: row.prompt_text,
         default_points: Number(row.default_points),
+        points: Number(row.default_points),
         options: []
       });
     }
@@ -379,7 +417,9 @@ export async function getAttemptQuestionsSanitized(attemptId, client = null) {
       const q = questionMap.get(row.attempt_question_id);
       q.options.push({
         option_id: row.option_id,
+        id: row.option_id,
         option_text: row.option_text,
+        text: row.option_text,
         display_order: Number(row.option_display_order)
       });
     }

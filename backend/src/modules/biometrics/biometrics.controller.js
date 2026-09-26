@@ -11,6 +11,7 @@ import {
   verifyLivenessSchema,
   verifyImageUrlSchema,
   verifyFaceSchema,
+  verifyIdentitySchema,
   adminOverrideSchema,
   adminSessionVerificationsQuerySchema
 } from './biometrics.schemas.js';
@@ -98,6 +99,38 @@ export async function verifyFaceHandler(req, res, next) {
       userId: req.user.userId,
       liveImageId: validated.liveImageId,
       livenessToken: validated.livenessToken
+    });
+    return res.status(200).json(result);
+  } catch (err) {
+    return next(err);
+  }
+}
+
+export async function verifyIdentityHandler(req, res, next) {
+  try {
+    let sessionId = req.body?.sessionId || req.query?.sessionId;
+    let image = req.body?.image;
+    let imageBuffer = null;
+    let mimeType = 'image/jpeg';
+
+    if (req.file) {
+      imageBuffer = req.file.buffer;
+      mimeType = req.file.mimetype || 'image/jpeg';
+      if (!sessionId && req.body?.sessionId) {
+        sessionId = req.body.sessionId;
+      }
+    } else {
+      const validated = verifyIdentitySchema.parse(req.body);
+      sessionId = validated.sessionId;
+      image = validated.image;
+    }
+
+    const result = await biometricsService.verifyIdentitySnapshot({
+      userId: req.user.userId,
+      sessionId,
+      image,
+      imageBuffer,
+      mimeType
     });
     return res.status(200).json(result);
   } catch (err) {

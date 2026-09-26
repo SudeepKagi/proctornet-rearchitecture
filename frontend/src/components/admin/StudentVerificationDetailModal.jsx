@@ -54,10 +54,19 @@ export function StudentVerificationDetailModal({ studentId, isOpen, onClose, onR
       setRejectReason('');
 
       try {
-        const [dossierData, previewData] = await Promise.all([
-          adminUsersApi.fetchStudentVerificationDossier(studentId),
-          adminUsersApi.fetchStudentDocumentPreview(studentId).catch(() => null),
-        ]);
+        const dossierData = await adminUsersApi.fetchStudentVerificationDossier(studentId);
+        let previewData = null;
+        const hasDoc = Boolean(
+          dossierData?.idDocumentUrl ||
+          dossierData?.profile?.idDocumentUrl ||
+          dossierData?.student?.idDocumentUrl ||
+          dossierData?.document?.s3Key ||
+          dossierData?.hasDocument
+        );
+
+        if (hasDoc) {
+          previewData = await adminUsersApi.fetchStudentDocumentPreview(studentId).catch(() => null);
+        }
 
         if (isMounted) {
           setDossier(dossierData);

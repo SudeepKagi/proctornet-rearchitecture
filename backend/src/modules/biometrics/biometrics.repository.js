@@ -234,6 +234,17 @@ export async function findVerificationById(verificationId, client = null) {
   return res.rows[0] || null;
 }
 
+export async function countVerificationsBySessionUser(sessionId, userId, client = null) {
+  const runner = client || getPool();
+  const query = `
+    SELECT COUNT(*)::int as count
+    FROM biometric_verifications
+    WHERE session_id = $1 AND user_id = $2;
+  `;
+  const res = await runner.query(query, [sessionId, userId]);
+  return res.rows[0]?.count || 0;
+}
+
 export async function findLatestVerificationForUserSession(
   { sessionId, userId },
   { forUpdate = false, forShare = false } = {},

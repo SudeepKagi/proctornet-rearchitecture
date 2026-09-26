@@ -1,49 +1,59 @@
 /**
  * @file FacultyDashboardPage.jsx
- * @description Faculty portal listing authored exams, creation dialog, and lifecycle navigation.
+ * @description Modern, responsive overview dashboard for Faculty examination management.
+ * Features statistical KPI cards, quick-glance concluded exam pass rate widget, and recent examinations.
  */
 
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Plus,
-  BookOpen,
-  Clock,
-  Award,
-  Calendar,
-  AlertCircle,
-  RefreshCw,
-  ArrowRight,
-  FileEdit,
-  GraduationCap,
-  Layers,
-  ChevronRight,
-} from 'lucide-react';
-import * as examsApi from '../../api/examsApi.js';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card.jsx';
+import { useAuth } from '../../hooks/useAuth.js';
+import * as facultyApi from '../../api/facultyApi.js';
+import { ScheduleExamModal } from '../../components/faculty/ScheduleExamModal.jsx';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui/card.jsx';
 import { Button } from '../../components/ui/button.jsx';
 import { Badge } from '../../components/ui/badge.jsx';
+import { Alert, AlertDescription } from '../../components/ui/alert.jsx';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '../../components/ui/dialog.jsx';
-import { Input } from '../../components/ui/input.jsx';
-import { Alert, AlertDescription, AlertTitle } from '../../components/ui/alert.jsx';
+  Calendar,
+  CheckCircle2,
+  Clock,
+  Plus,
+  RefreshCw,
+  Sparkles,
+  ArrowRight,
+  TrendingUp,
+  Award,
+  Users,
+  Layers,
+  GraduationCap,
+  Building2,
+  AlertCircle,
+  FileText,
+  BarChart3,
+  BookOpen,
+} from 'lucide-react';
 
-function getExamStatusBadge(status) {
+function formatDateTime(val) {
+  if (!val) return 'TBA';
+  return new Date(val).toLocaleDateString(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function getStatusBadge(status) {
   switch (status) {
-    case 'DRAFT':
-      return <Badge variant="secondary">Draft Blueprint</Badge>;
-    case 'PUBLISHED':
-      return <Badge variant="success">Published & Locked</Badge>;
-    case 'ACTIVE':
-      return <Badge variant="success">Active Session</Badge>;
-    case 'COMPLETED':
-      return <Badge variant="outline">Concluded</Badge>;
+    case 'SCHEDULED':
+      return <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-200">Scheduled</Badge>;
+    case 'LIVE':
+      return <Badge variant="success" className="gap-1 animate-pulse">● Live Now</Badge>;
+    case 'ENDED':
+    case 'EVALUATED':
+    case 'RESULT_PUBLISHED':
+      return <Badge variant="outline" className="border-emerald-300 text-emerald-700 bg-emerald-50/50">Concluded</Badge>;
     case 'CANCELLED':
       return <Badge variant="destructive">Cancelled</Badge>;
     default:
@@ -53,374 +63,359 @@ function getExamStatusBadge(status) {
 
 export function FacultyDashboardPage() {
   const navigate = useNavigate();
-  const [exams, setExams] = useState([]);
+  const { user } = useAuth();
+
+  const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isScheduleOpen, setIsScheduleOpen] = useState(false);
 
-  // Subjects for the subject picker
-  const [subjects, setSubjects] = useState([]);
-
-  // Create exam dialog state
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [title, setTitle] = useState('');
-  const [subjectId, setSubjectId] = useState('');
-  const [duration, setDuration] = useState('60');
-  const [totalMarks, setTotalMarks] = useState('100');
-  const [passingMarks, setPassingMarks] = useState('40');
-  const [creating, setCreating] = useState(false);
-  const [modalError, setModalError] = useState('');
-
-  async function loadData() {
+  async function loadStats() {
+    setLoading(true);
+    setError('');
     try {
-      setLoading(true);
-      setError('');
-      const [examData, subjectData] = await Promise.all([
-        examsApi.listExams(),
-        examsApi.listSubjects(),
-      ]);
-      setExams(Array.isArray(examData) ? examData : []);
-      setSubjects(Array.isArray(subjectData) ? subjectData : []);
-      if (subjectData && subjectData.length > 0) {
-        setSubjectId(subjectData[0].subject_id);
-      }
+      const data = await facultyApi.getDashboardStats();
+      setStats(data);
     } catch (err) {
-      setError(err.message || 'Failed to load faculty examinations');
+      setError(err?.message || 'Failed to load faculty metrics. Please refresh.');
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    loadData();
+    loadStats();
   }, []);
 
-  function openModal() {
-    setModalError('');
-    setTitle('');
-    setDuration('60');
-    setTotalMarks('100');
-    setPassingMarks('40');
-    if (subjects.length > 0) setSubjectId(subjects[0].subject_id);
-    setIsModalOpen(true);
-  }
-
-  async function handleCreateExam(e) {
-    e.preventDefault();
-    setModalError('');
-
-    if (!subjectId) {
-      setModalError('Please select an academic subject.');
-      return;
-    }
-
-    const durationNum = parseInt(duration, 10);
-    const totalMarksNum = parseInt(totalMarks, 10);
-    const passingMarksNum = parseInt(passingMarks, 10);
-
-    if (passingMarksNum > totalMarksNum) {
-      setModalError('Passing marks cannot exceed total marks.');
-      return;
-    }
-
-    setCreating(true);
-
-    try {
-      const newExam = await examsApi.createExam({
-        title,
-        subject_id: subjectId,
-        duration_minutes: durationNum,
-        total_marks: totalMarksNum,
-        passing_marks: passingMarksNum,
-      });
-
-      setIsModalOpen(false);
-      navigate(`/faculty/exams/${newExam.exam_id}`);
-    } catch (err) {
-      setModalError(err.message || 'Failed to create exam blueprint.');
-    } finally {
-      setCreating(false);
-    }
-  }
+  const recentExam = stats?.recentExam;
 
   return (
-    <div className="w-full max-w-6xl mx-auto space-y-6 pb-12">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
+    <div className="space-y-7 pb-16 max-w-7xl mx-auto">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200/80 pb-5">
         <div>
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Faculty Workspace
-            </span>
-            <span className="text-slate-300 dark:text-slate-700">•</span>
-            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
-              Exam Authoring & Governance
-            </span>
+          <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+            <span>Faculty Workspace</span> &bull; <span>Academic Session 2026</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight">
             Faculty Examination Suite
           </h1>
-          <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-            Author exam blueprints, balance topic allocation rules, and monitor grading workflows.
+          <p className="text-xs text-slate-500 mt-0.5">
+            Welcome back, {user?.name || 'Professor'}. Monitor live cohort metrics, build question pools, and author exams.
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 self-start sm:self-auto">
+        <div className="flex items-center gap-2.5">
           <Button
             variant="outline"
             size="sm"
-            onClick={loadData}
+            onClick={loadStats}
             disabled={loading}
-            className="text-xs h-9 gap-1.5 text-slate-700 dark:text-slate-300"
+            className="gap-1.5 h-9 text-xs"
           >
-            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
-            <span>Refresh</span>
+            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
           </Button>
+
           <Button
-            onClick={openModal}
-            className="text-xs h-9 gap-1.5 bg-slate-900 hover:bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200"
+            size="sm"
+            onClick={() => setIsScheduleOpen(true)}
+            className="gap-1.5 h-9 text-xs bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-xs"
           >
-            <Plus size={14} />
-            <span>Create Blueprint</span>
+            <Plus size={14} /> Schedule New Exam
           </Button>
         </div>
       </div>
 
-      {/* Global Error Banner */}
       {error && (
         <Alert variant="destructive">
-          <AlertCircle size={16} />
-          <AlertTitle>Error Loading Exams</AlertTitle>
-          <AlertDescription className="flex items-center justify-between gap-4 mt-1">
-            <span>{error}</span>
-            <Button size="sm" variant="outline" onClick={loadData}>
-              Try Again
-            </Button>
-          </AlertDescription>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription className="text-xs">{error}</AlertDescription>
         </Alert>
       )}
 
-      {/* Loading Skeleton / State */}
-      {loading ? (
-        <div className="py-20 text-center space-y-3">
-          <RefreshCw size={28} className="animate-spin mx-auto text-slate-400" />
-          <p className="text-sm text-slate-500 font-medium">Loading authored examination blueprints...</p>
-        </div>
-      ) : exams.length === 0 ? (
-        <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-center py-16 px-4">
-          <CardContent className="space-y-4 max-w-md mx-auto">
-            <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 mx-auto flex items-center justify-center">
-              <BookOpen size={24} />
-            </div>
+      {/* 4 Statistical KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Card 1: Total Exams Conducted */}
+        <Card className="border border-slate-200 shadow-xs hover:shadow-sm transition-shadow">
+          <CardContent className="p-5 flex items-center justify-between">
             <div className="space-y-1">
-              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">No Authored Exams Yet</h3>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                Create your first examination blueprint to specify topics, question distributions, and passing thresholds.
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                Exams Conducted
               </p>
+              <h3 className="text-2xl font-black text-slate-900">
+                {loading ? '—' : stats?.totalExamsConducted ?? 0}
+              </h3>
+              <p className="text-[11px] text-slate-400">Past evaluated evaluations</p>
             </div>
-            <Button onClick={openModal} className="gap-2">
-              <Plus size={15} />
-              Create Exam Blueprint
-            </Button>
+            <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+              <CheckCircle2 size={24} />
+            </div>
           </CardContent>
         </Card>
-      ) : (
-        <div className="grid gap-4">
-          {exams.map((exam) => {
-            const id = exam.exam_id || exam.id;
-            const isDraft = exam.status === 'DRAFT';
 
-            return (
-              <Card
-                key={id}
-                className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:border-slate-300 dark:hover:border-slate-700 transition-colors"
-              >
-                <CardContent className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-5">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2.5">
-                      {getExamStatusBadge(exam.status)}
-                      {exam.subject_name && (
-                        <span className="text-xs font-medium text-slate-600 dark:text-slate-400 flex items-center gap-1">
-                          <GraduationCap size={13} className="text-slate-400 dark:text-slate-500" />
-                          {exam.subject_name}
-                        </span>
-                      )}
-                    </div>
+        {/* Card 2: Upcoming Exams Scheduled */}
+        <Card className="border border-slate-200 shadow-xs hover:shadow-sm transition-shadow">
+          <CardContent className="p-5 flex items-center justify-between">
+            <div className="space-y-1">
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                Upcoming Exams
+              </p>
+              <h3 className="text-2xl font-black text-blue-600">
+                {loading ? '—' : stats?.upcomingExamsScheduled ?? 0}
+              </h3>
+              <p className="text-[11px] text-slate-400">Scheduled & active cohorts</p>
+            </div>
+            <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+              <Calendar size={24} />
+            </div>
+          </CardContent>
+        </Card>
 
-                    <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight">
-                      {exam.title}
-                    </h2>
+        {/* Card 3: Total Question Pools Created */}
+        <Card className="border border-slate-200 shadow-xs hover:shadow-sm transition-shadow">
+          <CardContent className="p-5 flex items-center justify-between">
+            <div className="space-y-1">
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                Question Pools
+              </p>
+              <h3 className="text-2xl font-black text-purple-600">
+                {loading ? '—' : stats?.totalQuestionPools ?? 0}
+              </h3>
+              <p className="text-[11px] text-slate-400">Topic-based MCQ banks</p>
+            </div>
+            <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
+              <Layers size={24} />
+            </div>
+          </CardContent>
+        </Card>
 
-                    <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-slate-600 dark:text-slate-400">
-                      <span className="flex items-center gap-1.5">
-                        <Clock size={13} className="text-slate-400 dark:text-slate-500" />
-                        Duration: <strong className="font-semibold text-slate-800 dark:text-slate-200">{exam.duration_minutes} mins</strong>
-                      </span>
-                      <span className="flex items-center gap-1.5">
-                        <Award size={13} className="text-slate-400 dark:text-slate-500" />
-                        Marks: <strong className="font-semibold text-slate-800 dark:text-slate-200">{exam.passing_marks} / {exam.total_marks}</strong> (Pass / Total)
-                      </span>
-                      {exam.results_release_policy && (
-                        <span className="flex items-center gap-1.5">
-                          <Layers size={13} className="text-slate-400 dark:text-slate-500" />
-                          Policy: <strong className="font-semibold text-slate-800 dark:text-slate-200">{exam.results_release_policy}</strong>
-                        </span>
-                      )}
-                    </div>
+        {/* Card 4: Average Student Performance */}
+        <Card className="border border-slate-200 shadow-xs hover:shadow-sm transition-shadow">
+          <CardContent className="p-5 flex items-center justify-between">
+            <div className="space-y-1">
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                Avg. Performance
+              </p>
+              <h3 className="text-2xl font-black text-emerald-600">
+                {loading ? '—' : `${stats?.averageStudentPerformance ?? 0}%`}
+              </h3>
+              <p className="text-[11px] text-slate-400">Across student submissions</p>
+            </div>
+            <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+              <TrendingUp size={24} />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Quick-Glance Widget: Most Recently Concluded Exam */}
+      {recentExam && (
+        <Card className="border border-blue-200/90 bg-gradient-to-r from-blue-50/40 via-white to-indigo-50/40 shadow-xs overflow-hidden">
+          <CardContent className="p-6">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-xs border-blue-300 text-blue-700 bg-blue-50 font-semibold gap-1">
+                    <Award size={12} /> Most Recently Concluded Exam
+                  </Badge>
+                  <span className="text-xs text-slate-400">
+                    Concluded {formatDateTime(recentExam.concluded_at)}
+                  </span>
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 leading-snug">
+                  {recentExam.title}
+                </h3>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600">
+                  <span className="flex items-center gap-1">
+                    <GraduationCap size={13} className="text-slate-400" />
+                    {recentExam.target_semester ? `${recentExam.target_semester}th Semester` : 'All Semesters'}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Building2 size={13} className="text-slate-400" />
+                    {recentExam.target_department || 'General Branch'}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Users size={13} className="text-slate-400" />
+                    {recentExam.evaluated_count} Candidates Evaluated
+                  </span>
+                </div>
+              </div>
+
+              {/* Pass percentage highlight and CTA */}
+              <div className="flex items-center gap-6 self-start lg:self-center shrink-0">
+                <div className="flex items-center gap-3 bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
+                  <div className="w-14 h-14 rounded-full border-4 border-emerald-500 bg-emerald-50/50 flex flex-col items-center justify-center shrink-0">
+                    <span className="text-sm font-black text-emerald-700 leading-none">
+                      {recentExam.pass_percentage}%
+                    </span>
+                    <span className="text-[9px] font-bold text-emerald-600 uppercase tracking-tighter">Pass</span>
                   </div>
-
-                  <div className="flex items-center gap-2.5 shrink-0 self-end md:self-center">
-                    <Button
-                      variant={isDraft ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => navigate(`/faculty/exams/${id}`)}
-                      className="gap-1.5 h-8 text-xs font-medium"
-                    >
-                      <FileEdit size={13} />
-                      {isDraft ? 'Edit Blueprint' : 'View Blueprint'}
-                    </Button>
-
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => navigate(`/faculty/exams/${id}/results`)}
-                      className="gap-1.5 h-8 text-xs font-medium"
-                    >
-                      <span>Results & Grading</span>
-                      <ChevronRight size={13} />
-                    </Button>
+                  <div className="text-xs space-y-0.5">
+                    <p className="font-semibold text-slate-900">
+                      {recentExam.pass_count} Passed &bull; {recentExam.fail_count} Failed
+                    </p>
+                    <p className="text-slate-500">Avg Score: {recentExam.average_score ?? 0} / {recentExam.total_marks}</p>
                   </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+                </div>
+
+                <Button
+                  onClick={() => navigate(`/faculty/exams/${recentExam.exam_id}/results`)}
+                  className="bg-slate-900 hover:bg-slate-800 text-white h-10 px-4 text-xs font-semibold gap-1.5 shadow-xs"
+                >
+                  <BarChart3 size={14} /> View Analytics <ArrowRight size={14} />
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
-      {/* Create Exam Blueprint Dialog */}
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="text-base font-bold">Create Exam Blueprint</DialogTitle>
-            <DialogDescription className="text-xs text-slate-500 dark:text-slate-400">
-              Define the academic parameters and target curriculum for this new examination blueprint.
-            </DialogDescription>
-          </DialogHeader>
+      {/* Quick Action Navigation Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div
+          onClick={() => setIsScheduleOpen(true)}
+          className="p-5 rounded-xl border border-slate-200 bg-white hover:border-blue-400 hover:shadow-sm cursor-pointer transition-all space-y-2 group"
+        >
+          <div className="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+            <Calendar size={20} />
+          </div>
+          <h4 className="text-sm font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
+            Schedule New Exam
+          </h4>
+          <p className="text-xs text-slate-500 leading-relaxed">
+            Create an examination blueprint, pull questions from topic pools, and target specific academic cohorts.
+          </p>
+        </div>
 
-          <form onSubmit={handleCreateExam} className="space-y-4 pt-2">
-            {modalError && (
-              <Alert variant="destructive">
-                <AlertCircle size={15} />
-                <AlertDescription>{modalError}</AlertDescription>
-              </Alert>
-            )}
+        <div
+          onClick={() => navigate('/faculty/question-pools')}
+          className="p-5 rounded-xl border border-slate-200 bg-white hover:border-purple-400 hover:shadow-sm cursor-pointer transition-all space-y-2 group"
+        >
+          <div className="w-10 h-10 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+            <Sparkles size={20} />
+          </div>
+          <h4 className="text-sm font-bold text-slate-900 group-hover:text-purple-600 transition-colors">
+            Question Pools (AI Powered)
+          </h4>
+          <p className="text-xs text-slate-500 leading-relaxed">
+            Upload PDF course material to automatically generate and curate rigorous MCQs categorized by topic.
+          </p>
+        </div>
 
-            <div className="space-y-1.5">
-              <label htmlFor="exam-title" className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-                Exam Title *
-              </label>
-              <Input
-                id="exam-title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g. CS201 Midterm Examination 2026"
-                required
-                className="h-9 text-xs"
-              />
+        <div
+          onClick={() => navigate('/faculty/exams')}
+          className="p-5 rounded-xl border border-slate-200 bg-white hover:border-emerald-400 hover:shadow-sm cursor-pointer transition-all space-y-2 group"
+        >
+          <div className="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+            <FileText size={20} />
+          </div>
+          <h4 className="text-sm font-bold text-slate-900 group-hover:text-emerald-600 transition-colors">
+            Exams Management
+          </h4>
+          <p className="text-xs text-slate-500 leading-relaxed">
+            Manage upcoming scheduled examinations or review comprehensive score analytics for completed cohorts.
+          </p>
+        </div>
+      </div>
+
+      {/* Recent Examinations List */}
+      <Card className="border border-slate-200 shadow-xs">
+        <CardHeader className="flex flex-row items-center justify-between pb-3">
+          <div>
+            <CardTitle className="text-base font-bold text-slate-900">Recent Examinations</CardTitle>
+            <CardDescription className="text-xs text-slate-500">
+              Active, upcoming, and recently concluded examination schedules.
+            </CardDescription>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate('/faculty/exams')}
+            className="text-xs h-8 gap-1"
+          >
+            View All Exams <ArrowRight size={13} />
+          </Button>
+        </CardHeader>
+
+        <CardContent className="p-0">
+          {loading ? (
+            <div className="p-8 text-center text-xs text-slate-400">Loading examinations...</div>
+          ) : !stats?.recentExams || stats.recentExams.length === 0 ? (
+            <div className="p-12 text-center space-y-3">
+              <BookOpen className="mx-auto h-9 w-9 text-slate-300" />
+              <p className="text-sm font-semibold text-slate-700">No Examinations Authored Yet</p>
+              <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                Schedule your first examination to distribute questions from your Topic Pools to student cohorts.
+              </p>
+              <Button
+                size="sm"
+                onClick={() => setIsScheduleOpen(true)}
+                className="h-8 text-xs bg-blue-600 text-white font-medium gap-1"
+              >
+                <Plus size={13} /> Schedule New Exam
+              </Button>
             </div>
-
-            <div className="space-y-1.5">
-              <label htmlFor="exam-subject" className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-                Academic Subject *
-              </label>
-              {subjects.length === 0 ? (
-                <p className="text-xs text-slate-500">Loading academic subjects catalog...</p>
-              ) : (
-                <select
-                  id="exam-subject"
-                  value={subjectId}
-                  onChange={(e) => setSubjectId(e.target.value)}
-                  required
-                  className="w-full h-9 px-3 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-slate-100 focus:outline-hidden focus:ring-1 focus:ring-slate-400"
+          ) : (
+            <div className="divide-y divide-slate-100">
+              {stats.recentExams.map((ex) => (
+                <div
+                  key={ex.exam_id}
+                  className="p-4 sm:px-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50/60 transition-colors"
                 >
-                  {subjects.map((s) => (
-                    <option key={s.subject_id} value={s.subject_id}>
-                      {s.name} ({s.code})
-                    </option>
-                  ))}
-                </select>
-              )}
+                  <div className="space-y-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      {getStatusBadge(ex.status)}
+                      <span className="text-xs text-slate-400 font-medium">
+                        {formatDateTime(ex.scheduled_start_time)}
+                      </span>
+                    </div>
+                    <h4 className="text-sm font-bold text-slate-900 truncate">{ex.title}</h4>
+                    <div className="flex items-center gap-3 text-xs text-slate-500">
+                      <span>{ex.duration_minutes} min duration</span>
+                      <span>&bull;</span>
+                      <span>Target: {ex.target_semester ? `${ex.target_semester}th Sem` : 'All'}</span>
+                      <span>&bull;</span>
+                      <span>{ex.target_department || 'General Branch'}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                    {['ENDED', 'EVALUATED', 'RESULT_PUBLISHED'].includes(ex.status) ||
+                    (ex.scheduled_end_time && new Date(ex.scheduled_end_time) < new Date()) ? (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => navigate(`/faculty/exams/${ex.exam_id}/results`)}
+                        className="h-8 text-xs gap-1 font-semibold"
+                      >
+                        <BarChart3 size={13} /> View Results
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => navigate('/faculty/exams')}
+                        className="h-8 text-xs gap-1"
+                      >
+                        Manage <ArrowRight size={13} />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
+          )}
+        </CardContent>
+      </Card>
 
-            <div className="grid grid-cols-3 gap-3">
-              <div className="space-y-1.5">
-                <label htmlFor="exam-duration" className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-                  Duration (min)
-                </label>
-                <Input
-                  id="exam-duration"
-                  type="number"
-                  min="1"
-                  value={duration}
-                  onChange={(e) => setDuration(e.target.value)}
-                  required
-                  className="h-9 text-xs"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label htmlFor="exam-total-marks" className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-                  Total Marks
-                </label>
-                <Input
-                  id="exam-total-marks"
-                  type="number"
-                  min="1"
-                  value={totalMarks}
-                  onChange={(e) => setTotalMarks(e.target.value)}
-                  required
-                  className="h-9 text-xs"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label htmlFor="exam-passing-marks" className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-                  Passing Marks
-                </label>
-                <Input
-                  id="exam-passing-marks"
-                  type="number"
-                  min="0"
-                  value={passingMarks}
-                  onChange={(e) => setPassingMarks(e.target.value)}
-                  required
-                  className="h-9 text-xs"
-                />
-              </div>
-            </div>
-
-            <DialogFooter className="pt-3 gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setIsModalOpen(false)}
-                className="h-9 text-xs"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                size="sm"
-                disabled={creating}
-                className="h-9 text-xs gap-1.5 bg-slate-900 text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200"
-              >
-                {creating && <RefreshCw size={13} className="animate-spin" />}
-                {creating ? 'Creating Blueprint...' : 'Create Blueprint'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      {/* Exam Scheduling Wizard Modal */}
+      <ScheduleExamModal
+        isOpen={isScheduleOpen}
+        onClose={() => setIsScheduleOpen(false)}
+        onSuccess={() => {
+          loadStats();
+        }}
+      />
     </div>
   );
 }

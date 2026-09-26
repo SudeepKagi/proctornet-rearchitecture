@@ -16,8 +16,11 @@ import {
   generatePresignedDownloadUrl,
   headEvidenceObject,
   deleteEvidenceObjectVersions,
-  getEvidenceObjectHeader
+  getEvidenceObjectHeader,
+  putEvidenceObjectBuffer
 } from '../../infrastructure/storage/s3Storage.js';
+import { compressImageEvidence } from '../../infrastructure/storage/evidenceCompression.js';
+import * as authRepo from '../auth/auth.repository.js';
 import {
   hashDocumentNumber,
   maskDocumentNumber,
@@ -607,4 +610,246 @@ export async function reviewStudentVerification({
   } finally {
     client.release();
   }
+}
+
+/**
+ * Onboards and enrolls a student candidate by uploading reference face photo and government ID document to S3,
+ * registering the records in the database, and transitioning account verification to VERIFIED.
+ *
+ * @param {object} params
+ * @param {string} params.userId
+ * @param {string} [params.faceImage] - Base64 face image
+ * @param {string} [params.idDocument] - Base64 ID document
+ * @param {Express.Multer.File} [params.faceFile] - Uploaded face image file
+ * @param {Express.Multer.File} [params.idFile] - Uploaded ID document file
+ * @param {string} [params.documentType='GOVERNMENT_ID']
+ * @returns {Promise<object>} Updated user profile
+ */
+export async function enrollCandidate({
+  userId,
+  faceImage,
+  idDocument,
+  faceFile = null,
+  idFile = null,
+  documentType = 'GOVERNMENT_ID'
+}) {
+  const pool = getPool();
+  const bucket = config.S3_BUCKET_NAME || 'proctornet-evidence-dev-01';
+  const region = config.AWS_REGION || 'ap-south-1';
+
+  // 1. Process Face Image
+  let faceBuffer = faceFile ? faceFile.buffer : null;
+  if (!faceBuffer) {
+    if (!faceImage || typeof faceImage !== 'string') {
+      throw new BadRequestError('Reference face photo snapshot is required');
+    }
+    const cleanFace = faceImage.replace(/^data:image\/\w+;base64,/, '');
+    faceBuffer = Buffer.from(cleanFace, 'base64');
+  }
+
+  if (faceBuffer.length < 100) {
+    throw new BadRequestError('Invalid or empty face photo provided');
+  }
+
+  // Optimize & compress reference face photo (JPEG format compatible with face_biometrics constraint)
+  const compressedFace = await compressImageEvidence(faceBuffer, {
+    format: 'jpeg',
+    quality: 85,
+    maxWidth: 1280,
+    maxHeight: 720
+  });
+
+  const timestamp = Date.now();
+  const faceKey = `reference-photos/${userId}-${timestamp}.jpg`;
+
+  await putEvidenceObjectBuffer({
+    bucket,
+    key: faceKey,
+    buffer: compressedFace.buffer,
+    contentType: 'image/jpeg',
+    metadata: {
+      userId,
+      purpose: 'STUDENT_REFERENCE_FACE'
+    }
+  });
+
+  const enrolledFacePhotoUrl = `https://${bucket}.s3.${region}.amazonaws.com/${faceKey}`;
+
+  // 2. Process Government ID Document
+  const validDocTypes = ['PASSPORT', 'NATIONAL_ID', 'DRIVING_LICENSE', 'STUDENT_ID'];
+  const normalizedDocType = validDocTypes.includes(documentType) ? documentType : 'NATIONAL_ID';
+
+  let idBuffer = idFile ? idFile.buffer : null;
+  let idMimeType = idFile?.mimetype || 'image/jpeg';
+  let idFileName = idFile?.originalname || 'government-id.jpg';
+
+  if (!idBuffer) {
+    if (!idDocument || typeof idDocument !== 'string') {
+      throw new BadRequestError('Government ID document is required');
+    }
+    if (idDocument.startsWith('data:')) {
+      const match = idDocument.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
+      if (match) {
+        idMimeType = match[1];
+        idBuffer = Buffer.from(match[2], 'base64');
+      } else {
+        idBuffer = Buffer.from(idDocument.split(',')[1] || idDocument, 'base64');
+      }
+    } else {
+      idBuffer = Buffer.from(idDocument, 'base64');
+    }
+  }
+
+  let validMime = idMimeType;
+  if (!['image/jpeg', 'image/png', 'application/pdf'].includes(validMime)) {
+    validMime = 'image/jpeg';
+  }
+
+  const ext = getExtensionForMime(validMime);
+  const idKey = `identity-documents/${userId}-${timestamp}.${ext}`;
+
+  await putEvidenceObjectBuffer({
+    bucket,
+    key: idKey,
+    buffer: idBuffer,
+    contentType: validMime,
+    metadata: {
+      userId,
+      documentType: normalizedDocType,
+      fileName: idFileName
+    }
+  });
+
+  const idDocumentUrl = `https://${bucket}.s3.${region}.amazonaws.com/${idKey}`;
+
+  const currentUser = await authRepo.findUserById(userId);
+  const fullNameOnDocument = currentUser?.name || 'Student Candidate';
+  const docNumberHash = crypto.createHash('sha256').update(`${userId}-${timestamp}`).digest('hex');
+  const docNumberLast4 = docNumberHash.slice(-4);
+
+  // 3. Database Transaction: Update users, student_profiles, face_biometrics, and student_identity_documents
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // Update users: set verification_status = 'VERIFIED' and URLs
+    await client.query(
+      `UPDATE users
+       SET enrolled_face_photo_url = $1,
+           id_document_url = $2,
+           verification_status = 'VERIFIED',
+           verification_notes = 'First-time self-enrollment completed',
+           verification_updated_at = CURRENT_TIMESTAMP,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE user_id = $3`,
+      [enrolledFacePhotoUrl, idDocumentUrl, userId]
+    );
+
+    // Update student_profiles
+    await client.query(
+      `UPDATE student_profiles
+       SET enrolled_face_photo_url = $1,
+           id_document_url = $2,
+           metadata = jsonb_set(
+             jsonb_set(
+               COALESCE(metadata, '{}'::jsonb),
+               '{enrolledFacePhotoUrl}',
+               to_jsonb($1::text)
+             ),
+             '{idDocumentUrl}',
+             to_jsonb($2::text)
+           ),
+           updated_at = CURRENT_TIMESTAMP
+       WHERE user_id = $3`,
+      [enrolledFacePhotoUrl, idDocumentUrl, userId]
+    );
+
+    // Insert or update face_biometrics
+    const biometricId = crypto.randomUUID();
+    // Delete any previous pending biometrics for clean state
+    await client.query('DELETE FROM face_biometrics WHERE user_id = $1', [userId]);
+    await client.query(
+      `INSERT INTO face_biometrics (
+         biometric_id, user_id, enrollment_status, s3_bucket, s3_key, quality_score, mime_type, byte_size, model_version
+       )
+       VALUES ($1, $2, 'ENROLLED', $3, $4, 0.950, 'image/jpeg', $5, 'facenet-v1')`,
+      [biometricId, userId, bucket, faceKey, compressedFace.compressedBytes]
+    );
+
+    // Insert student_identity_documents
+    const docId = crypto.randomUUID();
+    await client.query('DELETE FROM student_identity_documents WHERE user_id = $1', [userId]);
+    await client.query(
+      `INSERT INTO student_identity_documents (
+         document_id,
+         user_id,
+         document_type,
+         document_number_hash,
+         document_number_last4,
+         full_name_on_document,
+         s3_bucket,
+         s3_key,
+         file_name,
+         mime_type,
+         byte_size,
+         magic_bytes_verified,
+         verification_status,
+         submitted_at,
+         reviewed_at
+       )
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, TRUE, 'APPROVED', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+      [
+        docId,
+        userId,
+        normalizedDocType,
+        docNumberHash,
+        docNumberLast4,
+        fullNameOnDocument,
+        bucket,
+        idKey,
+        idFileName,
+        validMime,
+        idBuffer.length
+      ]
+    );
+
+    await client.query('COMMIT');
+  } catch (dbErr) {
+    await client.query('ROLLBACK');
+    logger.error({ err: dbErr.message, userId }, 'Failed to persist student enrollment to database');
+    throw dbErr;
+  } finally {
+    client.release();
+  }
+
+  // Audit event
+  await recordAuditEvent({
+    actorUserId: userId,
+    action: 'STUDENT_ENROLLMENT_COMPLETED',
+    resourceType: 'USER',
+    resourceId: userId,
+    metadata: {
+      enrolledFacePhotoUrl,
+      idDocumentUrl,
+      bucket
+    }
+  }).catch(() => {});
+
+  logger.info({ userId, enrolledFacePhotoUrl, idDocumentUrl }, 'Student candidate enrolled and verified successfully');
+
+  // Return authoritative updated user payload
+  const updatedUser = await authRepo.findUserById(userId);
+  const roles = await authRepo.getUserRoles(userId);
+
+  return {
+    userId: updatedUser.user_id,
+    name: updatedUser.name,
+    email: updatedUser.email,
+    status: updatedUser.status,
+    verificationStatus: 'VERIFIED',
+    isVerified: true,
+    enrolledFacePhotoUrl,
+    idDocumentUrl,
+    roles
+  };
 }

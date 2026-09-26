@@ -287,6 +287,11 @@ const envSchema = z.object({
     .transform(Number)
     .default('60000'),
 
+  // AI & LLM Question Generation
+  GEMINI_API_KEY: z.string().optional(),
+  GOOGLE_API_KEY: z.string().optional(),
+  OPENAI_API_KEY: z.string().optional(),
+
   // WebRTC / SFU Media configuration (Phase 17)
   MEDIA_ENABLED: z
     .union([z.boolean(), z.enum(['true', 'false', '1', '0'])])

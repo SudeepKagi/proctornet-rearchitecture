@@ -28,11 +28,17 @@ const CandidateDocumentUploadPage = lazyNamed(() => import('./pages/onboarding/C
 const VerificationPendingPage = lazyNamed(() => import('./pages/onboarding/VerificationPendingPage.jsx'), 'VerificationPendingPage');
 const VerificationRejectedPage = lazyNamed(() => import('./pages/onboarding/VerificationRejectedPage.jsx'), 'VerificationRejectedPage');
 const CandidateDashboardPage = lazyNamed(() => import('./pages/candidate/CandidateDashboardPage.jsx'), 'CandidateDashboardPage');
+const CandidateExamsPage = lazyNamed(() => import('./pages/candidate/CandidateExamsPage.jsx'), 'CandidateExamsPage');
+const CandidateProfilePage = lazyNamed(() => import('./pages/candidate/CandidateProfilePage.jsx'), 'CandidateProfilePage');
 const PreExamReadinessPage = lazyNamed(() => import('./pages/candidate/PreExamReadinessPage.jsx'), 'PreExamReadinessPage');
+const ExamLobbyPage = lazyNamed(() => import('./pages/candidate/ExamLobbyPage.jsx'), 'ExamLobbyPage');
 const ExamTakingPage = lazyNamed(() => import('./pages/candidate/ExamTakingPage.jsx'), 'ExamTakingPage');
 const CandidateResultPage = lazyNamed(() => import('./pages/candidate/CandidateResultPage.jsx'), 'CandidateResultPage');
 const CandidateFaceEnrollmentPage = lazy(() => import('./pages/candidate/CandidateFaceEnrollmentPage.jsx'));
+const CandidateEnrollmentPage = lazyNamed(() => import('./pages/candidate/CandidateEnrollmentPage.jsx'), 'CandidateEnrollmentPage');
 const FacultyDashboardPage = lazyNamed(() => import('./pages/faculty/FacultyDashboardPage.jsx'), 'FacultyDashboardPage');
+const FacultyExamsPage = lazyNamed(() => import('./pages/faculty/FacultyExamsPage.jsx'), 'FacultyExamsPage');
+const FacultyQuestionPoolsPage = lazyNamed(() => import('./pages/faculty/FacultyQuestionPoolsPage.jsx'), 'FacultyQuestionPoolsPage');
 const ExamEditorPage = lazyNamed(() => import('./pages/faculty/ExamEditorPage.jsx'), 'ExamEditorPage');
 const FacultyResultsPage = lazyNamed(() => import('./pages/faculty/FacultyResultsPage.jsx'), 'FacultyResultsPage');
 const SessionManagerPage = lazyNamed(() => import('./pages/faculty/SessionManagerPage.jsx'), 'SessionManagerPage');
@@ -105,11 +111,31 @@ export function App() {
           }
         />
         <Route
+          path="/candidate/enrollment"
+          element={
+            <ProtectedRoute>
+              <RoleRoute allowedRoles={['STUDENT', 'ADMIN']}>
+                <CandidateEnrollmentPage />
+              </RoleRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/candidate/biometrics/enroll"
+          element={
+            <ProtectedRoute>
+              <RoleRoute allowedRoles={['STUDENT', 'ADMIN']}>
+                <CandidateEnrollmentPage />
+              </RoleRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/onboarding/student"
           element={
             <ProtectedRoute>
               <RoleRoute allowedRoles={['STUDENT', 'ADMIN']}>
-                <StudentOnboardingPage />
+                <Navigate to="/candidate/enrollment" replace />
               </RoleRoute>
             </ProtectedRoute>
           }
@@ -119,7 +145,7 @@ export function App() {
           element={
             <ProtectedRoute>
               <RoleRoute allowedRoles={['STUDENT', 'ADMIN']}>
-                <CandidateDocumentUploadPage />
+                <Navigate to="/candidate/enrollment" replace />
               </RoleRoute>
             </ProtectedRoute>
           }
@@ -154,6 +180,18 @@ export function App() {
         {/* Distraction-Free Exam Taking Workspace */}
         <Route
           path="/candidate/attempts/:attemptId"
+          element={
+            <ProtectedRoute>
+              <RoleRoute allowedRoles={['STUDENT', 'ADMIN']}>
+                <VerifiedRoute>
+                  <ExamTakingPage />
+                </VerifiedRoute>
+              </RoleRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/candidate/exam/:attemptId"
           element={
             <ProtectedRoute>
               <RoleRoute allowedRoles={['STUDENT', 'ADMIN']}>
@@ -203,11 +241,21 @@ export function App() {
             }
           />
           <Route
-            path="/candidate/biometrics/enroll"
+            path="/candidate/lobby/:sessionId"
             element={
               <RoleRoute allowedRoles={['STUDENT', 'ADMIN']}>
                 <VerifiedRoute>
-                  <CandidateFaceEnrollmentPage />
+                  <ExamLobbyPage />
+                </VerifiedRoute>
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/candidate/lobby/exam/:examId"
+            element={
+              <RoleRoute allowedRoles={['STUDENT', 'ADMIN']}>
+                <VerifiedRoute>
+                  <ExamLobbyPage />
                 </VerifiedRoute>
               </RoleRoute>
             }
@@ -223,6 +271,29 @@ export function App() {
             }
           />
 
+          {/* Candidate: My Exams */}
+          <Route
+            path="/candidate/exams"
+            element={
+              <RoleRoute allowedRoles={['STUDENT', 'ADMIN']}>
+                <VerifiedRoute>
+                  <CandidateExamsPage />
+                </VerifiedRoute>
+              </RoleRoute>
+            }
+          />
+
+          {/* Candidate: Profile */}
+          <Route
+            path="/candidate/profile"
+            element={
+              <RoleRoute allowedRoles={['STUDENT', 'ADMIN']}>
+                <CandidateProfilePage />
+              </RoleRoute>
+            }
+          />
+
+
           {/* Faculty Routes */}
           <Route
             path="/faculty"
@@ -230,6 +301,26 @@ export function App() {
               <RoleRoute allowedRoles={['FACULTY', 'ADMIN']}>
                 <VerifiedRoute>
                   <FacultyDashboardPage />
+                </VerifiedRoute>
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/faculty/exams"
+            element={
+              <RoleRoute allowedRoles={['FACULTY', 'ADMIN']}>
+                <VerifiedRoute>
+                  <FacultyExamsPage />
+                </VerifiedRoute>
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/faculty/question-pools"
+            element={
+              <RoleRoute allowedRoles={['FACULTY', 'ADMIN']}>
+                <VerifiedRoute>
+                  <FacultyQuestionPoolsPage />
                 </VerifiedRoute>
               </RoleRoute>
             }

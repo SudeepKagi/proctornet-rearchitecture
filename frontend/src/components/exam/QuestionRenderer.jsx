@@ -19,7 +19,11 @@ export function QuestionRenderer({
 }) {
   if (!question) return null;
 
-  const { question_type, prompt, options = [], points = 1 } = question;
+  const questionType = question.question_type || question.type || 'MCQ';
+  const promptText = question.prompt || question.prompt_text || '';
+  const options = question.options || [];
+  const points = question.points !== undefined ? question.points : (question.default_points !== undefined ? question.default_points : 1);
+  const qId = question.id || question.attempt_question_id || question.question_id || String(questionNumber);
 
   const currentOptionId = value?.selected_option_id || null;
   const currentNumericValue = value?.numeric_value !== undefined ? value.numeric_value : '';
@@ -52,20 +56,22 @@ export function QuestionRenderer({
         </div>
 
         <div className="text-base sm:text-lg font-medium text-slate-900 dark:text-slate-100 leading-relaxed">
-          {prompt}
+          {promptText}
         </div>
       </legend>
 
       {/* Multiple Choice Options (MCQ) */}
-      {question_type === 'MCQ' && (
+      {questionType === 'MCQ' && (
         <div className="space-y-3" role="radiogroup" aria-label={`Options for question ${questionNumber}`}>
           {options.map((opt, idx) => {
-            const isSelected = currentOptionId === opt.id;
+            const optId = opt.id || opt.option_id || String(idx);
+            const optText = opt.text || opt.option_text || '';
+            const isSelected = currentOptionId === optId;
             const letter = String.fromCharCode(65 + idx);
 
             return (
               <label
-                key={opt.id}
+                key={optId}
                 className={cn(
                   'flex items-center gap-3.5 p-4 rounded-xl border-2 transition-all select-none',
                   disabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer',
@@ -76,11 +82,11 @@ export function QuestionRenderer({
               >
                 <input
                   type="radio"
-                  name={`question-${question.id}`}
-                  value={opt.id}
+                  name={`question-${qId}`}
+                  value={optId}
                   checked={isSelected}
                   disabled={disabled}
-                  onChange={() => handleOptionSelect(opt.id)}
+                  onChange={() => handleOptionSelect(optId)}
                   className="sr-only"
                 />
                 <span
@@ -101,7 +107,7 @@ export function QuestionRenderer({
                       : 'text-slate-800 dark:text-slate-200'
                   )}
                 >
-                  {opt.text}
+                  {optText}
                 </span>
               </label>
             );
@@ -110,13 +116,15 @@ export function QuestionRenderer({
       )}
 
       {/* True / False Options */}
-      {question_type === 'TRUE_FALSE' && (
+      {questionType === 'TRUE_FALSE' && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {(options.length > 0 ? options : [{ id: 'true', text: 'True' }, { id: 'false', text: 'False' }]).map((opt) => {
-            const isSelected = currentOptionId === opt.id;
+          {(options.length > 0 ? options : [{ id: 'true', text: 'True' }, { id: 'false', text: 'False' }]).map((opt, idx) => {
+            const optId = opt.id || opt.option_id || String(idx);
+            const optText = opt.text || opt.option_text || '';
+            const isSelected = currentOptionId === optId;
             return (
               <label
-                key={opt.id}
+                key={optId}
                 className={cn(
                   'flex items-center justify-center p-6 rounded-xl border-2 text-base font-semibold transition-all select-none',
                   disabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer',
@@ -127,14 +135,14 @@ export function QuestionRenderer({
               >
                 <input
                   type="radio"
-                  name={`question-${question.id}`}
-                  value={opt.id}
+                  name={`question-${qId}`}
+                  value={optId}
                   checked={isSelected}
                   disabled={disabled}
-                  onChange={() => handleOptionSelect(opt.id)}
+                  onChange={() => handleOptionSelect(optId)}
                   className="sr-only"
                 />
-                <span>{opt.text}</span>
+                <span>{optText}</span>
               </label>
             );
           })}
@@ -142,13 +150,13 @@ export function QuestionRenderer({
       )}
 
       {/* Numeric Input */}
-      {question_type === 'NUMERIC' && (
+      {questionType === 'NUMERIC' && (
         <div className="max-w-xs space-y-2">
-          <label htmlFor={`numeric-${question.id}`} className="text-xs font-medium text-slate-500 dark:text-slate-400">
+          <label htmlFor={`numeric-${qId}`} className="text-xs font-medium text-slate-500 dark:text-slate-400">
             Enter your numeric response:
           </label>
           <Input
-            id={`numeric-${question.id}`}
+            id={`numeric-${qId}`}
             type="number"
             step="any"
             value={currentNumericValue}
@@ -161,13 +169,13 @@ export function QuestionRenderer({
       )}
 
       {/* Short Answer Input */}
-      {question_type === 'SHORT_ANSWER' && (
+      {questionType === 'SHORT_ANSWER' && (
         <div className="max-w-xl space-y-2">
-          <label htmlFor={`short-answer-${question.id}`} className="text-xs font-medium text-slate-500 dark:text-slate-400">
+          <label htmlFor={`short-answer-${qId}`} className="text-xs font-medium text-slate-500 dark:text-slate-400">
             Enter your short answer response:
           </label>
           <Input
-            id={`short-answer-${question.id}`}
+            id={`short-answer-${qId}`}
             type="text"
             value={value?.text_response || ''}
             onChange={(e) => !disabled && onChange({ text_response: e.target.value })}
@@ -179,10 +187,10 @@ export function QuestionRenderer({
       )}
 
       {/* Essay Input */}
-      {question_type === 'ESSAY' && (
+      {questionType === 'ESSAY' && (
         <div className="w-full space-y-2">
           <div className="flex justify-between items-center">
-            <label htmlFor={`essay-${question.id}`} className="text-xs font-medium text-slate-500 dark:text-slate-400">
+            <label htmlFor={`essay-${qId}`} className="text-xs font-medium text-slate-500 dark:text-slate-400">
               Provide your comprehensive essay response:
             </label>
             <span className="text-xs text-slate-400">
@@ -190,7 +198,7 @@ export function QuestionRenderer({
             </span>
           </div>
           <Textarea
-            id={`essay-${question.id}`}
+            id={`essay-${qId}`}
             rows={10}
             value={value?.text_response || ''}
             onChange={(e) => !disabled && onChange({ text_response: e.target.value })}
@@ -202,16 +210,16 @@ export function QuestionRenderer({
       )}
 
       {/* Code Input */}
-      {question_type === 'CODE' && (
+      {questionType === 'CODE' && (
         <div className="w-full space-y-2">
           <div className="flex justify-between items-center">
-            <label htmlFor={`code-${question.id}`} className="text-xs font-medium text-slate-500 dark:text-slate-400">
+            <label htmlFor={`code-${qId}`} className="text-xs font-medium text-slate-500 dark:text-slate-400">
               Source code solution:
             </label>
             <span className="text-[11px] font-mono text-slate-400">Monospace editor</span>
           </div>
           <Textarea
-            id={`code-${question.id}`}
+            id={`code-${qId}`}
             rows={12}
             value={value?.text_response || ''}
             onChange={(e) => !disabled && onChange({ text_response: e.target.value })}

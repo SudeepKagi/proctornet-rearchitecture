@@ -6,7 +6,13 @@
 import { Router } from 'express';
 import { authenticate } from '../../middleware/authenticate.js';
 import { requireRole } from '../../middleware/authorize.js';
+import multer from 'multer';
 import * as controller from './biometrics.controller.js';
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }
+});
 
 // ==========================================
 // Candidate Biometrics Router (/candidate/biometrics)
@@ -23,6 +29,7 @@ candidateBiometricsRouter.post('/liveness-challenge', controller.requestLiveness
 candidateBiometricsRouter.post('/verify-liveness', controller.verifyLivenessHandler);
 candidateBiometricsRouter.post('/verify-image-url', controller.requestVerificationImageUrlHandler);
 candidateBiometricsRouter.post('/verify-face', controller.verifyFaceHandler);
+candidateBiometricsRouter.post('/verify-identity', upload.single('image'), controller.verifyIdentityHandler);
 
 // ==========================================
 // Admin Biometrics Router (/admin/biometrics)

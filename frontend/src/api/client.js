@@ -11,11 +11,13 @@ let inMemoryAntiTamperToken = null;
 let refreshPromise = null;
 let onUnauthorizedCallback = null;
 let isSessionInvalid = false;
+let isRedirecting = false;
 
 export function setAccessToken(token) {
   inMemoryAccessToken = token;
   if (token) {
     isSessionInvalid = false;
+    isRedirecting = false;
   }
 }
 
@@ -40,6 +42,7 @@ export function clearAuthSession() {
   inMemoryAntiTamperToken = null;
   refreshPromise = null;
   isSessionInvalid = true;
+  isRedirecting = false;
 }
 
 /**
@@ -86,7 +89,8 @@ export async function refreshAuthToken() {
       if (!response.ok) {
         isSessionInvalid = true;
         setAccessToken(null);
-        if (onUnauthorizedCallback) {
+        if (onUnauthorizedCallback && !isRedirecting) {
+          isRedirecting = true;
           try {
             onUnauthorizedCallback();
           } catch (callbackErr) {
@@ -100,13 +104,15 @@ export async function refreshAuthToken() {
       const newAccessToken = body.data?.accessToken;
       if (newAccessToken) {
         isSessionInvalid = false;
+        isRedirecting = false;
         setAccessToken(newAccessToken);
         return body.data;
       }
 
       isSessionInvalid = true;
       setAccessToken(null);
-      if (onUnauthorizedCallback) {
+      if (onUnauthorizedCallback && !isRedirecting) {
+        isRedirecting = true;
         try {
           onUnauthorizedCallback();
         } catch (callbackErr) {

@@ -9,6 +9,7 @@ import { adminRouter, userSelfRouter } from '../modules/users/user.routes.js';
 import { candidateRouter } from '../modules/candidate/candidateIdentity.routes.js';
 import { candidateBiometricsRouter, adminBiometricsRouter } from '../modules/biometrics/biometrics.routes.js';
 import { questionBankRouter } from '../modules/questions/questions.routes.js';
+import { facultyRouter } from '../modules/faculty/faculty.routes.js';
 import { manualGradingRouter } from '../modules/evaluation/manualGrading.routes.js';
 import { interventionsRouter } from '../modules/interventions/interventions.routes.js';
 import { developerRouter } from '../modules/developer/developer.routes.js';
@@ -49,11 +50,15 @@ v1Router.use('/admin/biometrics', adminBiometricsRouter);
 // Phase 26: Question Bank & Question Authoring (Gated for verified active faculty/admins)
 v1Router.use('/faculty/question-bank', authenticate, requireVerifiedActiveUser, questionBankRouter);
 
+// Faculty Portal Module (Dashboard stats, Exams, Question Pools, Scheduling, Analytics)
+v1Router.use('/faculty', facultyRouter);
+
 // Phase 5: Exam Authoring, Topic Rules & Publishing (Gated for verified active users)
 v1Router.use('/exams', authenticate, requireVerifiedActiveUser, examsRouter);
 
 // Phase 5: Sessions, Scheduling, Rosters & Invigilation (Gated for verified active users)
 v1Router.use('/sessions', authenticate, requireVerifiedActiveUser, sessionsRouter);
+v1Router.use('/session', authenticate, requireVerifiedActiveUser, sessionsRouter);
 
 // Phase 6: Attempts, Question Mapping & Resumption (Gated for verified active users)
 v1Router.use('/attempts', authenticate, requireVerifiedActiveUser, attemptsRouter);

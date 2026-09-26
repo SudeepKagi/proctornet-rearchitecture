@@ -178,7 +178,8 @@ export async function listExams({ createdBy, status, subjectId, limit = 20, offs
            e.status, e.created_by, e.created_at, e.updated_at,
            s.name AS subject_name, s.code AS subject_code,
            u.name AS creator_name,
-           (SELECT COUNT(*)::int FROM exam_topic_rules WHERE exam_id = e.exam_id) AS topic_rules_count
+           (SELECT COUNT(*)::int FROM exam_questions WHERE exam_id = e.exam_id) AS questions_count,
+           (SELECT COUNT(*)::int FROM exam_questions WHERE exam_id = e.exam_id) AS topic_rules_count
     FROM exams e
     LEFT JOIN subjects s ON e.subject_id = s.subject_id
     LEFT JOIN users u ON e.created_by = u.user_id
@@ -222,69 +223,75 @@ export async function countExams({ createdBy, status, subjectId }) {
 }
 
 /**
- * Retrieves all topic rules configured for an exam.
+ * Retrieves all assigned questions for an exam.
  * @param {string} examId
  * @param {object} [client]
  * @returns {Promise<object[]>}
  */
 export async function getTopicRules(examId, client = null) {
   const text = `
-    SELECT r.rule_id, r.exam_id, r.topic_id, r.question_count, r.points_per_question,
-           r.difficulty, r.bloom_level, r.created_at, t.name AS topic_name, t.subject_id
-    FROM exam_topic_rules r
-    JOIN topics t ON r.topic_id = t.topic_id
-    WHERE r.exam_id = $1
-    ORDER BY r.created_at ASC;
+    SELECT 
+      eq.exam_question_id AS rule_id,
+      eq.exam_id,
+      q.topic_id,
+      1 AS question_count,
+      eq.points AS points_per_question,
+      'ANY' AS difficulty,
+      'ANY' AS bloom_level,
+      eq.created_at,
+      COALESCE(t.name, 'Question Pool') AS topic_name,
+      t.subject_id
+    FROM exam_questions eq
+    JOIN questions q ON eq.question_id = q.question_id
+    LEFT JOIN topics t ON q.topic_id = t.topic_id
+    WHERE eq.exam_id = $1
+    ORDER BY eq.display_order ASC;
   `;
   const res = client ? await client.query(text, [examId]) : await query(text, [examId]);
   return res.rows;
 }
 
 /**
- * Upserts a topic question rule for an exam.
+ * Upserts a topic question rule for an exam by assigning its questions statically.
  * @param {string} examId
  * @param {object} rule
  * @param {string} rule.topicId
  * @param {number} rule.questionCount
  * @param {number} rule.pointsPerQuestion
- * @param {string} [rule.difficulty='ANY']
- * @param {string} [rule.bloomLevel='ANY']
  * @param {object} [client]
  * @returns {Promise<object>}
  */
 export async function addOrUpdateTopicRule(
   examId,
-  { topicId, questionCount, pointsPerQuestion, difficulty = 'ANY', bloomLevel = 'ANY', bloom_level },
+  { topicId, questionCount, pointsPerQuestion },
   client = null
 ) {
-  const effectiveBloom = bloomLevel || bloom_level || 'ANY';
-  const effectiveDifficulty = difficulty || 'ANY';
-  const text = `
-    INSERT INTO exam_topic_rules (exam_id, topic_id, question_count, points_per_question, difficulty, bloom_level)
-    VALUES ($1, $2, $3, $4, $5, $6)
-    ON CONFLICT (exam_id, topic_id)
-    DO UPDATE SET
-      question_count = EXCLUDED.question_count,
-      points_per_question = EXCLUDED.points_per_question,
-      difficulty = EXCLUDED.difficulty,
-      bloom_level = EXCLUDED.bloom_level
-    RETURNING rule_id, exam_id, topic_id, question_count, points_per_question, difficulty, bloom_level, created_at;
-  `;
-  const res = client
-    ? await client.query(text, [examId, topicId, questionCount, pointsPerQuestion, effectiveDifficulty, effectiveBloom])
-    : await query(text, [examId, topicId, questionCount, pointsPerQuestion, effectiveDifficulty, effectiveBloom]);
-  return res.rows[0];
+  const executor = client ? client.query.bind(client) : query;
+  const questionsRes = await executor(
+    `SELECT question_id, default_points FROM questions WHERE topic_id = $1 AND status = 'PUBLISHED' ORDER BY created_at ASC LIMIT $2`,
+    [topicId, Number(questionCount) || 5]
+  );
+  for (let i = 0; i < questionsRes.rows.length; i++) {
+    const q = questionsRes.rows[i];
+    await executor(
+      `INSERT INTO exam_questions (exam_id, question_id, display_order, points)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (exam_id, question_id) DO NOTHING`,
+      [examId, q.question_id, i + 1, Number(pointsPerQuestion) || Number(q.default_points) || 1.00]
+    );
+  }
+  return { exam_id: examId, topic_id: topicId, question_count: questionsRes.rows.length };
 }
 
 /**
- * Deletes a topic rule from an exam.
+ * Deletes a question from an exam.
  * @param {string} examId
  * @param {string} ruleId
  * @param {object} [client]
  * @returns {Promise<boolean>}
  */
 export async function deleteTopicRule(examId, ruleId, client = null) {
-  const text = `DELETE FROM exam_topic_rules WHERE exam_id = $1 AND rule_id = $2;`;
+  const text = `DELETE FROM exam_questions WHERE exam_id = $1 AND exam_question_id = $2;`;
   const res = client ? await client.query(text, [examId, ruleId]) : await query(text, [examId, ruleId]);
   return res.rowCount > 0;
 }

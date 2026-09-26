@@ -18,7 +18,7 @@ export function OfflineBanner({ isOffline }) {
     >
       <WifiOff className="h-4 w-4 shrink-0 text-amber-700 dark:text-amber-400" aria-hidden="true" />
       <span>
-        <strong className="font-semibold">Connection lost:</strong> Unsynchronized answers remain in this tab only. Do not close or refresh this tab.
+        <strong className="font-semibold">Connection lost:</strong> Auto-saving is paused. Your answers are safely stored in this tab. Do not close or refresh this tab.
       </span>
     </div>
   );

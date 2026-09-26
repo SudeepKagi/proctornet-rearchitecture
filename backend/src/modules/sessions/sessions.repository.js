@@ -126,7 +126,7 @@ export async function updateSession(sessionId, updates, client = null) {
  * @returns {Promise<object[]>}
  */
 export async function listSessions(
-  { examId, roomId, status, limit = 20, offset = 0 },
+  { examId, roomId, status, studentTarget, limit = 20, offset = 0 },
   client = null
 ) {
   const conditions = [];
@@ -144,6 +144,29 @@ export async function listSessions(
   if (status) {
     conditions.push(`s.status = $${idx++}`);
     values.push(status);
+  }
+  if (studentTarget) {
+    if (studentTarget.semester && studentTarget.department) {
+      conditions.push(`(
+        s.session_id IN (SELECT session_id FROM session_students WHERE student_id = $${idx})
+        OR (
+          (s.target_semester = $${idx + 1} OR e.target_semester = $${idx + 1})
+          AND (
+            s.target_department ILIKE $${idx + 2}
+            OR e.target_department ILIKE $${idx + 2}
+            OR $${idx + 2} ILIKE '%' || COALESCE(s.target_department, e.target_department, '') || '%'
+            OR REGEXP_REPLACE(LOWER(REPLACE(COALESCE(s.target_department, e.target_department, '')::text, '&', 'and')), '\\s*\\([^)]*\\)|[^a-z0-9]', '', 'g') = REGEXP_REPLACE(LOWER(REPLACE($${idx + 2}::text, '&', 'and')), '\\s*\\([^)]*\\)|[^a-z0-9]', '', 'g')
+            OR REGEXP_REPLACE(LOWER(REPLACE(COALESCE(s.target_department, e.target_department, '')::text, '&', 'and')), '\\s*\\([^)]*\\)|[^a-z0-9]', '', 'g') LIKE '%' || REGEXP_REPLACE(LOWER(REPLACE($${idx + 2}::text, '&', 'and')), '\\s*\\([^)]*\\)|[^a-z0-9]', '', 'g') || '%'
+            OR REGEXP_REPLACE(LOWER(REPLACE($${idx + 2}::text, '&', 'and')), '\\s*\\([^)]*\\)|[^a-z0-9]', '', 'g') LIKE '%' || REGEXP_REPLACE(LOWER(REPLACE(COALESCE(s.target_department, e.target_department, '')::text, '&', 'and')), '\\s*\\([^)]*\\)|[^a-z0-9]', '', 'g') || '%'
+          )
+        )
+      )`);
+      values.push(studentTarget.studentId, studentTarget.semester, studentTarget.department);
+      idx += 3;
+    } else if (studentTarget.studentId) {
+      conditions.push(`s.session_id IN (SELECT session_id FROM session_students WHERE student_id = $${idx++})`);
+      values.push(studentTarget.studentId);
+    }
   }
 
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
@@ -174,26 +197,54 @@ export async function listSessions(
  * @param {object} [client]
  * @returns {Promise<number>}
  */
-export async function countSessions({ examId, roomId, status }, client = null) {
+export async function countSessions({ examId, roomId, status, studentTarget }, client = null) {
   const conditions = [];
   const values = [];
   let idx = 1;
 
   if (examId) {
-    conditions.push(`exam_id = $${idx++}`);
+    conditions.push(`s.exam_id = $${idx++}`);
     values.push(examId);
   }
   if (roomId) {
-    conditions.push(`room_id = $${idx++}`);
+    conditions.push(`s.room_id = $${idx++}`);
     values.push(roomId);
   }
   if (status) {
-    conditions.push(`status = $${idx++}`);
+    conditions.push(`s.status = $${idx++}`);
     values.push(status);
+  }
+  if (studentTarget) {
+    if (studentTarget.semester && studentTarget.department) {
+      conditions.push(`(
+        s.session_id IN (SELECT session_id FROM session_students WHERE student_id = $${idx})
+        OR (
+          (s.target_semester = $${idx + 1} OR e.target_semester = $${idx + 1})
+          AND (
+            s.target_department ILIKE $${idx + 2}
+            OR e.target_department ILIKE $${idx + 2}
+            OR $${idx + 2} ILIKE '%' || COALESCE(s.target_department, e.target_department, '') || '%'
+            OR REGEXP_REPLACE(LOWER(REPLACE(COALESCE(s.target_department, e.target_department, '')::text, '&', 'and')), '\\s*\\([^)]*\\)|[^a-z0-9]', '', 'g') = REGEXP_REPLACE(LOWER(REPLACE($${idx + 2}::text, '&', 'and')), '\\s*\\([^)]*\\)|[^a-z0-9]', '', 'g')
+            OR REGEXP_REPLACE(LOWER(REPLACE(COALESCE(s.target_department, e.target_department, '')::text, '&', 'and')), '\\s*\\([^)]*\\)|[^a-z0-9]', '', 'g') LIKE '%' || REGEXP_REPLACE(LOWER(REPLACE($${idx + 2}::text, '&', 'and')), '\\s*\\([^)]*\\)|[^a-z0-9]', '', 'g') || '%'
+            OR REGEXP_REPLACE(LOWER(REPLACE($${idx + 2}::text, '&', 'and')), '\\s*\\([^)]*\\)|[^a-z0-9]', '', 'g') LIKE '%' || REGEXP_REPLACE(LOWER(REPLACE(COALESCE(s.target_department, e.target_department, '')::text, '&', 'and')), '\\s*\\([^)]*\\)|[^a-z0-9]', '', 'g') || '%'
+          )
+        )
+      )`);
+      values.push(studentTarget.studentId, studentTarget.semester, studentTarget.department);
+      idx += 3;
+    } else if (studentTarget.studentId) {
+      conditions.push(`s.session_id IN (SELECT session_id FROM session_students WHERE student_id = $${idx++})`);
+      values.push(studentTarget.studentId);
+    }
   }
 
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-  const text = `SELECT COUNT(*)::int AS total FROM exam_sessions ${whereClause};`;
+  const text = `
+    SELECT COUNT(*)::int AS total
+    FROM exam_sessions s
+    JOIN exams e ON s.exam_id = e.exam_id
+    ${whereClause};
+  `;
   const res = client ? await client.query(text, values) : await query(text, values);
   return res.rows[0].total;
 }

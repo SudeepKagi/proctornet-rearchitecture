@@ -2,6 +2,7 @@ import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import compression from 'compression';
 import { config } from './config/env.js';
 import { ForbiddenError } from './utils/errors.js';
 import { securityCorsRejectionsTotal } from './infrastructure/metrics/registry.js';
@@ -93,7 +94,20 @@ export function createApp() {
     next();
   });
 
-  // 4. Cookie parsing for secure refresh token cookies
+  // 4. HTTP response payload compression (gzip / deflate / br) to minimize network bandwidth
+  app.use(
+    compression({
+      threshold: 1024, // Only compress responses exceeding 1KB
+      filter: (req, res) => {
+        if (req.headers['x-no-compression']) {
+          return false;
+        }
+        return compression.filter(req, res);
+      }
+    })
+  );
+
+  // 5. Cookie parsing for secure refresh token cookies
   app.use(cookieParser());
 
   // 5. Body parsing with safe size bounds

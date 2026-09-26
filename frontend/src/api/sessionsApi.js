@@ -80,12 +80,12 @@ export async function getMyAttempt(sessionId) {
   const result = await apiClient(`/api/v1/sessions/${sessionId}/my-attempt`, {
     method: 'GET',
   });
-  return result.data?.attempt;
+  return result.data?.attempt || result.data;
 }
 
 export async function startAttemptForSession(sessionId) {
   const result = await apiClient(`/api/v1/sessions/${sessionId}/attempts`, {
     method: 'POST',
   });
-  return result.data?.attempt;
+  return result.data?.attempt || result.data;
 }

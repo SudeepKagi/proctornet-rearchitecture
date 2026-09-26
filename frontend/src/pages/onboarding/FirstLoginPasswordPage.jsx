@@ -3,10 +3,11 @@
  * @description Mandatory first-login password change page built with shadcn/ui.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth.js';
 import * as onboardingApi from '../../api/onboardingApi.js';
+import { resolvePostLoginDestination } from '../../routes/roleNavigation.js';
 import { KeyRound, ShieldAlert, Check, X as XIcon, ArrowRight } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui/card.jsx';
 import { Button } from '../../components/ui/button.jsx';
@@ -15,13 +16,21 @@ import { Alert, AlertDescription } from '../../components/ui/alert.jsx';
 
 export function FirstLoginPasswordPage() {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, setUser, refreshUser, logout } = useAuth();
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  // If password was already updated (or user doesn't require password change), redirect to proper dashboard
+  useEffect(() => {
+    if (user && !user.mustChangePassword) {
+      const destination = resolvePostLoginDestination(user);
+      navigate(destination, { replace: true });
+    }
+  }, [user, navigate]);
 
   const rules = [
     { label: 'At least 12 characters', pass: newPassword.length >= 12 },
@@ -51,13 +60,14 @@ export function FirstLoginPasswordPage() {
     setLoading(true);
     try {
       await onboardingApi.changeFirstLoginPassword(currentPassword, newPassword);
-      if (user?.roles?.includes('FACULTY')) {
-        navigate('/onboarding/faculty', { replace: true });
-      } else if (user?.roles?.includes('STUDENT')) {
-        navigate('/onboarding/student', { replace: true });
-      } else {
-        navigate('/dashboard', { replace: true });
+      // Immediately refresh authoritative user in context
+      const refreshedUser = await refreshUser();
+      const targetUser = refreshedUser || (user ? { ...user, mustChangePassword: false } : null);
+      if (targetUser) {
+        setUser(targetUser);
       }
+      const destination = resolvePostLoginDestination(targetUser);
+      navigate(destination, { replace: true });
     } catch (err) {
       setError(err?.message || 'Failed to update temporary password');
     } finally {

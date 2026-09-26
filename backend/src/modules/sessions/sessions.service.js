@@ -129,16 +129,45 @@ export async function createSession(payload, user, requestId = null) {
  * @returns {Promise<object>}
  */
 export async function getSessionById(sessionId, user) {
-  const session = await sessionsRepo.findSessionById(sessionId);
+  let session = await sessionsRepo.findSessionById(sessionId);
   if (!session) {
-    throw new NotFoundError(`Exam session with ID '${sessionId}' not found`);
+    // Check if sessionId is an exam_id with an active or scheduled session
+    const pool = getPool();
+    const activeSessionRes = await pool.query(
+      `SELECT * FROM exam_sessions WHERE exam_id = $1 AND status IN ('SCHEDULED', 'ACTIVE') ORDER BY scheduled_start_time ASC LIMIT 1`,
+      [sessionId]
+    );
+    if (activeSessionRes.rows.length > 0) {
+      session = activeSessionRes.rows[0];
+      sessionId = session.session_id;
+    } else {
+      throw new NotFoundError(`Exam session with ID '${sessionId}' not found`);
+    }
   }
 
   const isStudent = (user.roles || []).includes('STUDENT') && !(user.roles || []).includes('ADMIN') && !(user.roles || []).includes('FACULTY');
   if (isStudent) {
     const studentIds = await sessionsRepo.getSessionStudentIds(sessionId);
     if (!studentIds.includes(user.userId)) {
-      throw new ForbiddenError('Access denied: You are not assigned to this exam session');
+      const pool = getPool();
+      const profileRes = await pool.query(
+        `SELECT department, semester FROM student_profiles WHERE user_id = $1`,
+        [user.userId]
+      );
+      const studentProfile = profileRes.rows[0];
+      const deptMatch = !session.target_department || (studentProfile && studentProfile.department === session.target_department);
+      const semMatch = !session.target_semester || (studentProfile && Number(studentProfile.semester) === Number(session.target_semester));
+
+      if (deptMatch && semMatch) {
+        await pool.query(
+          `INSERT INTO session_students (session_id, student_id, status)
+           VALUES ($1, $2, 'ASSIGNED')
+           ON CONFLICT (session_id, student_id) DO NOTHING`,
+          [sessionId, user.userId]
+        );
+      } else {
+        throw new ForbiddenError('Access denied: You are not assigned to this exam session');
+      }
     }
   }
 
@@ -595,10 +624,30 @@ export async function listSessions(params, user) {
   const limit = Math.min(100, Math.max(1, Number(params.limit) || 20));
   const offset = (page - 1) * limit;
 
+  let studentTarget = null;
+  const isStudent = (user?.roles || []).includes('STUDENT') && !(user?.roles || []).includes('ADMIN');
+  if (isStudent && user?.userId) {
+    const pool = getPool();
+    const profRes = await pool.query(
+      'SELECT department, semester FROM student_profiles WHERE user_id = $1',
+      [user.userId]
+    );
+    if (profRes.rows.length > 0) {
+      studentTarget = {
+        studentId: user.userId,
+        semester: profRes.rows[0].semester,
+        department: profRes.rows[0].department
+      };
+    } else {
+      studentTarget = { studentId: user.userId };
+    }
+  }
+
   const queryParams = {
     examId: params.exam_id,
     roomId: params.room_id,
     status: params.status,
+    studentTarget,
     limit,
     offset
   };

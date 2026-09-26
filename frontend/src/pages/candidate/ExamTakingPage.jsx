@@ -38,7 +38,7 @@ import {
 import { ArrowLeft, ArrowRight, Send, AlertTriangle } from 'lucide-react';
 
 const OFFLINE_SUBMIT_ERROR =
-  "Submission could not be completed because you're offline. Your unsynchronized answers remain in this tab. Reconnect and try again. Do not close or refresh this tab.";
+  "Submission could not be completed because you're offline. Your answers are stored locally in this tab. Reconnect to submit your exam.";
 
 export function ExamTakingPage() {
   const { attemptId } = useParams();

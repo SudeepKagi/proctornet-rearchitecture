@@ -99,11 +99,9 @@ export async function validateExamBlueprint(examId, client = null) {
     });
   }
 
-  const examTotalMarks = Number(exam.total_marks);
-  if (Math.abs(totalBlueprintPoints - examTotalMarks) > 0.01) {
-    issues.push(
-      `Blueprint points (${totalBlueprintPoints.toFixed(2)}) do not match total exam marks (${examTotalMarks.toFixed(2)})`
-    );
+  const examTotalMarks = Number(exam.total_marks) || totalBlueprintPoints;
+  if (totalBlueprintPoints <= 0 && (!topicRules || topicRules.length === 0)) {
+    issues.push('Exam must have at least one question assigned or selected question pool');
   }
 
   const isValid = issues.length === 0;

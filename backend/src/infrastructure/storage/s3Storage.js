@@ -30,10 +30,17 @@ export function getS3Client() {
   }
 
   const clientConfig = {
-    region: config.AWS_REGION,
+    region: config.AWS_REGION || 'ap-south-1',
     requestChecksumCalculation: 'WHEN_REQUIRED',
     responseChecksumValidation: 'WHEN_REQUIRED'
   };
+
+  if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) {
+    clientConfig.credentials = {
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+    };
+  }
 
   if (config.S3_ENDPOINT) {
     clientConfig.endpoint = config.S3_ENDPOINT;
@@ -308,5 +315,98 @@ export async function getEvidenceObjectBuffer({ bucket, key }) {
     timer();
   }
 }
+
+/**
+ * Directly uploads a binary buffer to Amazon S3 server-side.
+ * Used for storing biometric verification snapshots directly, eliminating browser CORS issues.
+ *
+ * @param {object} params
+ * @param {string} params.bucket
+ * @param {string} params.key
+ * @param {Buffer} params.buffer
+ * @param {string} [params.contentType='image/jpeg']
+ * @param {string} [params.contentEncoding] - e.g. 'gzip' for compressed logs/payloads
+ * @param {Record<string, string>} [params.metadata] - Optional object user metadata
+ * @returns {Promise<{ versionId?: string, eTag?: string }>}
+ */
+export async function putEvidenceObjectBuffer({
+  bucket,
+  key,
+  buffer,
+  contentType = 'image/jpeg',
+  contentEncoding = undefined,
+  metadata = undefined
+}) {
+  const timer = evidenceStorageLatencySeconds.startTimer({ operation: 'put_buffer' });
+  try {
+    const s3 = getS3Client();
+    const commandParams = {
+      Bucket: bucket,
+      Key: key,
+      Body: buffer,
+      ContentType: contentType,
+      ContentLength: buffer.length
+    };
+
+    if (contentEncoding) {
+      commandParams.ContentEncoding = contentEncoding;
+    }
+    if (metadata) {
+      commandParams.Metadata = metadata;
+    }
+
+    const command = new PutObjectCommand(commandParams);
+    const res = await s3.send(command);
+    return {
+      versionId: res.VersionId,
+      eTag: res.ETag
+    };
+  } finally {
+    timer();
+  }
+}
+
+/**
+ * Parses an S3 URL or relative key into { bucket, key }.
+ * Supports s3://, virtual-hosted, path-style, and relative keys.
+ * @param {string} urlOrKey
+ * @param {string} [defaultBucket='proctornet-evidence-dev-01']
+ * @returns {{ bucket: string, key: string } | null}
+ */
+export function parseS3Url(urlOrKey, defaultBucket = config.S3_BUCKET_NAME || 'proctornet-evidence-dev-01') {
+  if (!urlOrKey || typeof urlOrKey !== 'string') return null;
+  const trimmed = urlOrKey.trim();
+  if (trimmed.startsWith('s3://')) {
+    const withoutPrefix = trimmed.slice(5);
+    const slashIdx = withoutPrefix.indexOf('/');
+    if (slashIdx === -1) {
+      return { bucket: withoutPrefix, key: '' };
+    }
+    return {
+      bucket: withoutPrefix.slice(0, slashIdx),
+      key: withoutPrefix.slice(slashIdx + 1)
+    };
+  }
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    try {
+      const parsed = new URL(trimmed);
+      const hostParts = parsed.hostname.split('.');
+      if (hostParts.length >= 4 && (hostParts[1] === 's3' || hostParts[2] === 's3')) {
+        const bucket = hostParts[0];
+        const key = parsed.pathname.replace(/^\/+/, '');
+        return { bucket, key };
+      } else {
+        const pathParts = parsed.pathname.replace(/^\/+/, '').split('/');
+        const bucket = pathParts[0] || defaultBucket;
+        const key = pathParts.slice(1).join('/');
+        return { bucket, key };
+      }
+    } catch {
+      return { bucket: defaultBucket, key: trimmed };
+    }
+  }
+  return { bucket: defaultBucket, key: trimmed.replace(/^\/+/, '') };
+}
+
 
 

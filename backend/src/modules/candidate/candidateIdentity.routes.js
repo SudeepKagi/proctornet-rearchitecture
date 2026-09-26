@@ -9,6 +9,7 @@ import multer from 'multer';
 import { authenticate } from '../../middleware/authenticate.js';
 import { requireRole } from '../../middleware/authorize.js';
 import * as candidateIdentityController from './candidateIdentity.controller.js';
+import { verifyIdentityHandler } from '../biometrics/biometrics.controller.js';
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -28,4 +29,14 @@ candidateRouter.post('/identity/extract-card', upload.single('card'), candidateI
 
 candidateRouter.get('/profile', candidateIdentityController.getProfileHandler);
 candidateRouter.patch('/profile', candidateIdentityController.updateProfileHandler);
+candidateRouter.post('/verify-identity', upload.single('image'), verifyIdentityHandler);
+candidateRouter.post(
+  '/enroll',
+  upload.fields([
+    { name: 'faceImage', maxCount: 1 },
+    { name: 'idDocument', maxCount: 1 }
+  ]),
+  candidateIdentityController.enrollCandidateHandler
+);
+
 

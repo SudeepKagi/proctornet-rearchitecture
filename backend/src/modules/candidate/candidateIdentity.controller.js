@@ -107,3 +107,41 @@ export async function extractCardHandler(req, res, next) {
   }
 }
 
+/**
+ * POST /api/v1/candidate/enroll
+ * Receives reference face snapshot and ID document, compresses and stores both to S3,
+ * and updates user verification_status to VERIFIED.
+ */
+export async function enrollCandidateHandler(req, res, next) {
+  try {
+    const userId = req.user.userId;
+
+    // Support both multipart file uploads and JSON Base64 payloads
+    const faceFile = req.files?.['faceImage']?.[0] || (req.file?.fieldname === 'faceImage' ? req.file : null);
+    const idFile = req.files?.['idDocument']?.[0] || (req.file?.fieldname === 'idDocument' ? req.file : null);
+
+    const faceImage = req.body.faceImage || null;
+    const idDocument = req.body.idDocument || null;
+    const documentType = req.body.documentType || 'GOVERNMENT_ID';
+
+    const updatedUser = await candidateIdentityService.enrollCandidate({
+      userId,
+      faceImage,
+      idDocument,
+      faceFile,
+      idFile,
+      documentType
+    });
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Candidate enrolled and verified successfully',
+      data: {
+        user: updatedUser
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+

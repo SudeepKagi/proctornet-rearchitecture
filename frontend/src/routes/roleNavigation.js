@@ -93,8 +93,15 @@ export function resolvePostLoginDestination(user, attemptedPath = null) {
   // 2. Enforce academic verification gating for Student and Faculty (Admins bypass)
   const isAcademic = user.roles?.some((r) => ['STUDENT', 'FACULTY'].includes(r));
   if (isAcademic && !user.roles?.includes('ADMIN')) {
+    const isStudent = user.roles?.includes('STUDENT');
+    const isVerified = user.isVerified === true || user.verificationStatus === 'VERIFIED';
+
+    if (isStudent && (!isVerified || !user.enrolledFacePhotoUrl)) {
+      return '/candidate/enrollment';
+    }
+
     if (user.verificationStatus === 'UNVERIFIED') {
-      return user.roles.includes('FACULTY') ? '/onboarding/faculty' : '/onboarding/student';
+      return user.roles.includes('FACULTY') ? '/onboarding/faculty' : '/candidate/enrollment';
     }
     if (user.verificationStatus === 'PENDING') {
       return '/onboarding/pending';

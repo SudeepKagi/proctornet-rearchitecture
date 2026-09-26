@@ -33,11 +33,18 @@ export function VerifiedRoute({ children }) {
   // Academic verification gating for Student and Faculty
   const isAcademicRole = user.roles?.some((r) => ['STUDENT', 'FACULTY'].includes(r));
   if (isAcademicRole) {
+    const isStudent = user.roles?.includes('STUDENT');
+    const isVerified = user.isVerified === true || user.verificationStatus === 'VERIFIED';
+
+    if (isStudent && (!isVerified || !user.enrolledFacePhotoUrl)) {
+      return <Navigate to="/candidate/enrollment" replace />;
+    }
+
     if (user.verificationStatus === 'UNVERIFIED') {
       if (user.roles.includes('FACULTY')) {
         return <Navigate to="/onboarding/faculty" replace />;
       }
-      return <Navigate to="/onboarding/student" replace />;
+      return <Navigate to="/candidate/enrollment" replace />;
     }
 
     if (user.verificationStatus === 'PENDING') {
@@ -48,8 +55,8 @@ export function VerifiedRoute({ children }) {
       return <Navigate to="/onboarding/rejected" replace />;
     }
 
-    if (user.verificationStatus !== 'VERIFIED') {
-      return <Navigate to="/onboarding/pending" replace />;
+    if (!isVerified) {
+      return <Navigate to="/candidate/enrollment" replace />;
     }
   }
 

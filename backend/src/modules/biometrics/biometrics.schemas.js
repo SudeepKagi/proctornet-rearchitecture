@@ -122,3 +122,13 @@ export const adminSessionVerificationsQuerySchema = z.object({
     .enum(['PENDING', 'VERIFIED', 'FAILED', 'LOCKED', 'OVERRIDDEN', 'EXEMPTED'])
     .optional()
 });
+
+// 9. POST /api/v1/candidate/biometrics/verify-identity
+export const verifyIdentitySchema = z
+  .object({
+    sessionId: z.string().uuid('sessionId must be a valid UUID'),
+    image: z.string().min(50, 'Snapshot image data is required')
+  })
+  .passthrough()
+  .superRefine(rejectForbiddenBiometricFields);
+

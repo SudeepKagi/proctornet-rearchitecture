@@ -104,8 +104,6 @@ export function ExamEditorPage() {
       await examsApi.addTopicRule(examId, {
         topic: topic.trim(),
         question_count: parseInt(questionCount, 10),
-        difficulty,
-        bloom_level: bloomLevel,
         points_per_question: parseInt(pointsPerQuestion, 10),
       });
 
@@ -367,30 +365,21 @@ export function ExamEditorPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[30%]">Topic / Domain</TableHead>
-                    <TableHead className="w-[15%]">Difficulty</TableHead>
-                    <TableHead className="w-[15%]">Cognitive Level</TableHead>
-                    <TableHead className="w-[12%]">Questions</TableHead>
-                    <TableHead className="w-[12%]">Points / Q</TableHead>
-                    <TableHead className="w-[10%]">Subtotal</TableHead>
-                    {isDraft && <TableHead className="w-[6%] text-right">Action</TableHead>}
+                    <TableHead className="w-[45%]">Topic / Question Pool</TableHead>
+                    <TableHead className="w-[20%]">Questions</TableHead>
+                    <TableHead className="w-[15%]">Points / Q</TableHead>
+                    <TableHead className="w-[15%]">Subtotal</TableHead>
+                    {isDraft && <TableHead className="w-[5%] text-right">Action</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {rules.map((rule) => {
+                  {rules.map((rule, index) => {
+                    const ruleKey = rule.rule_id || rule.id || `rule-${rule.topic || index}-${index}`;
                     const subtotal = rule.question_count * rule.points_per_question;
                     return (
-                      <TableRow key={rule.id} className="h-12">
+                      <TableRow key={ruleKey} className="h-12">
                         <TableCell className="font-semibold text-slate-900 dark:text-slate-100 text-xs">
-                          {rule.topic}
-                        </TableCell>
-                        <TableCell className="text-xs">
-                          <Badge variant="outline" size="sm">
-                            {rule.difficulty}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-xs text-slate-600 dark:text-slate-400">
-                          {rule.bloom_level || 'APPLY'}
+                          {rule.topic || rule.topic_name}
                         </TableCell>
                         <TableCell className="text-xs text-slate-800 dark:text-slate-200 font-medium">
                           {rule.question_count}
@@ -406,7 +395,7 @@ export function ExamEditorPage() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleDeleteRule(rule.id)}
+                              onClick={() => handleDeleteRule(rule.rule_id || rule.id)}
                               className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30"
                             >
                               <Trash2 size={13} />
@@ -426,62 +415,27 @@ export function ExamEditorPage() {
             <div className="p-5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
               <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-1.5">
                 <Plus size={14} />
-                Add Topic Rule Specification
+                Add Question Pool Specification
               </h4>
 
-              <form onSubmit={handleAddRule} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-3">
+              <form onSubmit={handleAddRule} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                 <div className="md:col-span-2 space-y-1">
                   <label htmlFor="rule-topic" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                    Topic Name *
+                    Topic / Question Pool *
                   </label>
                   <Input
                     id="rule-topic"
                     value={topic}
                     onChange={(e) => setTopic(e.target.value)}
-                    placeholder="e.g. Asymptotic Analysis"
+                    placeholder="e.g. Computer Networks & Security"
                     required
                     className="h-8 text-xs"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label htmlFor="rule-difficulty" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                    Difficulty
-                  </label>
-                  <select
-                    id="rule-difficulty"
-                    value={difficulty}
-                    onChange={(e) => setDifficulty(e.target.value)}
-                    className="w-full h-8 px-2 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-slate-100 focus:outline-hidden"
-                  >
-                    <option value="EASY">EASY</option>
-                    <option value="MEDIUM">MEDIUM</option>
-                    <option value="HARD">HARD</option>
-                  </select>
-                </div>
-
-                <div className="space-y-1">
-                  <label htmlFor="rule-bloom" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                    Bloom Level
-                  </label>
-                  <select
-                    id="rule-bloom"
-                    value={bloomLevel}
-                    onChange={(e) => setBloomLevel(e.target.value)}
-                    className="w-full h-8 px-2 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-slate-100 focus:outline-hidden"
-                  >
-                    <option value="REMEMBER">REMEMBER</option>
-                    <option value="UNDERSTAND">UNDERSTAND</option>
-                    <option value="APPLY">APPLY</option>
-                    <option value="ANALYZE">ANALYZE</option>
-                    <option value="EVALUATE">EVALUATE</option>
-                    <option value="CREATE">CREATE</option>
-                  </select>
-                </div>
-
-                <div className="space-y-1">
                   <label htmlFor="rule-count" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                    Questions
+                    Questions Count
                   </label>
                   <Input
                     id="rule-count"

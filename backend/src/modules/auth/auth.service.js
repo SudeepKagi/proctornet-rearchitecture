@@ -255,6 +255,9 @@ export async function login({ email, password, userAgent, ipAddress }) {
       status: user.status,
       mustChangePassword: user.must_change_password || false,
       verificationStatus: user.verification_status || 'UNVERIFIED',
+      isVerified: user.verification_status === 'VERIFIED',
+      enrolledFacePhotoUrl: user.enrolled_face_photo_url || null,
+      idDocumentUrl: user.id_document_url || null,
       roles
     },
     accessToken,
@@ -338,6 +341,12 @@ export async function refresh({ refreshToken }) {
   const roles = await authRepo.getUserRoles(session.user_id);
   const user = await authRepo.findUserById(session.user_id);
 
+  if (!user) {
+    logger.warn({ userId: session.user_id, sessionId: session.session_id }, 'Session points to non-existent user; revoking');
+    await authRepo.revokeSession(session.session_id).catch(() => {});
+    throw new UnauthorizedError('User account not found. Please log in again.');
+  }
+
   // 4. Generate new short-lived access token
   const newAccessToken = generateAccessToken({
     userId: session.user_id,
@@ -355,7 +364,12 @@ export async function refresh({ refreshToken }) {
       name: user.name,
       email: user.email,
       roles,
-      status: session.user_status
+      status: session.user_status,
+      mustChangePassword: user.must_change_password || false,
+      verificationStatus: user.verification_status || 'UNVERIFIED',
+      isVerified: user.verification_status === 'VERIFIED',
+      enrolledFacePhotoUrl: user.enrolled_face_photo_url || null,
+      idDocumentUrl: user.id_document_url || null
     },
     expiresIn: config.JWT_ACCESS_EXPIRATION
   };
@@ -443,6 +457,9 @@ export async function getCurrentUser(userId) {
     status: user.status,
     mustChangePassword: user.must_change_password,
     verificationStatus: user.verification_status,
+    isVerified: user.verification_status === 'VERIFIED',
+    enrolledFacePhotoUrl: user.enrolled_face_photo_url || null,
+    idDocumentUrl: user.id_document_url || null,
     roles,
     createdAt: user.created_at,
     updatedAt: user.updated_at

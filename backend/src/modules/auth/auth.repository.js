@@ -12,10 +12,13 @@ import { query, getPool } from '../../infrastructure/postgres/pool.js';
  */
 export async function findUserByEmail(email) {
   const text = `
-    SELECT user_id, name, email, phone, password_hash, status, must_change_password, verification_status,
-           failed_login_attempts, locked_until, created_at, updated_at
-    FROM users
-    WHERE email = $1;
+    SELECT u.user_id, u.name, u.email, u.phone, u.password_hash, u.status, u.must_change_password, u.verification_status,
+           u.failed_login_attempts, u.locked_until, u.created_at, u.updated_at,
+           COALESCE(u.enrolled_face_photo_url, sp.enrolled_face_photo_url) AS enrolled_face_photo_url,
+           COALESCE(u.id_document_url, sp.id_document_url) AS id_document_url
+    FROM users u
+    LEFT JOIN student_profiles sp ON sp.user_id = u.user_id
+    WHERE u.email = $1;
   `;
   const res = await query(text, [email.toLowerCase().trim()]);
   return res.rows[0] || null;
@@ -28,10 +31,13 @@ export async function findUserByEmail(email) {
  */
 export async function findUserById(userId) {
   const text = `
-    SELECT user_id, name, email, phone, status, must_change_password, verification_status,
-           failed_login_attempts, locked_until, created_at, updated_at
-    FROM users
-    WHERE user_id = $1;
+    SELECT u.user_id, u.name, u.email, u.phone, u.status, u.must_change_password, u.verification_status,
+           u.failed_login_attempts, u.locked_until, u.created_at, u.updated_at,
+           COALESCE(u.enrolled_face_photo_url, sp.enrolled_face_photo_url) AS enrolled_face_photo_url,
+           COALESCE(u.id_document_url, sp.id_document_url) AS id_document_url
+    FROM users u
+    LEFT JOIN student_profiles sp ON sp.user_id = u.user_id
+    WHERE u.user_id = $1;
   `;
   const res = await query(text, [userId]);
   return res.rows[0] || null;
