@@ -1,516 +1,1082 @@
 /**
  * @file LandingPage.jsx
- * @description Educational project landing page for ProctorNet.
- * Adheres strictly to non-commercial academic capstone identity.
+ * @description Completely rebuilt public landing page for ProctorNet Online Examination System.
+ * Clean, academic, trustworthy, and restrained. Zero marketing fluff or SaaS jargon.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth.js';
 import { usePageMeta } from '../../hooks/usePageMeta.js';
-import { PROJECT_INFO } from '../../content/projectInfo.js';
+import { PublicNavbar } from '../../components/public/PublicNavbar.jsx';
+import { PublicFooter } from '../../components/public/PublicFooter.jsx';
+import {
+  ArrowRight,
+  BookOpen,
+  CheckCircle2,
+  Clock,
+  FileText,
+  Users,
+  ShieldCheck,
+  Award,
+  ChevronDown,
+  GraduationCap,
+  UserCheck,
+  Sparkles,
+} from 'lucide-react';
 
 export function LandingPage() {
+  const { user, isAuthenticated } = useAuth();
+  const [openFaqIndex, setOpenFaqIndex] = useState(null);
+
   usePageMeta({
-    title: 'An Open, Resilient Architecture for Online Examinations',
-    description:
-      'ProctorNet is a student-built academic software engineering project demonstrating server-authoritative assessment workflows, OCC autosave, and privacy-first client-side screen analysis.',
+    title: 'Online Examination System',
+    description: 'A simple platform for conducting, managing, and taking academic examinations online securely.',
     canonical: '/',
   });
 
+  const getDashboardRoute = () => {
+    if (!user) return '/login';
+    if (user.roles?.includes('ADMIN')) return '/admin';
+    if (user.roles?.includes('DEVELOPER')) return '/developer/overview';
+    if (user.roles?.includes('FACULTY')) return '/faculty';
+    if (user.roles?.includes('INVIGILATOR')) return '/invigilator';
+    return '/candidate';
+  };
+
+  const primaryActionUrl = isAuthenticated ? getDashboardRoute() : '/login';
+  const primaryActionText = isAuthenticated ? 'Go to Dashboard' : 'Login';
+
+  const faqItems = [
+    {
+      question: 'What credentials do I use to sign in?',
+      answer:
+        'You must sign in using the institutional email address and password provided by your institution or examination coordinator. If you do not have credentials, contact your department examination cell.',
+    },
+    {
+      question: 'What happens if my internet connection drops during an exam?',
+      answer:
+        'ProctorNet continuously saves your responses to the server as you progress. If your connection drops, reconnect your device and re-open the examination. Your saved answers and remaining exam timer are preserved.',
+    },
+    {
+      question: 'Can I navigate between questions and review my answers?',
+      answer:
+        'Yes. The exam workspace includes an interactive question palette allowing you to move freely between questions, flag questions for review, and update your responses before confirming final submission.',
+    },
+    {
+      question: 'When and how are examination results released?',
+      answer:
+        'Objective and multiple-choice questions can generate immediate score summaries if permitted by your faculty. Subjective and essay evaluations appear in your dashboard once manual grading is completed.',
+    },
+  ];
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '80px', paddingBottom: '80px' }}>
-      {/* 1. HERO SECTION (Above-the-Fold) */}
-      <section
-        style={{
-          position: 'relative',
-          paddingTop: '64px',
-          paddingBottom: '64px',
-          borderBottom: '1px solid var(--color-border-subtle)',
-          background: 'linear-gradient(180deg, var(--color-surface) 0%, var(--color-canvas) 100%)',
-          overflow: 'hidden',
-        }}
-      >
-        <div className="container" style={{ textAlign: 'center', maxWidth: '960px' }}>
-          {/* Academic Badge */}
-          <div style={{ display: 'inline-flex', marginBottom: '24px' }}>
-            <span className="badge-academic" style={{ fontSize: '0.875rem', padding: '6px 16px' }}>
-              🎓 {PROJECT_INFO.academicBadge}
-            </span>
-          </div>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        minHeight: '100vh',
+        backgroundColor: '#ffffff',
+        color: '#1e293b',
+        fontFamily: 'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      }}
+    >
+      {/* Header */}
+      <PublicNavbar />
 
-          {/* Main H1 Headline */}
-          <h1
-            style={{
-              fontSize: 'clamp(2.25rem, 5vw, 3.5rem)',
-              fontWeight: 800,
-              lineHeight: 1.15,
-              letterSpacing: '-0.03em',
-              color: 'var(--color-text-primary)',
-              marginBottom: '20px',
-            }}
-          >
-            An Open, Resilient Architecture for <br />
-            <span className="text-gradient">Online Examinations &amp; Ethical Screen Proctoring</span>
-          </h1>
-
-          {/* Sub-headline */}
-          <p
-            style={{
-              fontSize: 'clamp(1.05rem, 2vw, 1.25rem)',
-              lineHeight: 1.6,
-              color: 'var(--color-text-muted)',
-              marginBottom: '36px',
-              maxWidth: '820px',
-              marginLeft: 'auto',
-              marginRight: 'auto',
-            }}
-          >
-            {PROJECT_INFO.subheadline}
-          </p>
-
-          {/* Primary Action CTAs */}
+      {/* Main Content */}
+      <main id="main-content" style={{ flex: 1, outline: 'none' }}>
+        {/* ================================================================ */}
+        {/* 1. HERO SECTION                                                  */}
+        {/* Simple, grounded, academic hero without technical buzzwords      */}
+        {/* ================================================================ */}
+        <section
+          style={{
+            padding: 'clamp(3.5rem, 7vw, 6rem) 0 clamp(3rem, 5vw, 4.5rem)',
+            backgroundColor: '#ffffff',
+            borderBottom: '1px solid #f1f5f9',
+          }}
+        >
           <div
             style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '16px',
-              marginBottom: '56px',
-            }}
-          >
-            <Link
-              to="/architecture"
-              className="btn-academic-primary"
-              style={{ fontSize: '1rem', padding: '12px 28px' }}
-            >
-              Explore the Architecture →
-            </Link>
-            <Link
-              to="/documentation"
-              className="btn-academic-secondary"
-              style={{ fontSize: '1rem', padding: '12px 24px' }}
-            >
-              Read Technical Docs
-            </Link>
-            <a
-              href={PROJECT_INFO.githubUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-academic-ghost"
-              style={{ fontSize: '1rem', padding: '12px 20px', display: 'flex', alignItems: 'center', gap: '6px' }}
-            >
-              <span>View Source on GitHub</span> ↗
-            </a>
-          </div>
-
-          {/* Measured System Capability Strip */}
-          <div
-            className="glass-panel"
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-              gap: '24px',
-              padding: '24px 32px',
+              width: '100%',
+              maxWidth: '1200px',
+              margin: '0 auto',
+              padding: '0 clamp(1rem, 3vw, 2rem)',
               textAlign: 'center',
             }}
           >
-            {PROJECT_INFO.stats.map((stat, idx) => (
-              <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-                  <span
-                    style={{
-                      fontSize: '2rem',
-                      fontWeight: 800,
-                      color: 'var(--color-primary)',
-                      lineHeight: 1,
-                    }}
-                  >
-                    {stat.value}
-                  </span>
-                  <span className="badge-measured">{stat.classification}</span>
-                </div>
-                <strong style={{ fontSize: '0.9375rem', color: 'var(--color-text-primary)' }}>
-                  {stat.label}
-                </strong>
-                <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', margin: 0 }}>
-                  {stat.description}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* 2. THE ENGINEERING CHALLENGE */}
-      <section className="container">
-        <div
-          className="card-interactive"
-          style={{
-            padding: '40px',
-            borderLeft: '4px solid var(--color-primary)',
-            backgroundColor: 'var(--color-surface)',
-          }}
-        >
-          <div style={{ maxWidth: '840px' }}>
-            <span
-              style={{
-                fontSize: '0.8125rem',
-                fontWeight: 700,
-                color: 'var(--color-primary)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-              }}
-            >
-              The Academic Motivation
-            </span>
-            <h2
-              style={{
-                fontSize: '1.875rem',
-                fontWeight: 800,
-                color: 'var(--color-text-primary)',
-                margin: '8px 0 16px 0',
-                letterSpacing: '-0.02em',
-              }}
-            >
-              Why ProctorNet Was Built: Solving the Proctoring Dilemma
-            </h2>
-            <p style={{ fontSize: '1rem', lineHeight: 1.7, color: 'var(--color-text-body)', marginBottom: '16px' }}>
-              Online examinations in higher education face two problematic extremes. On one side are fragile web forms
-              vulnerable to network dropouts and answer loss. On the other side are commercial proctoring platforms
-              employing invasive surveillance—continuous room audio recording, black-box facial micro-expression AI, and
-              automated candidate disqualification.
-            </p>
-            <p style={{ fontSize: '1rem', lineHeight: 1.7, color: 'var(--color-text-body)', margin: 0 }}>
-              ProctorNet demonstrates an ethical, engineering-driven alternative: <strong>server-authoritative assessment integrity</strong> with
-              optimistic concurrency control, combined with <strong>in-browser client-side screen analysis</strong> that protects student dignity
-              under a strict human-in-the-loop governance model.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* 3. FOUR CORE ARCHITECTURAL PILLARS */}
-      <section className="container">
-        <div style={{ textAlign: 'center', marginBottom: '48px' }}>
-          <span
-            style={{
-              fontSize: '0.8125rem',
-              fontWeight: 700,
-              color: 'var(--color-brand-secondary)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-            }}
-          >
-            System Foundations
-          </span>
-          <h2
-            style={{
-              fontSize: '2rem',
-              fontWeight: 800,
-              color: 'var(--color-text-primary)',
-              margin: '8px 0 12px 0',
-              letterSpacing: '-0.02em',
-            }}
-          >
-            The Four Pillars of ProctorNet
-          </h2>
-          <p style={{ fontSize: '1.05rem', color: 'var(--color-text-muted)', maxWidth: '640px', margin: '0 auto' }}>
-            A cohesive architecture engineered to guarantee examination resilience, candidate privacy, and operational clarity.
-          </p>
-        </div>
-
-        <div className="grid-2-col">
-          {PROJECT_INFO.pillars.map((pillar) => (
+            {/* Subtle Academic Badge */}
             <div
-              key={pillar.id}
-              className="card-interactive"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                padding: '5px 14px',
+                borderRadius: '9999px',
+                backgroundColor: '#eff6ff',
+                border: '1px solid #dbeafe',
+                color: '#1d4ed8',
+                fontSize: '0.8125rem',
+                fontWeight: 600,
+                marginBottom: '1.5rem',
+              }}
+            >
+              <GraduationCap size={16} />
+              <span>Academic Assessment Platform</span>
+            </div>
+
+            {/* Primary Heading */}
+            <h1
+              style={{
+                fontFamily: '"Plus Jakarta Sans", Inter, system-ui, sans-serif',
+                fontSize: 'clamp(2.25rem, 4.5vw, 3.5rem)',
+                fontWeight: 800,
+                letterSpacing: '-0.03em',
+                lineHeight: 1.18,
+                color: '#0f172a',
+                margin: '0 auto 1.25rem',
+                maxWidth: '840px',
+              }}
+            >
+              Online Examination System
+            </h1>
+
+            {/* Short Supporting Sentence */}
+            <p
+              style={{
+                fontSize: 'clamp(1.0625rem, 1.8vw, 1.25rem)',
+                lineHeight: 1.6,
+                color: '#475569',
+                margin: '0 auto 2.25rem',
+                maxWidth: '680px',
+                fontWeight: 400,
+              }}
+            >
+              A simple platform for conducting, managing, and taking online examinations securely.
+            </p>
+
+            {/* Primary Actions */}
+            <div
               style={{
                 display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                padding: '32px',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.875rem',
               }}
             >
-              <div>
-                <span
-                  style={{
-                    fontSize: '0.8125rem',
-                    fontWeight: 600,
-                    color: 'var(--color-primary)',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                  }}
-                >
-                  {pillar.subtitle}
-                </span>
-                <h3
-                  style={{
-                    fontSize: '1.375rem',
-                    fontWeight: 700,
-                    color: 'var(--color-text-primary)',
-                    margin: '8px 0 12px 0',
-                  }}
-                >
-                  {pillar.title}
-                </h3>
-                <p style={{ fontSize: '0.9375rem', lineHeight: 1.6, color: 'var(--color-text-body)', marginBottom: '20px' }}>
-                  {pillar.description}
-                </p>
-              </div>
+              <Link
+                to={primaryActionUrl}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '12px 26px',
+                  backgroundColor: '#1d4ed8',
+                  color: '#ffffff',
+                  fontSize: '0.9375rem',
+                  fontWeight: 600,
+                  borderRadius: '7px',
+                  textDecoration: 'none',
+                  boxShadow: '0 1px 3px rgba(29, 78, 216, 0.2)',
+                  transition: 'background-color 0.15s ease',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#1e40af')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#1d4ed8')}
+              >
+                <span>{primaryActionText}</span>
+                <ArrowRight size={16} />
+              </Link>
 
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                {pillar.badges.map((badge, bIdx) => (
-                  <span
-                    key={bIdx}
-                    style={{
-                      padding: '4px 10px',
-                      borderRadius: 'var(--radius-sm)',
-                      backgroundColor: 'var(--color-surface-secondary)',
-                      border: '1px solid var(--color-border-subtle)',
-                      fontSize: '0.75rem',
-                      fontWeight: 600,
-                      color: 'var(--color-text-muted)',
-                    }}
-                  >
-                    {badge}
-                  </span>
-                ))}
-              </div>
+              <a
+                href="#how-it-works"
+                onClick={(e) => {
+                  e.preventDefault();
+                  const el = document.getElementById('how-it-works');
+                  if (el) el.scrollIntoView({ behavior: 'smooth' });
+                }}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '12px 24px',
+                  backgroundColor: '#ffffff',
+                  color: '#334155',
+                  border: '1px solid #cbd5e1',
+                  fontSize: '0.9375rem',
+                  fontWeight: 600,
+                  borderRadius: '7px',
+                  textDecoration: 'none',
+                  transition: 'background-color 0.15s ease, border-color 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f8fafc';
+                  e.currentTarget.style.borderColor = '#94a3b8';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#ffffff';
+                  e.currentTarget.style.borderColor = '#cbd5e1';
+                }}
+              >
+                <span>How It Works</span>
+              </a>
             </div>
-          ))}
-        </div>
-      </section>
+          </div>
+        </section>
 
-      {/* 4. INTERACTIVE SYSTEM TOPOLOGY PREVIEW */}
-      <section className="container">
-        <div
-          className="glass-panel"
+        {/* ================================================================ */}
+        {/* 2. SIMPLE EXPLANATION SECTION                                    */}
+        {/* Plain language overview of actual repository capabilities         */}
+        {/* ================================================================ */}
+        <section
+          id="overview"
           style={{
-            padding: '48px',
-            backgroundColor: 'var(--color-surface)',
-            textAlign: 'center',
+            padding: 'clamp(3.5rem, 6vw, 5rem) 0',
+            backgroundColor: '#f8fafc',
+            borderBottom: '1px solid #e2e8f0',
           }}
         >
-          <div style={{ maxWidth: '720px', margin: '0 auto 32px auto' }}>
-            <span
-              style={{
-                fontSize: '0.8125rem',
-                fontWeight: 700,
-                color: 'var(--color-primary)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-              }}
-            >
-              System Topology
-            </span>
-            <h2
-              style={{
-                fontSize: '1.875rem',
-                fontWeight: 800,
-                color: 'var(--color-text-primary)',
-                margin: '8px 0 12px 0',
-              }}
-            >
-              Modular Monolith with Dual-Plane Ingress
-            </h2>
-            <p style={{ fontSize: '0.9375rem', lineHeight: 1.6, color: 'var(--color-text-muted)', margin: 0 }}>
-              Engineered with clean domain separation: REST control plane, mediasoup WebRTC video router, Redis room multiplexing,
-              and a dedicated WireGuard 10.100.0.0/24 management boundary for internal operations.
-            </p>
-          </div>
-
-          {/* Embedded SVG Topology Teaser */}
           <div
             style={{
-              maxWidth: '880px',
-              margin: '0 auto 28px auto',
-              borderRadius: 'var(--radius-md)',
-              overflow: 'hidden',
-              border: '1px solid var(--color-border-subtle)',
-              boxShadow: 'var(--shadow-md)',
+              width: '100%',
+              maxWidth: '1200px',
+              margin: '0 auto',
+              padding: '0 clamp(1rem, 3vw, 2rem)',
             }}
           >
-            <img
-              src="/src/assets/diagrams/system-topology.svg"
-              alt="ProctorNet System Topology Diagram"
-              style={{ width: '100%', height: 'auto', display: 'block' }}
-              loading="lazy"
-            />
-          </div>
+            {/* Section Header */}
+            <div style={{ textAlign: 'center', marginBottom: 'clamp(2.5rem, 4vw, 3.5rem)' }}>
+              <h2
+                style={{
+                  fontFamily: '"Plus Jakarta Sans", Inter, system-ui, sans-serif',
+                  fontSize: 'clamp(1.625rem, 3vw, 2.125rem)',
+                  fontWeight: 700,
+                  color: '#0f172a',
+                  letterSpacing: '-0.02em',
+                  margin: '0 0 0.75rem',
+                }}
+              >
+                What the System Provides
+              </h2>
+              <p
+                style={{
+                  fontSize: '1rem',
+                  color: '#64748b',
+                  margin: '0 auto',
+                  maxWidth: '600px',
+                  lineHeight: 1.55,
+                }}
+              >
+                Practical tools designed for scheduled institutional evaluations, coursework quizzes, and formal examinations.
+              </p>
+            </div>
 
-          <Link
-            to="/architecture"
-            className="btn-academic-primary"
-            style={{ padding: '10px 24px' }}
-          >
-            View Interactive Architecture &amp; Subsystems →
-          </Link>
-        </div>
-      </section>
-
-      {/* 5. ETHICAL AI & PROCTORING PLEDGE */}
-      <section className="container">
-        <div
-          style={{
-            backgroundColor: 'var(--color-brand-primary)',
-            color: '#ffffff',
-            borderRadius: 'var(--radius-xl)',
-            padding: '48px 40px',
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-            gap: '40px',
-            alignItems: 'center',
-          }}
-        >
-          <div>
-            <span
+            {/* 4 Capability Cards */}
+            <div
               style={{
-                fontSize: '0.8125rem',
-                fontWeight: 700,
-                color: '#93c5fd',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+                gap: '1.5rem',
               }}
             >
-              Ethics &amp; Candidate Dignity
-            </span>
+              {/* Card 1: Take Exams */}
+              <div
+                style={{
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  padding: '1.75rem 1.5rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.875rem',
+                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '8px',
+                    backgroundColor: '#eff6ff',
+                    color: '#1d4ed8',
+                  }}
+                >
+                  <FileText size={20} />
+                </div>
+                <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                  Take Examinations Online
+                </h3>
+                <p style={{ fontSize: '0.875rem', color: '#475569', lineHeight: 1.6, margin: 0 }}>
+                  Students access timed assessments with a clear question palette, countdown timer, and continuous autosave protection.
+                </p>
+              </div>
+
+              {/* Card 2: Manage Exams */}
+              <div
+                style={{
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  padding: '1.75rem 1.5rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.875rem',
+                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '8px',
+                    backgroundColor: '#f0fdf4',
+                    color: '#16a34a',
+                  }}
+                >
+                  <BookOpen size={20} />
+                </div>
+                <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                  Manage Question Banks & Exams
+                </h3>
+                <p style={{ fontSize: '0.875rem', color: '#475569', lineHeight: 1.6, margin: 0 }}>
+                  Faculty author multiple-choice and subjective questions, organize question banks, configure schedules, and set exam policies.
+                </p>
+              </div>
+
+              {/* Card 3: Monitor Live */}
+              <div
+                style={{
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  padding: '1.75rem 1.5rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.875rem',
+                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '8px',
+                    backgroundColor: '#fef3c7',
+                    color: '#d97706',
+                  }}
+                >
+                  <Clock size={20} />
+                </div>
+                <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                  Monitor Active Sessions
+                </h3>
+                <p style={{ fontSize: '0.875rem', color: '#475569', lineHeight: 1.6, margin: 0 }}>
+                  Invigilators track session readiness, participant connectivity status, and submission progress in real time during live exam windows.
+                </p>
+              </div>
+
+              {/* Card 4: Review Results */}
+              <div
+                style={{
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  padding: '1.75rem 1.5rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.875rem',
+                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '8px',
+                    backgroundColor: '#f3e8ff',
+                    color: '#7c3aed',
+                  }}
+                >
+                  <Award size={20} />
+                </div>
+                <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                  Review & Publish Results
+                </h3>
+                <p style={{ fontSize: '0.875rem', color: '#475569', lineHeight: 1.6, margin: 0 }}>
+                  Automated scoring for objective questions, dedicated manual grading workflows for instructors, and transparent student score reviews.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ================================================================ */}
+        {/* 3. ROLES / USERS SECTION                                         */}
+        {/* Student, Faculty, Invigilator, Admin (No Developer)              */}
+        {/* ================================================================ */}
+        <section
+          id="roles"
+          style={{
+            padding: 'clamp(3.5rem, 6vw, 5rem) 0',
+            backgroundColor: '#ffffff',
+            borderBottom: '1px solid #f1f5f9',
+          }}
+        >
+          <div
+            style={{
+              width: '100%',
+              maxWidth: '1200px',
+              margin: '0 auto',
+              padding: '0 clamp(1rem, 3vw, 2rem)',
+            }}
+          >
+            {/* Section Header */}
+            <div style={{ textAlign: 'center', marginBottom: 'clamp(2.5rem, 4vw, 3.5rem)' }}>
+              <h2
+                style={{
+                  fontFamily: '"Plus Jakarta Sans", Inter, system-ui, sans-serif',
+                  fontSize: 'clamp(1.625rem, 3vw, 2.125rem)',
+                  fontWeight: 700,
+                  color: '#0f172a',
+                  letterSpacing: '-0.02em',
+                  margin: '0 0 0.75rem',
+                }}
+              >
+                User Roles in ProctorNet
+              </h2>
+              <p
+                style={{
+                  fontSize: '1rem',
+                  color: '#64748b',
+                  margin: '0 auto',
+                  maxWidth: '600px',
+                  lineHeight: 1.55,
+                }}
+              >
+                Each role receives a dedicated portal tailored strictly to its academic responsibilities.
+              </p>
+            </div>
+
+            {/* 4 Clean Role Blocks */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+                gap: '1.5rem',
+              }}
+            >
+              {/* Role 1: Student */}
+              <div
+                style={{
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  padding: '1.5rem',
+                  backgroundColor: '#ffffff',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '0.875rem' }}>
+                  <span
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '6px',
+                      backgroundColor: '#eff6ff',
+                      color: '#1d4ed8',
+                    }}
+                  >
+                    <GraduationCap size={18} />
+                  </span>
+                  <h3 style={{ fontSize: '1.0625rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                    Student
+                  </h3>
+                </div>
+                <ul
+                  style={{
+                    listStyle: 'none',
+                    padding: 0,
+                    margin: 0,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.625rem',
+                    fontSize: '0.875rem',
+                    color: '#475569',
+                  }}
+                >
+                  <li style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
+                    <CheckCircle2 size={16} color="#1d4ed8" style={{ marginTop: '2px', flexShrink: 0 }} />
+                    <span>View assigned tests & schedules</span>
+                  </li>
+                  <li style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
+                    <CheckCircle2 size={16} color="#1d4ed8" style={{ marginTop: '2px', flexShrink: 0 }} />
+                    <span>Take exams with continuous autosave</span>
+                  </li>
+                  <li style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
+                    <CheckCircle2 size={16} color="#1d4ed8" style={{ marginTop: '2px', flexShrink: 0 }} />
+                    <span>Review scores and answer feedback</span>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Role 2: Faculty */}
+              <div
+                style={{
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  padding: '1.5rem',
+                  backgroundColor: '#ffffff',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '0.875rem' }}>
+                  <span
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '6px',
+                      backgroundColor: '#eff6ff',
+                      color: '#1d4ed8',
+                    }}
+                  >
+                    <BookOpen size={18} />
+                  </span>
+                  <h3 style={{ fontSize: '1.0625rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                    Faculty
+                  </h3>
+                </div>
+                <ul
+                  style={{
+                    listStyle: 'none',
+                    padding: 0,
+                    margin: 0,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.625rem',
+                    fontSize: '0.875rem',
+                    color: '#475569',
+                  }}
+                >
+                  <li style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
+                    <CheckCircle2 size={16} color="#1d4ed8" style={{ marginTop: '2px', flexShrink: 0 }} />
+                    <span>Author questions and question banks</span>
+                  </li>
+                  <li style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
+                    <CheckCircle2 size={16} color="#1d4ed8" style={{ marginTop: '2px', flexShrink: 0 }} />
+                    <span>Schedule exam sessions & durations</span>
+                  </li>
+                  <li style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
+                    <CheckCircle2 size={16} color="#1d4ed8" style={{ marginTop: '2px', flexShrink: 0 }} />
+                    <span>Perform manual grading on subjective answers</span>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Role 3: Invigilator */}
+              <div
+                style={{
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  padding: '1.5rem',
+                  backgroundColor: '#ffffff',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '0.875rem' }}>
+                  <span
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '6px',
+                      backgroundColor: '#eff6ff',
+                      color: '#1d4ed8',
+                    }}
+                  >
+                    <UserCheck size={18} />
+                  </span>
+                  <h3 style={{ fontSize: '1.0625rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                    Invigilator
+                  </h3>
+                </div>
+                <ul
+                  style={{
+                    listStyle: 'none',
+                    padding: 0,
+                    margin: 0,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.625rem',
+                    fontSize: '0.875rem',
+                    color: '#475569',
+                  }}
+                >
+                  <li style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
+                    <CheckCircle2 size={16} color="#1d4ed8" style={{ marginTop: '2px', flexShrink: 0 }} />
+                    <span>Monitor live candidate connection status</span>
+                  </li>
+                  <li style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
+                    <CheckCircle2 size={16} color="#1d4ed8" style={{ marginTop: '2px', flexShrink: 0 }} />
+                    <span>Track real-time examination submissions</span>
+                  </li>
+                  <li style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
+                    <CheckCircle2 size={16} color="#1d4ed8" style={{ marginTop: '2px', flexShrink: 0 }} />
+                    <span>Ensure test session protocol compliance</span>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Role 4: Administrator */}
+              <div
+                style={{
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  padding: '1.5rem',
+                  backgroundColor: '#ffffff',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '0.875rem' }}>
+                  <span
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '6px',
+                      backgroundColor: '#eff6ff',
+                      color: '#1d4ed8',
+                    }}
+                  >
+                    <ShieldCheck size={18} />
+                  </span>
+                  <h3 style={{ fontSize: '1.0625rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                    Administrator
+                  </h3>
+                </div>
+                <ul
+                  style={{
+                    listStyle: 'none',
+                    padding: 0,
+                    margin: 0,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.625rem',
+                    fontSize: '0.875rem',
+                    color: '#475569',
+                  }}
+                >
+                  <li style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
+                    <CheckCircle2 size={16} color="#1d4ed8" style={{ marginTop: '2px', flexShrink: 0 }} />
+                    <span>Manage user accounts & role provisioning</span>
+                  </li>
+                  <li style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
+                    <CheckCircle2 size={16} color="#1d4ed8" style={{ marginTop: '2px', flexShrink: 0 }} />
+                    <span>Configure institutional security policies</span>
+                  </li>
+                  <li style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
+                    <CheckCircle2 size={16} color="#1d4ed8" style={{ marginTop: '2px', flexShrink: 0 }} />
+                    <span>Review system audit trails and logs</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ================================================================ */}
+        {/* 4. HOW IT WORKS SECTION                                          */}
+        {/* 4 clear, real implemented steps                                  */}
+        {/* ================================================================ */}
+        <section
+          id="how-it-works"
+          style={{
+            padding: 'clamp(3.5rem, 6vw, 5rem) 0',
+            backgroundColor: '#f8fafc',
+            borderBottom: '1px solid #e2e8f0',
+          }}
+        >
+          <div
+            style={{
+              width: '100%',
+              maxWidth: '1200px',
+              margin: '0 auto',
+              padding: '0 clamp(1rem, 3vw, 2rem)',
+            }}
+          >
+            {/* Section Header */}
+            <div style={{ textAlign: 'center', marginBottom: 'clamp(2.5rem, 4vw, 3.5rem)' }}>
+              <h2
+                style={{
+                  fontFamily: '"Plus Jakarta Sans", Inter, system-ui, sans-serif',
+                  fontSize: 'clamp(1.625rem, 3vw, 2.125rem)',
+                  fontWeight: 700,
+                  color: '#0f172a',
+                  letterSpacing: '-0.02em',
+                  margin: '0 0 0.75rem',
+                }}
+              >
+                How It Works
+              </h2>
+              <p
+                style={{
+                  fontSize: '1rem',
+                  color: '#64748b',
+                  margin: '0 auto',
+                  maxWidth: '560px',
+                  lineHeight: 1.55,
+                }}
+              >
+                A straightforward assessment process from initial login to final evaluation.
+              </p>
+            </div>
+
+            {/* 4 Sequential Steps */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                gap: '1.5rem',
+              }}
+            >
+              {/* Step 1 */}
+              <div
+                style={{
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  padding: '1.75rem 1.25rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.75rem',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '9999px',
+                    backgroundColor: '#1d4ed8',
+                    color: '#ffffff',
+                    fontSize: '0.875rem',
+                    fontWeight: 700,
+                  }}
+                >
+                  1
+                </div>
+                <h3 style={{ fontSize: '1.0625rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                  Log In
+                </h3>
+                <p style={{ fontSize: '0.875rem', color: '#475569', lineHeight: 1.55, margin: 0 }}>
+                  Sign in with your institutional credentials to access your scheduled tests or dashboard.
+                </p>
+              </div>
+
+              {/* Step 2 */}
+              <div
+                style={{
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  padding: '1.75rem 1.25rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.75rem',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '9999px',
+                    backgroundColor: '#1d4ed8',
+                    color: '#ffffff',
+                    fontSize: '0.875rem',
+                    fontWeight: 700,
+                  }}
+                >
+                  2
+                </div>
+                <h3 style={{ fontSize: '1.0625rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                  Access Examination
+                </h3>
+                <p style={{ fontSize: '0.875rem', color: '#475569', lineHeight: 1.55, margin: 0 }}>
+                  Enter the exam workspace once the scheduled time window opens and complete verification.
+                </p>
+              </div>
+
+              {/* Step 3 */}
+              <div
+                style={{
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  padding: '1.75rem 1.25rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.75rem',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '9999px',
+                    backgroundColor: '#1d4ed8',
+                    color: '#ffffff',
+                    fontSize: '0.875rem',
+                    fontWeight: 700,
+                  }}
+                >
+                  3
+                </div>
+                <h3 style={{ fontSize: '1.0625rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                  Complete & Submit
+                </h3>
+                <p style={{ fontSize: '0.875rem', color: '#475569', lineHeight: 1.55, margin: 0 }}>
+                  Answer questions with continuous autosave, review flagged responses, and confirm submission.
+                </p>
+              </div>
+
+              {/* Step 4 */}
+              <div
+                style={{
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  padding: '1.75rem 1.25rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.75rem',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '9999px',
+                    backgroundColor: '#1d4ed8',
+                    color: '#ffffff',
+                    fontSize: '0.875rem',
+                    fontWeight: 700,
+                  }}
+                >
+                  4
+                </div>
+                <h3 style={{ fontSize: '1.0625rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                  Review Results
+                </h3>
+                <p style={{ fontSize: '0.875rem', color: '#475569', lineHeight: 1.55, margin: 0 }}>
+                  View immediate objective scores or detailed feedback once evaluations are published.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ================================================================ */}
+        {/* 5. FAQ SECTION                                                   */}
+        {/* ================================================================ */}
+        <section
+          id="faq"
+          style={{
+            padding: 'clamp(3.5rem, 6vw, 5rem) 0',
+            backgroundColor: '#ffffff',
+            borderBottom: '1px solid #f1f5f9',
+          }}
+        >
+          <div
+            style={{
+              width: '100%',
+              maxWidth: '860px',
+              margin: '0 auto',
+              padding: '0 clamp(1rem, 3vw, 2rem)',
+            }}
+          >
+            {/* Section Header */}
+            <div style={{ textAlign: 'center', marginBottom: 'clamp(2rem, 3.5vw, 3rem)' }}>
+              <h2
+                style={{
+                  fontFamily: '"Plus Jakarta Sans", Inter, system-ui, sans-serif',
+                  fontSize: 'clamp(1.625rem, 3vw, 2.125rem)',
+                  fontWeight: 700,
+                  color: '#0f172a',
+                  letterSpacing: '-0.02em',
+                  margin: '0 0 0.75rem',
+                }}
+              >
+                Frequently Asked Questions
+              </h2>
+              <p style={{ fontSize: '1rem', color: '#64748b', margin: 0 }}>
+                Clear answers regarding accounts, exam sessions, and grading.
+              </p>
+            </div>
+
+            {/* Accordion List */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+              {faqItems.map((item, index) => {
+                const isOpen = openFaqIndex === index;
+                return (
+                  <div
+                    key={item.question}
+                    style={{
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '8px',
+                      overflow: 'hidden',
+                      backgroundColor: '#ffffff',
+                    }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setOpenFaqIndex(isOpen ? null : index)}
+                      aria-expanded={isOpen}
+                      style={{
+                        width: '100%',
+                        padding: '1.125rem 1.25rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '1rem',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        fontFamily: 'Inter, system-ui, sans-serif',
+                        fontSize: '1rem',
+                        fontWeight: 600,
+                        color: '#0f172a',
+                      }}
+                    >
+                      <span>{item.question}</span>
+                      <ChevronDown
+                        size={18}
+                        color="#64748b"
+                        style={{
+                          transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                          transition: 'transform 0.15s ease',
+                          flexShrink: 0,
+                        }}
+                      />
+                    </button>
+                    {isOpen && (
+                      <div
+                        style={{
+                          padding: '0 1.25rem 1.25rem',
+                          fontSize: '0.9375rem',
+                          lineHeight: 1.6,
+                          color: '#475569',
+                          borderTop: '1px solid #f1f5f9',
+                          paddingTop: '1rem',
+                        }}
+                      >
+                        {item.answer}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        {/* ================================================================ */}
+        {/* 6. FINAL CTA SECTION                                             */}
+        {/* Dignified closing prompt to log in                               */}
+        {/* ================================================================ */}
+        <section
+          style={{
+            padding: 'clamp(3.5rem, 6vw, 5rem) 0',
+            backgroundColor: '#f8fafc',
+            textAlign: 'center',
+          }}
+        >
+          <div
+            style={{
+              width: '100%',
+              maxWidth: '680px',
+              margin: '0 auto',
+              padding: '0 clamp(1rem, 3vw, 2rem)',
+            }}
+          >
             <h2
               style={{
-                fontSize: '1.875rem',
-                fontWeight: 800,
-                color: '#ffffff',
-                margin: '8px 0 16px 0',
+                fontFamily: '"Plus Jakarta Sans", Inter, system-ui, sans-serif',
+                fontSize: 'clamp(1.5rem, 2.5vw, 1.875rem)',
+                fontWeight: 700,
+                color: '#0f172a',
                 letterSpacing: '-0.02em',
+                margin: '0 0 0.75rem',
               }}
             >
-              The ProctorNet Privacy Commitment
+              Ready to continue?
             </h2>
-            <p style={{ fontSize: '0.9375rem', lineHeight: 1.7, color: '#e0e7ff', margin: 0 }}>
-              We reject the premise that academic integrity requires invasive personal surveillance.
-              ProctorNet proves that remote examination integrity can be maintained with bounded,
-              client-side screen analysis without infringing on student privacy.
-            </p>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-              <span style={{ fontSize: '1.25rem' }}>🛡️</span>
-              <div>
-                <strong style={{ color: '#ffffff', fontSize: '0.9375rem' }}>No Continuous Webcam or Audio AI</strong>
-                <p style={{ fontSize: '0.8125rem', color: '#c7d2fe', margin: '4px 0 0 0', lineHeight: 1.5 }}>
-                  Zero facial emotion tracking, eye gaze inference, or ambient room audio listening algorithms.
-                </p>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-              <span style={{ fontSize: '1.25rem' }}>⚖️</span>
-              <div>
-                <strong style={{ color: '#ffffff', fontSize: '0.9375rem' }}>Mandatory Human-in-the-Loop</strong>
-                <p style={{ fontSize: '0.8125rem', color: '#c7d2fe', margin: '4px 0 0 0', lineHeight: 1.5 }}>
-                  AI heuristics never disqualify candidates. Disciplinary decisions are strictly reserved for human invigilators.
-                </p>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-              <span style={{ fontSize: '1.25rem' }}>🗑️</span>
-              <div>
-                <strong style={{ color: '#ffffff', fontSize: '0.9375rem' }}>Automated 90-Day Retention Purge</strong>
-                <p style={{ fontSize: '0.8125rem', color: '#c7d2fe', margin: '4px 0 0 0', lineHeight: 1.5 }}>
-                  Pre-exam baseline photos and vector embeddings are cryptographically purged after 90 days.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 6. LIVE TECHNOLOGY STACK GRID */}
-      <section className="container">
-        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-          <span
-            style={{
-              fontSize: '0.8125rem',
-              fontWeight: 700,
-              color: 'var(--color-text-muted)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-            }}
-          >
-            Open Source Foundation
-          </span>
-          <h2
-            style={{
-              fontSize: '1.75rem',
-              fontWeight: 800,
-              color: 'var(--color-text-primary)',
-              margin: '8px 0 12px 0',
-            }}
-          >
-            Engineering Stack &amp; Infrastructure
-          </h2>
-          <p style={{ fontSize: '0.9375rem', color: 'var(--color-text-muted)', maxWidth: '560px', margin: '0 auto' }}>
-            Built on proven open-source technologies without proprietary commercial vendor lock-in.
-          </p>
-        </div>
-
-        <div className="grid-4-col">
-          {PROJECT_INFO.techStack.map((tech, idx) => (
-            <div
-              key={idx}
-              className="card-interactive"
+            <p
               style={{
-                padding: '20px',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
+                fontSize: '1rem',
+                color: '#64748b',
+                lineHeight: 1.6,
+                margin: '0 auto 1.75rem',
               }}
             >
-              <div>
-                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-primary)' }}>
-                  {tech.category}
-                </span>
-                <h4 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: '4px 0 8px 0' }}>
-                  {tech.name}
-                </h4>
-                <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)', margin: 0, lineHeight: 1.5 }}>
-                  {tech.detail}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* 7. PROJECT STATUS & REPOSITORY CALLOUT */}
-      <section className="container">
-        <div
-          className="glass-panel"
-          style={{
-            padding: '40px',
-            textAlign: 'center',
-            backgroundColor: 'var(--color-surface)',
-          }}
-        >
-          <h3 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '12px' }}>
-            Academic Engineering Project Status
-          </h3>
-          <p style={{ fontSize: '0.9375rem', lineHeight: 1.6, color: 'var(--color-text-muted)', maxWidth: '640px', margin: '0 auto 24px auto' }}>
-            The ProctorNet core modular monolith has reached release completion (v1.0.0-release). All 5 operational portals,
-            SFU media workers, resilience buffering, and privacy controls are fully implemented and verified in the repository.
-          </p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '12px' }}>
-            <Link to="/features" className="btn-academic-secondary" style={{ padding: '8px 20px' }}>
-              Explore All Features
-            </Link>
-            <Link to="/documentation" className="btn-academic-primary" style={{ padding: '8px 20px' }}>
-              Browse Architecture &amp; Documentation
+              Sign in with your verified institutional credentials to access examinations, courses, or administration tools.
+            </p>
+            <Link
+              to={primaryActionUrl}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                padding: '12px 28px',
+                backgroundColor: '#1d4ed8',
+                color: '#ffffff',
+                fontSize: '0.9375rem',
+                fontWeight: 600,
+                borderRadius: '7px',
+                textDecoration: 'none',
+                boxShadow: '0 1px 3px rgba(29, 78, 216, 0.2)',
+                transition: 'background-color 0.15s ease',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#1e40af')}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#1d4ed8')}
+            >
+              <span>{primaryActionText}</span>
+              <ArrowRight size={16} />
             </Link>
           </div>
-        </div>
-      </section>
+        </section>
+      </main>
+
+      {/* Footer */}
+      <PublicFooter />
     </div>
   );
 }

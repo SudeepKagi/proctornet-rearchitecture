@@ -100,6 +100,25 @@ export function PreExamReadinessPage() {
     setPreviewStream(null);
   }, [previewStream]);
 
+  const attachPreviewVideoRef = useCallback((node) => {
+    previewVideoRef.current = node;
+    if (node && previewStream) {
+      if (node.srcObject !== previewStream) {
+        node.srcObject = previewStream;
+      }
+      node.play().catch(() => {});
+    }
+  }, [previewStream]);
+
+  useEffect(() => {
+    if (previewStream && previewVideoRef.current) {
+      if (previewVideoRef.current.srcObject !== previewStream) {
+        previewVideoRef.current.srcObject = previewStream;
+      }
+      previewVideoRef.current.play().catch(() => {});
+    }
+  }, [previewStream]);
+
   // Clean up preview stream on unmount or beforeunload
   useEffect(() => {
     const handleBeforeUnload = () => {
@@ -348,11 +367,14 @@ export function PreExamReadinessPage() {
             <div className="flex flex-col items-center pt-2">
               <div className="relative w-full max-w-sm aspect-[4/3] bg-slate-900 rounded-md overflow-hidden border border-slate-300 shadow-inner">
                 <video
-                  ref={previewVideoRef}
+                  ref={attachPreviewVideoRef}
                   autoPlay
                   playsInline
                   muted
                   className="w-full h-full object-cover transform -scale-x-100"
+                  onLoadedMetadata={(e) => {
+                    e.currentTarget.play().catch(() => {});
+                  }}
                 />
                 <div className="absolute bottom-2 left-2 bg-slate-900/80 backdrop-blur-xs text-white text-[11px] px-2 py-0.5 rounded-sm flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />

@@ -12,7 +12,12 @@ export default function LightingIndicator({ videoRef, active = true }) {
   useEffect(() => {
     if (!active || !videoRef?.current) return;
 
-    let animId;
+    // jsdom intentionally does not implement canvas. Avoid asking it for a
+    // context during tests, while retaining camera-lighting guidance in every
+    // real browser.
+    const isJsdom = typeof navigator !== 'undefined' && /jsdom/i.test(navigator.userAgent);
+    if (isJsdom) return undefined;
+
     const canvas = document.createElement('canvas');
     canvas.width = 64;
     canvas.height = 48;
@@ -56,7 +61,6 @@ export default function LightingIndicator({ videoRef, active = true }) {
 
     return () => {
       clearInterval(sampleInterval);
-      if (animId) cancelAnimationFrame(animId);
     };
   }, [active, videoRef]);
 

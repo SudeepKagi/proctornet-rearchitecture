@@ -3,7 +3,7 @@
  * @description API service functions for authentication endpoints.
  */
 
-import { apiClient, setAccessToken } from './client.js';
+import { apiClient, setAccessToken, clearAuthSession, refreshAuthToken } from './client.js';
 
 export async function login(credentials) {
   const result = await apiClient('/api/v1/auth/login', {
@@ -25,13 +25,7 @@ export async function register(userData) {
 }
 
 export async function refresh() {
-  const result = await apiClient('/api/v1/auth/refresh', {
-    method: 'POST',
-  });
-  if (result?.data?.accessToken) {
-    setAccessToken(result.data.accessToken);
-  }
-  return result.data;
+  return await refreshAuthToken();
 }
 
 export async function logout() {
@@ -40,7 +34,7 @@ export async function logout() {
       method: 'POST',
     });
   } finally {
-    setAccessToken(null);
+    clearAuthSession();
   }
 }
 

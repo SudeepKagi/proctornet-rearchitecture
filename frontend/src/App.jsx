@@ -3,134 +3,94 @@
  * @description Central routing switchboard for ProctorNet SPA.
  */
 
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ProtectedRoute } from './routes/ProtectedRoute.jsx';
 import { RoleRoute } from './routes/RoleRoute.jsx';
 import { VerifiedRoute } from './routes/VerifiedRoute.jsx';
 import { AppLayout } from './components/layout/AppLayout.jsx';
-import { LoginPage } from './pages/auth/LoginPage.jsx';
-import { RegisterPage } from './pages/auth/RegisterPage.jsx';
-import { NotFoundPage } from './pages/NotFoundPage.jsx';
 import { useAuth } from './hooks/useAuth.js';
 import { RealtimeProvider } from './context/RealtimeContext.jsx';
 
-// Onboarding Pages
-import { FirstLoginPasswordPage } from './pages/onboarding/FirstLoginPasswordPage.jsx';
-import { StudentOnboardingPage } from './pages/onboarding/StudentOnboardingPage.jsx';
-import { FacultyOnboardingPage } from './pages/onboarding/FacultyOnboardingPage.jsx';
-import { CandidateDocumentUploadPage } from './pages/onboarding/CandidateDocumentUploadPage.jsx';
-import { VerificationPendingPage } from './pages/onboarding/VerificationPendingPage.jsx';
-import { VerificationRejectedPage } from './pages/onboarding/VerificationRejectedPage.jsx';
+import { resolvePostLoginDestination } from './routes/roleNavigation.js';
 
-// Candidate Pages
-import { CandidateDashboardPage } from './pages/candidate/CandidateDashboardPage.jsx';
-import { PreExamReadinessPage } from './pages/candidate/PreExamReadinessPage.jsx';
-import { ExamTakingPage } from './pages/candidate/ExamTakingPage.jsx';
-import { CandidateResultPage } from './pages/candidate/CandidateResultPage.jsx';
-import CandidateFaceEnrollmentPage from './pages/candidate/CandidateFaceEnrollmentPage.jsx';
+const lazyNamed = (load, name) => lazy(async () => {
+  const module = await load();
+  return { default: module[name] };
+});
 
-// Faculty Pages
-import { FacultyDashboardPage } from './pages/faculty/FacultyDashboardPage.jsx';
-import { ExamEditorPage } from './pages/faculty/ExamEditorPage.jsx';
-import { FacultyResultsPage } from './pages/faculty/FacultyResultsPage.jsx';
-import { SessionManagerPage } from './pages/faculty/SessionManagerPage.jsx';
-import { QuestionBankPage } from './pages/faculty/QuestionBankPage.jsx';
-import { ManualGradingPage } from './pages/faculty/ManualGradingPage.jsx';
+const LoginPage = lazyNamed(() => import('./pages/auth/LoginPage.jsx'), 'LoginPage');
+const RegisterPage = lazyNamed(() => import('./pages/auth/RegisterPage.jsx'), 'RegisterPage');
+const FirstLoginPasswordPage = lazyNamed(() => import('./pages/onboarding/FirstLoginPasswordPage.jsx'), 'FirstLoginPasswordPage');
+const StudentOnboardingPage = lazyNamed(() => import('./pages/onboarding/StudentOnboardingPage.jsx'), 'StudentOnboardingPage');
+const FacultyOnboardingPage = lazyNamed(() => import('./pages/onboarding/FacultyOnboardingPage.jsx'), 'FacultyOnboardingPage');
+const CandidateDocumentUploadPage = lazyNamed(() => import('./pages/onboarding/CandidateDocumentUploadPage.jsx'), 'CandidateDocumentUploadPage');
+const VerificationPendingPage = lazyNamed(() => import('./pages/onboarding/VerificationPendingPage.jsx'), 'VerificationPendingPage');
+const VerificationRejectedPage = lazyNamed(() => import('./pages/onboarding/VerificationRejectedPage.jsx'), 'VerificationRejectedPage');
+const CandidateDashboardPage = lazyNamed(() => import('./pages/candidate/CandidateDashboardPage.jsx'), 'CandidateDashboardPage');
+const PreExamReadinessPage = lazyNamed(() => import('./pages/candidate/PreExamReadinessPage.jsx'), 'PreExamReadinessPage');
+const ExamTakingPage = lazyNamed(() => import('./pages/candidate/ExamTakingPage.jsx'), 'ExamTakingPage');
+const CandidateResultPage = lazyNamed(() => import('./pages/candidate/CandidateResultPage.jsx'), 'CandidateResultPage');
+const CandidateFaceEnrollmentPage = lazy(() => import('./pages/candidate/CandidateFaceEnrollmentPage.jsx'));
+const FacultyDashboardPage = lazyNamed(() => import('./pages/faculty/FacultyDashboardPage.jsx'), 'FacultyDashboardPage');
+const ExamEditorPage = lazyNamed(() => import('./pages/faculty/ExamEditorPage.jsx'), 'ExamEditorPage');
+const FacultyResultsPage = lazyNamed(() => import('./pages/faculty/FacultyResultsPage.jsx'), 'FacultyResultsPage');
+const SessionManagerPage = lazyNamed(() => import('./pages/faculty/SessionManagerPage.jsx'), 'SessionManagerPage');
+const QuestionBankPage = lazyNamed(() => import('./pages/faculty/QuestionBankPage.jsx'), 'QuestionBankPage');
+const ManualGradingPage = lazyNamed(() => import('./pages/faculty/ManualGradingPage.jsx'), 'ManualGradingPage');
+const InvigilatorDashboardPage = lazyNamed(() => import('./pages/invigilator/InvigilatorDashboardPage.jsx'), 'InvigilatorDashboardPage');
+const SessionMonitorPage = lazyNamed(() => import('./pages/invigilator/SessionMonitorPage.jsx'), 'SessionMonitorPage');
+const AdminOverviewPage = lazyNamed(() => import('./pages/admin/AdminOverviewPage.jsx'), 'AdminOverviewPage');
+const UserManagementPage = lazyNamed(() => import('./pages/admin/UserManagementPage.jsx'), 'UserManagementPage');
+const CreateUserPage = lazyNamed(() => import('./pages/admin/CreateUserPage.jsx'), 'CreateUserPage');
+const BulkImportPage = lazyNamed(() => import('./pages/admin/BulkImportPage.jsx'), 'BulkImportPage');
+const AdminVerificationPage = lazyNamed(() => import('./pages/admin/AdminVerificationPage.jsx'), 'AdminVerificationPage');
+const StudentConfigurationPage = lazyNamed(() => import('./pages/admin/StudentConfigurationPage.jsx'), 'StudentConfigurationPage');
+const UserDetailPage = lazyNamed(() => import('./pages/admin/UserDetailPage.jsx'), 'UserDetailPage');
+const OrganizationSettingsPage = lazyNamed(() => import('./pages/admin/OrganizationSettingsPage.jsx'), 'OrganizationSettingsPage');
+const AdminAuditPage = lazyNamed(() => import('./pages/admin/AdminAuditPage.jsx'), 'AdminAuditPage');
+const DeveloperLayout = lazyNamed(() => import('./components/layout/DeveloperLayout.jsx'), 'DeveloperLayout');
+const DeveloperOverviewPage = lazyNamed(() => import('./pages/developer/DeveloperOverviewPage.jsx'), 'DeveloperOverviewPage');
+const DeveloperHealthPage = lazyNamed(() => import('./pages/developer/DeveloperHealthPage.jsx'), 'DeveloperHealthPage');
+const DeveloperLogsPage = lazyNamed(() => import('./pages/developer/DeveloperLogsPage.jsx'), 'DeveloperLogsPage');
+const DeveloperAuditPage = lazyNamed(() => import('./pages/developer/DeveloperAuditPage.jsx'), 'DeveloperAuditPage');
+const DeveloperTopologyPage = lazyNamed(() => import('./pages/developer/DeveloperTopologyPage.jsx'), 'DeveloperTopologyPage');
+const DeveloperIncidentsPage = lazyNamed(() => import('./pages/developer/DeveloperIncidentsPage.jsx'), 'DeveloperIncidentsPage');
+const PublicLayout = lazyNamed(() => import('./components/public/PublicLayout.jsx'), 'PublicLayout');
+const LandingPage = lazyNamed(() => import('./pages/public/LandingPage.jsx'), 'LandingPage');
+const AboutPage = lazyNamed(() => import('./pages/public/AboutPage.jsx'), 'AboutPage');
+const ContactPage = lazyNamed(() => import('./pages/public/ContactPage.jsx'), 'ContactPage');
+const TermsPage = lazyNamed(() => import('./pages/public/TermsPage.jsx'), 'TermsPage');
+const PrivacyPage = lazyNamed(() => import('./pages/public/PrivacyPage.jsx'), 'PrivacyPage');
+const CookiesPage = lazyNamed(() => import('./pages/public/CookiesPage.jsx'), 'CookiesPage');
+const PublicNotFoundPage = lazyNamed(() => import('./pages/public/PublicNotFoundPage.jsx'), 'PublicNotFoundPage');
 
-// Invigilator Pages
-import { InvigilatorDashboardPage } from './pages/invigilator/InvigilatorDashboardPage.jsx';
-import { SessionMonitorPage } from './pages/invigilator/SessionMonitorPage.jsx';
-
-// Admin Pages
-import { AdminOverviewPage } from './pages/admin/AdminOverviewPage.jsx';
-import { UserManagementPage } from './pages/admin/UserManagementPage.jsx';
-import { CreateUserPage } from './pages/admin/CreateUserPage.jsx';
-import { BulkImportPage } from './pages/admin/BulkImportPage.jsx';
-import { AdminVerificationPage } from './pages/admin/AdminVerificationPage.jsx';
-import { StudentConfigurationPage } from './pages/admin/StudentConfigurationPage.jsx';
-import { UserDetailPage } from './pages/admin/UserDetailPage.jsx';
-import { OrganizationSettingsPage } from './pages/admin/OrganizationSettingsPage.jsx';
-import { AdminAuditPage } from './pages/admin/AdminAuditPage.jsx';
-
-// Developer Operations Pages
-import { DeveloperLayout } from './components/layout/DeveloperLayout.jsx';
-import { DeveloperOverviewPage } from './pages/developer/DeveloperOverviewPage.jsx';
-import { DeveloperHealthPage } from './pages/developer/DeveloperHealthPage.jsx';
-import { DeveloperLogsPage } from './pages/developer/DeveloperLogsPage.jsx';
-import { DeveloperAuditPage } from './pages/developer/DeveloperAuditPage.jsx';
-import { DeveloperTopologyPage } from './pages/developer/DeveloperTopologyPage.jsx';
-import { DeveloperIncidentsPage } from './pages/developer/DeveloperIncidentsPage.jsx';
-
-// Public Educational Website Pages
-import { PublicLayout } from './components/public/PublicLayout.jsx';
-import { LandingPage } from './pages/public/LandingPage.jsx';
-import { AboutPage } from './pages/public/AboutPage.jsx';
-import { FeaturesPage } from './pages/public/FeaturesPage.jsx';
-import { HowItWorksPage } from './pages/public/HowItWorksPage.jsx';
-import { ForStudentsPage } from './pages/public/ForStudentsPage.jsx';
-import { ForFacultyPage } from './pages/public/ForFacultyPage.jsx';
-import { ForInstitutionsPage } from './pages/public/ForInstitutionsPage.jsx';
-import { AiProctoringPage } from './pages/public/AiProctoringPage.jsx';
-import { SecurityPage } from './pages/public/SecurityPage.jsx';
-import { AccessibilityPage } from './pages/public/AccessibilityPage.jsx';
-import { ArchitecturePage } from './pages/public/ArchitecturePage.jsx';
-import { DocumentationHubPage } from './pages/public/DocumentationHubPage.jsx';
-import { FaqPage } from './pages/public/FaqPage.jsx';
-import { ContactPage } from './pages/public/ContactPage.jsx';
-import { ProjectInterestPage } from './pages/public/ProjectInterestPage.jsx';
-import { ProjectFeedbackPage } from './pages/public/ProjectFeedbackPage.jsx';
-import { ThankYouPage } from './pages/public/ThankYouPage.jsx';
-import { TermsPage } from './pages/public/TermsPage.jsx';
-import { PrivacyPage } from './pages/public/PrivacyPage.jsx';
-import { CookiesPage } from './pages/public/CookiesPage.jsx';
-import { AcceptableUsePage } from './pages/public/AcceptableUsePage.jsx';
-import { AcademicIntegrityPage } from './pages/public/AcademicIntegrityPage.jsx';
-import { AiProctoringNoticePage } from './pages/public/AiProctoringNoticePage.jsx';
-import { AccessibilityStatementPage } from './pages/public/AccessibilityStatementPage.jsx';
-import { PublicNotFoundPage } from './pages/public/PublicNotFoundPage.jsx';
+function RouteLoadingSkeleton() {
+  return <main className="min-h-screen bg-slate-50 p-6 sm:p-10"><div className="mx-auto max-w-6xl animate-pulse space-y-6"><div className="h-8 w-56 rounded bg-slate-200" /><div className="grid gap-5 md:grid-cols-3"><div className="h-32 rounded-xl bg-slate-200" /><div className="h-32 rounded-xl bg-slate-200" /><div className="h-32 rounded-xl bg-slate-200" /></div><div className="h-72 rounded-xl bg-slate-200" /></div></main>;
+}
 
 function RootRedirect() {
   const { user, isAuthenticated, loading } = useAuth();
   if (loading) return null;
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!isAuthenticated || !user) return <Navigate to="/login" replace />;
 
-  // Enforce first login password change
-  if (user?.mustChangePassword) {
-    return <Navigate to="/onboarding/first-login" replace />;
-  }
-
-  // Enforce academic verification for student/faculty
-  const isAcademic = user?.roles?.some((r) => ['STUDENT', 'FACULTY'].includes(r));
-  if (isAcademic && !user?.roles?.includes('ADMIN')) {
-    if (user?.verificationStatus === 'UNVERIFIED') {
-      if (user?.roles?.includes('FACULTY')) {
-        return <Navigate to="/onboarding/faculty" replace />;
-      }
-      return <Navigate to="/onboarding/student" replace />;
-    }
-    if (user?.verificationStatus === 'PENDING') {
-      return <Navigate to="/onboarding/pending" replace />;
-    }
-    if (user?.verificationStatus === 'REJECTED') {
-      return <Navigate to="/onboarding/rejected" replace />;
-    }
-  }
-
-  if (user?.roles?.includes('ADMIN')) return <Navigate to="/admin" replace />;
-  if (user?.roles?.includes('DEVELOPER')) return <Navigate to="/developer/overview" replace />;
-  if (user?.roles?.includes('FACULTY')) return <Navigate to="/faculty" replace />;
-  if (user?.roles?.includes('INVIGILATOR')) return <Navigate to="/invigilator" replace />;
-  return <Navigate to="/candidate" replace />;
+  const destination = resolvePostLoginDestination(user);
+  return <Navigate to={destination} replace />;
 }
 
 export function App() {
   return (
     <RealtimeProvider>
+      <Suspense fallback={<RouteLoadingSkeleton />}>
       <Routes>
         {/* Public Authentication Routes */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/student/login" element={<Navigate to="/login" replace />} />
+        <Route path="/faculty/login" element={<Navigate to="/login" replace />} />
+        <Route path="/admin/login" element={<Navigate to="/login" replace />} />
+        <Route path="/invigilator-login" element={<Navigate to="/login" replace />} />
+        <Route path="/invigilator/login" element={<Navigate to="/login" replace />} />
 
         {/* Dashboard redirect for authenticated users */}
         <Route path="/dashboard" element={<RootRedirect />} />
@@ -225,6 +185,14 @@ export function App() {
             }
           />
           <Route
+            path="/student"
+            element={
+              <RoleRoute allowedRoles={['STUDENT', 'ADMIN']}>
+                <Navigate to="/candidate" replace />
+              </RoleRoute>
+            }
+          />
+          <Route
             path="/candidate/readiness/:sessionId"
             element={
               <RoleRoute allowedRoles={['STUDENT', 'ADMIN']}>
@@ -298,6 +266,16 @@ export function App() {
           />
           <Route
             path="/faculty/question-banks"
+            element={
+              <RoleRoute allowedRoles={['FACULTY', 'ADMIN']}>
+                <VerifiedRoute>
+                  <QuestionBankPage />
+                </VerifiedRoute>
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/faculty/questions"
             element={
               <RoleRoute allowedRoles={['FACULTY', 'ADMIN']}>
                 <VerifiedRoute>
@@ -428,37 +406,22 @@ export function App() {
           </Route>
         </Route>
 
+        {/* Standalone Landing Page (matching reference ProctorNet architecture) */}
+        <Route path="/" element={<LandingPage />} />
+
         {/* Public Educational Website Routes */}
         <Route element={<PublicLayout />}>
-          <Route path="/" element={<LandingPage />} />
           <Route path="/about" element={<AboutPage />} />
-          <Route path="/features" element={<FeaturesPage />} />
-          <Route path="/how-it-works" element={<HowItWorksPage />} />
-          <Route path="/for-students" element={<ForStudentsPage />} />
-          <Route path="/for-faculty" element={<ForFacultyPage />} />
-          <Route path="/for-institutions" element={<ForInstitutionsPage />} />
-          <Route path="/ai-proctoring" element={<AiProctoringPage />} />
-          <Route path="/security" element={<SecurityPage />} />
-          <Route path="/accessibility" element={<AccessibilityPage />} />
-          <Route path="/architecture" element={<ArchitecturePage />} />
-          <Route path="/documentation" element={<DocumentationHubPage />} />
-          <Route path="/faq" element={<FaqPage />} />
           <Route path="/contact" element={<ContactPage />} />
-          <Route path="/project-interest" element={<ProjectInterestPage />} />
-          <Route path="/project-feedback" element={<ProjectFeedbackPage />} />
-          <Route path="/thank-you" element={<ThankYouPage />} />
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/cookies" element={<CookiesPage />} />
-          <Route path="/acceptable-use" element={<AcceptableUsePage />} />
-          <Route path="/academic-integrity" element={<AcademicIntegrityPage />} />
-          <Route path="/ai-proctoring-notice" element={<AiProctoringNoticePage />} />
-          <Route path="/accessibility-statement" element={<AccessibilityStatementPage />} />
 
           {/* Accessible Public 404 Catch-All */}
           <Route path="*" element={<PublicNotFoundPage />} />
         </Route>
       </Routes>
+      </Suspense>
     </RealtimeProvider>
   );
 }

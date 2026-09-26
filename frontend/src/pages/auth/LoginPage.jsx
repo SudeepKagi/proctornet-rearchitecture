@@ -105,7 +105,7 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center bg-slate-50 dark:bg-slate-950 p-4 sm:p-6 transition-colors">
+    <div className="min-h-screen flex flex-col justify-center items-center bg-slate-50 dark:bg-slate-950 p-4 sm:p-8 transition-colors">
       <div className="w-full max-w-md space-y-4">
         <div className="flex justify-between items-center px-1">
           <Link
@@ -120,8 +120,8 @@ export function LoginPage() {
           </Badge>
         </div>
 
-        <Card className="shadow-lg border-slate-200/90 dark:border-slate-800 dark:bg-slate-900">
-          <CardHeader className="text-center space-y-2 pb-4">
+        <Card className="shadow-lg border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900">
+          <CardHeader className="text-center space-y-2 pb-4 pt-6">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600 text-white shadow-md">
               <ShieldCheck className="h-6 w-6" />
             </div>
@@ -133,7 +133,7 @@ export function LoginPage() {
             </CardDescription>
           </CardHeader>
 
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 px-6 pb-6">
             {error && (
               <Alert variant="destructive" className="py-2.5">
                 <AlertCircle className="h-4 w-4" />
@@ -198,7 +198,7 @@ export function LoginPage() {
 
               <Button
                 type="submit"
-                className="w-full h-10 bg-blue-600 hover:bg-blue-700 text-white font-medium"
+                className="w-full h-10 bg-blue-600 hover:bg-blue-700 text-white font-medium cursor-pointer"
                 disabled={loading}
               >
                 {loading ? 'Authenticating...' : 'Sign In'}
@@ -226,7 +226,7 @@ export function LoginPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => fillDemo(demo.email, demo.pass)}
-                    className="text-xs h-7 py-1 px-2 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 font-medium"
+                    className="text-xs h-8 py-1.5 px-2 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 font-medium cursor-pointer"
                   >
                     {demo.role}
                   </Button>

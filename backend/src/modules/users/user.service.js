@@ -7,6 +7,7 @@ import crypto from 'node:crypto';
 import bcrypt from 'bcrypt';
 import * as userRepo from './user.repository.js';
 import * as authRepo from '../auth/auth.repository.js';
+import * as candidateIdentityRepo from '../candidate/candidateIdentity.repository.js';
 import { recordAuditEvent } from '../audit/audit.service.js';
 import { parseUserRoster } from './excelParser.service.js';
 import { transitionUserState, transitionVerificationState } from '../../domain/user/userStateMachine.js';
@@ -556,6 +557,22 @@ export async function reviewVerificationStatus({
 
   const nextStatus = transitionVerificationState(targetUser.verificationStatus, decision);
   const updated = await userRepo.updateVerificationStatus(targetUserId, nextStatus, reviewNotes);
+
+  // Synchronize active pending student identity document if one exists
+  try {
+    const activeDoc = await candidateIdentityRepo.findActiveDocumentByUserId(targetUserId);
+    if (activeDoc && activeDoc.verification_status === 'PENDING') {
+      const docTargetStatus = decision === 'VERIFIED' ? 'APPROVED' : 'REJECTED';
+      await candidateIdentityRepo.updateDocumentStatus(activeDoc.document_id, {
+        verificationStatus: docTargetStatus,
+        reviewerNotes: reviewNotes || (decision === 'VERIFIED' ? 'Verified by administrator' : null),
+        reviewedBy: actorUserId,
+        reviewedAt: new Date().toISOString()
+      });
+    }
+  } catch (_syncErr) {
+    // Non-blocking sync fallback
+  }
 
   await recordAuditEvent({
     actorUserId,

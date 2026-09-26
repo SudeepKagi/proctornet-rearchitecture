@@ -14,6 +14,7 @@ import { Input } from '../../components/ui/input.jsx';
 import { Select, SelectOption } from '../../components/ui/select.jsx';
 import { Alert, AlertDescription } from '../../components/ui/alert.jsx';
 import { Spinner } from '../../components/ui/spinner.jsx';
+import { ACADEMIC_DEPARTMENTS, resolveDepartment } from '../../constants/departments.js';
 
 export function StudentOnboardingPage() {
   const navigate = useNavigate();
@@ -23,7 +24,8 @@ export function StudentOnboardingPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
-  const [department, setDepartment] = useState('');
+  const [selectedDept, setSelectedDept] = useState('');
+  const [customDept, setCustomDept] = useState('');
   const [semester, setSemester] = useState('1');
   const [phone, setPhone] = useState('');
 
@@ -31,7 +33,11 @@ export function StudentOnboardingPage() {
     async function loadStatus() {
       try {
         const data = await onboardingApi.getOnboardingStatus();
-        if (data.department) setDepartment(data.department);
+        if (data.department) {
+          const { selectedOption, customValue } = resolveDepartment(data.department);
+          setSelectedDept(selectedOption);
+          setCustomDept(customValue);
+        }
         if (data.semester) setSemester(String(data.semester));
         if (data.phone) setPhone(data.phone);
 
@@ -53,8 +59,10 @@ export function StudentOnboardingPage() {
     e.preventDefault();
     setError(null);
 
-    if (!department.trim()) {
-      setError('Department is required');
+    const effectiveDepartment = selectedDept === 'Other' ? customDept.trim() : selectedDept.trim();
+
+    if (!effectiveDepartment) {
+      setError('Academic Department is required');
       return;
     }
 
@@ -67,7 +75,7 @@ export function StudentOnboardingPage() {
     setSubmitting(true);
     try {
       await onboardingApi.submitOnboardingProfile({
-        department: department.trim(),
+        department: effectiveDepartment,
         semester: semNum,
         phone: phone.trim() || undefined,
       });
@@ -113,15 +121,41 @@ export function StudentOnboardingPage() {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-1 text-left">
-                <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                <label htmlFor="student-department" className="text-xs font-medium text-slate-700 dark:text-slate-300">
                   Academic Department <span className="text-rose-500">*</span>
                 </label>
-                <Input
-                  value={department}
-                  onChange={(e) => setDepartment(e.target.value)}
-                  placeholder="e.g. Computer Science and Engineering"
+                <Select
+                  id="student-department"
+                  value={selectedDept}
+                  onChange={(e) => {
+                    setSelectedDept(e.target.value);
+                    if (e.target.value !== 'Other') {
+                      setCustomDept('');
+                    }
+                  }}
                   required
-                />
+                >
+                  <SelectOption value="" disabled>
+                    Select your academic department
+                  </SelectOption>
+                  {ACADEMIC_DEPARTMENTS.map((dept) => (
+                    <SelectOption key={dept} value={dept}>
+                      {dept}
+                    </SelectOption>
+                  ))}
+                </Select>
+                {selectedDept === 'Other' && (
+                  <div className="pt-2">
+                    <Input
+                      id="student-custom-department"
+                      value={customDept}
+                      onChange={(e) => setCustomDept(e.target.value)}
+                      placeholder="Specify your academic department"
+                      required
+                      className="text-xs sm:text-sm"
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="space-y-1 text-left">

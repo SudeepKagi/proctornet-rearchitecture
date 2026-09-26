@@ -26,6 +26,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../..
 import { Button } from '../../components/ui/button.jsx';
 import { Badge } from '../../components/ui/badge.jsx';
 import { Input } from '../../components/ui/input.jsx';
+import { Select } from '../../components/ui/select.jsx';
 import {
   Dialog,
   DialogContent,
@@ -310,27 +311,27 @@ export function QuestionBankPage() {
             <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
               Active Question Bank
             </label>
-            <select
+            <Select
+              size="sm"
               value={selectedBankId}
               onChange={(e) => setSelectedBankId(e.target.value)}
-              className="w-full h-8 px-2 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-slate-100 focus:outline-hidden"
             >
               {banks.map((b) => (
                 <option key={b.id} value={b.id}>
                   {b.name} {b.is_shared ? '(Shared)' : ''}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
 
           <div className="space-y-1">
             <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
               Question Type
             </label>
-            <select
+            <Select
+              size="sm"
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
-              className="w-full h-8 px-2 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-slate-100 focus:outline-hidden"
             >
               <option value="">All Item Types</option>
               <option value="MCQ">Multiple Choice (MCQ)</option>
@@ -339,33 +340,33 @@ export function QuestionBankPage() {
               <option value="SHORT_ANSWER">Short Answer</option>
               <option value="ESSAY">Essay</option>
               <option value="CODE">Source Code</option>
-            </select>
+            </Select>
           </div>
 
           <div className="space-y-1">
             <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
               Difficulty
             </label>
-            <select
+            <Select
+              size="sm"
               value={filterDifficulty}
               onChange={(e) => setFilterDifficulty(e.target.value)}
-              className="w-full h-8 px-2 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-slate-100 focus:outline-hidden"
             >
               <option value="">All Difficulties</option>
               <option value="EASY">Easy</option>
               <option value="MEDIUM">Medium</option>
               <option value="HARD">Hard</option>
-            </select>
+            </Select>
           </div>
 
           <div className="space-y-1">
             <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
               Bloom Taxonomy
             </label>
-            <select
+            <Select
+              size="sm"
               value={filterBloom}
               onChange={(e) => setFilterBloom(e.target.value)}
-              className="w-full h-8 px-2 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-slate-100 focus:outline-hidden"
             >
               <option value="">All Bloom Levels</option>
               <option value="REMEMBER">Remember</option>
@@ -374,7 +375,7 @@ export function QuestionBankPage() {
               <option value="ANALYZE">Analyze</option>
               <option value="EVALUATE">Evaluate</option>
               <option value="CREATE">Create</option>
-            </select>
+            </Select>
           </div>
 
           <div className="space-y-1">
@@ -591,12 +592,12 @@ export function QuestionBankPage() {
                 <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
                   Question Type
                 </label>
-                <select
+                <Select
+                  size="sm"
                   value={questionFormData.question_type}
                   onChange={(e) =>
                     setQuestionFormData({ ...questionFormData, question_type: e.target.value })
                   }
-                  className="w-full h-8 px-2 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-slate-100 focus:outline-hidden"
                 >
                   <option value="MCQ">Multiple Choice</option>
                   <option value="TRUE_FALSE">True / False</option>
@@ -604,36 +605,36 @@ export function QuestionBankPage() {
                   <option value="SHORT_ANSWER">Short Answer</option>
                   <option value="ESSAY">Essay</option>
                   <option value="CODE">Source Code</option>
-                </select>
+                </Select>
               </div>
 
               <div className="space-y-1">
                 <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
                   Difficulty
                 </label>
-                <select
+                <Select
+                  size="sm"
                   value={questionFormData.difficulty}
                   onChange={(e) =>
                     setQuestionFormData({ ...questionFormData, difficulty: e.target.value })
                   }
-                  className="w-full h-8 px-2 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-slate-100 focus:outline-hidden"
                 >
                   <option value="EASY">Easy</option>
                   <option value="MEDIUM">Medium</option>
                   <option value="HARD">Hard</option>
-                </select>
+                </Select>
               </div>
 
               <div className="space-y-1">
                 <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
                   Bloom Taxonomy
                 </label>
-                <select
+                <Select
+                  size="sm"
                   value={questionFormData.bloom_level}
                   onChange={(e) =>
                     setQuestionFormData({ ...questionFormData, bloom_level: e.target.value })
                   }
-                  className="w-full h-8 px-2 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-slate-100 focus:outline-hidden"
                 >
                   <option value="REMEMBER">Remember</option>
                   <option value="UNDERSTAND">Understand</option>
@@ -641,7 +642,7 @@ export function QuestionBankPage() {
                   <option value="ANALYZE">Analyze</option>
                   <option value="EVALUATE">Evaluate</option>
                   <option value="CREATE">Create</option>
-                </select>
+                </Select>
               </div>
 
               <div className="space-y-1">

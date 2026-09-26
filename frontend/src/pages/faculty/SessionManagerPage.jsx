@@ -26,6 +26,7 @@ import * as examsApi from '../../api/examsApi.js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card.jsx';
 import { Button } from '../../components/ui/button.jsx';
 import { Badge } from '../../components/ui/badge.jsx';
+import { Select } from '../../components/ui/select.jsx';
 import {
   Dialog,
   DialogContent,
@@ -340,12 +341,11 @@ export function SessionManagerPage() {
               <label htmlFor="session-exam" className="text-xs font-semibold text-slate-800 dark:text-slate-200">
                 Target Exam Blueprint *
               </label>
-              <select
+              <Select
                 id="session-exam"
                 value={selectedExamId}
                 onChange={(e) => setSelectedExamId(e.target.value)}
                 required
-                className="w-full h-9 px-3 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-slate-100 focus:outline-hidden"
               >
                 <option value="">-- Select Exam Blueprint --</option>
                 {exams.map((ex) => {
@@ -356,18 +356,17 @@ export function SessionManagerPage() {
                     </option>
                   );
                 })}
-              </select>
+              </Select>
             </div>
 
             <div className="space-y-1.5">
               <label htmlFor="session-room" className="text-xs font-semibold text-slate-800 dark:text-slate-200">
                 Campus Room / Facility (Optional)
               </label>
-              <select
+              <Select
                 id="session-room"
                 value={selectedRoomId}
                 onChange={(e) => setSelectedRoomId(e.target.value)}
-                className="w-full h-9 px-3 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-slate-100 focus:outline-hidden"
               >
                 <option value="">-- Virtual / Remote Assessment --</option>
                 {rooms.map((rm) => (
@@ -375,7 +374,7 @@ export function SessionManagerPage() {
                     {rm.name} {rm.capacity ? `(Capacity: ${rm.capacity})` : ''}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

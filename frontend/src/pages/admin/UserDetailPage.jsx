@@ -29,11 +29,15 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
 } from '@/components/ui/alert-dialog';
+import { StudentVerificationDetailModal } from '../../components/admin/StudentVerificationDetailModal.jsx';
+import { FacultyVerificationModal } from '../../components/admin/FacultyVerificationModal.jsx';
 import {
   User,
   ArrowLeft,
   KeyRound,
   Shield,
+  ShieldCheck,
+  Clock,
   Copy,
   Check,
   ShieldAlert,
@@ -74,6 +78,9 @@ export function UserDetailPage() {
   const [selectedRoleToAdd, setSelectedRoleToAdd] = useState('INVIGILATOR');
   const [roleLoading, setRoleLoading] = useState(false);
   const [roleError, setRoleError] = useState(null);
+
+  // Student Identity Verification modal
+  const [verificationModalOpen, setVerificationModalOpen] = useState(false);
 
   // Inline action notice
   const [actionNotice, setActionNotice] = useState(null);
@@ -291,6 +298,16 @@ export function UserDetailPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            {user.verificationStatus === 'PENDING' && (
+              <Button
+                size="sm"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold flex items-center gap-1.5 shadow-xs"
+                onClick={() => setVerificationModalOpen(true)}
+              >
+                <ShieldCheck className="h-4 w-4" />
+                {user.roles?.includes('FACULTY') ? 'Review & Verify Faculty' : 'Review & Verify ID'}
+              </Button>
+            )}
             <Button variant="outline" size="sm" onClick={() => setStatusModalOpen(true)}>
               Change Status
             </Button>
@@ -311,6 +328,36 @@ export function UserDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Pending Student/Faculty Verification Alert Banner */}
+      {user.verificationStatus === 'PENDING' && (
+        <div className="rounded-xl border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-amber-500/10 dark:bg-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
+              <Clock className="h-5 w-5 animate-pulse" />
+            </div>
+            <div>
+              <div className="text-sm font-semibold text-amber-900 dark:text-amber-200 flex items-center gap-2">
+                <span>{user.roles?.includes('FACULTY') ? 'Faculty Verification Pending' : 'Student Identity Verification Pending'}</span>
+                <Badge className="bg-amber-100 text-amber-900 border-amber-300 text-[10px] font-semibold">ACTION REQUIRED</Badge>
+              </div>
+              <div className="text-xs text-amber-700 dark:text-amber-300/80 mt-0.5">
+                {user.roles?.includes('FACULTY')
+                  ? 'This faculty member has submitted department affiliation details that require administrative approval.'
+                  : 'This student has uploaded an institutional Student ID card that requires administrative review and approval.'}
+              </div>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold flex items-center gap-1.5 shrink-0 shadow-xs"
+            onClick={() => setVerificationModalOpen(true)}
+          >
+            <ShieldCheck className="h-4 w-4" />
+            {user.roles?.includes('FACULTY') ? 'Review & Approve Faculty' : 'Review & Approve ID'}
+          </Button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column: Account Details & Academic Profiles */}
@@ -335,11 +382,27 @@ export function UserDetailPage() {
                   )}
                 </div>
 
-                <div className="p-3 rounded-lg border border-border bg-muted/20">
-                  <span className="text-muted-foreground block uppercase font-semibold mb-1">Verification</span>
-                  <Badge variant={user.verificationStatus === 'VERIFIED' ? 'default' : 'secondary'}>
-                    {user.verificationStatus}
-                  </Badge>
+                <div className="p-3 rounded-lg border border-border bg-muted/20 flex items-center justify-between">
+                  <div>
+                    <span className="text-muted-foreground block uppercase font-semibold mb-1">Verification</span>
+                    <Badge
+                      variant={user.verificationStatus === 'VERIFIED' ? 'default' : user.verificationStatus === 'PENDING' ? 'secondary' : 'destructive'}
+                      className={user.verificationStatus === 'PENDING' ? 'bg-amber-100 text-amber-900 dark:bg-amber-950/70 dark:text-amber-200 border-amber-300 dark:border-amber-800 font-semibold gap-1 inline-flex items-center' : ''}
+                    >
+                      {user.verificationStatus === 'PENDING' && <Clock className="h-3 w-3 animate-pulse text-amber-600" />}
+                      {user.verificationStatus}
+                    </Badge>
+                  </div>
+                  {user.verificationStatus === 'PENDING' && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs border-amber-300 text-amber-900 hover:bg-amber-100 dark:border-amber-800 dark:text-amber-200 font-medium"
+                      onClick={() => setVerificationModalOpen(true)}
+                    >
+                      Review ID
+                    </Button>
+                  )}
                 </div>
 
                 <div className="p-3 rounded-lg border border-border bg-muted/20">
@@ -623,6 +686,29 @@ export function UserDetailPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Verification Modals */}
+      {user.roles?.includes('FACULTY') ? (
+        <FacultyVerificationModal
+          user={user}
+          isOpen={verificationModalOpen}
+          onClose={() => setVerificationModalOpen(false)}
+          onReviewSuccess={() => {
+            showNotice('success', `Faculty appointment verified and privileges approved for ${user.name}.`);
+            loadUser();
+          }}
+        />
+      ) : (
+        <StudentVerificationDetailModal
+          studentId={user.userId}
+          isOpen={verificationModalOpen}
+          onClose={() => setVerificationModalOpen(false)}
+          onReviewSuccess={() => {
+            showNotice('success', `Identity verification approved for ${user.name}.`);
+            loadUser();
+          }}
+        />
+      )}
     </div>
   );
 }

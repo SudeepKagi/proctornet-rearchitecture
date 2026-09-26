@@ -1,17 +1,14 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   LogOut,
   Menu,
   ShieldCheck,
-  Moon,
-  Sun,
   SlidersHorizontal,
   ChevronDown,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth.js';
 import { useTheme } from '../../hooks/useTheme.js';
-import { Button } from '../ui/button.jsx';
 import { Avatar } from '../ui/avatar.jsx';
 import { Badge } from '../ui/badge.jsx';
 import {
@@ -22,8 +19,9 @@ import {
 } from '../ui/dropdown-menu.jsx';
 
 export function Navbar({ onMenuToggle }) {
+  const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const { isDark, toggleTheme, density, setDensity } = useTheme();
+  const { density, setDensity } = useTheme();
 
   async function handleLogout() {
     await logout();
@@ -41,9 +39,9 @@ export function Navbar({ onMenuToggle }) {
   const role = user?.roles?.[0] || 'User';
 
   return (
-    <header className="app-topbar bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 h-16 flex items-center gap-3 transition-colors">
+    <header className="fixed top-0 inset-x-0 h-16 z-40 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 flex items-center gap-3 transition-colors shadow-2xs">
       <button
-        className="app-menu-button md:hidden p-2 rounded-md text-slate-700 hover:text-slate-950 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 cursor-pointer"
+        className="md:hidden p-2 rounded-md text-slate-700 hover:text-slate-950 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
         type="button"
         onClick={onMenuToggle}
         aria-label="Toggle navigation menu"
@@ -66,17 +64,6 @@ export function Navbar({ onMenuToggle }) {
       </Link>
 
       <div className="ml-auto flex items-center gap-2 sm:gap-3">
-        {/* Theme Toggle Button */}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={toggleTheme}
-          aria-label={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
-          className="h-8 w-8 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
-        >
-          {isDark ? <Sun size={16} /> : <Moon size={16} />}
-        </Button>
-
         {/* User Dropdown Profile & Controls */}
         <DropdownMenu
           trigger={
@@ -113,6 +100,20 @@ export function Navbar({ onMenuToggle }) {
                 <div className="font-medium text-slate-900 dark:text-slate-100">{user?.name}</div>
                 <div className="text-[11px] text-slate-500 truncate font-normal">{user?.email}</div>
               </DropdownMenuLabel>
+              {user?.roles?.includes('ADMIN') && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    icon={ShieldCheck}
+                    onClick={() => {
+                      close();
+                      navigate('/admin');
+                    }}
+                  >
+                    Admin Console
+                  </DropdownMenuItem>
+                </>
+              )}
               <DropdownMenuSeparator />
 
               <DropdownMenuLabel>

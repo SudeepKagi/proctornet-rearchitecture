@@ -43,6 +43,9 @@ export async function handleCreateExam(req, res, next) {
 export async function handleGetExam(req, res, next) {
   try {
     const { id } = req.params;
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+      throw new BadRequestError(`Invalid exam ID format: '${id}'`);
+    }
     const exam = await examsService.getExamById(id);
 
     res.status(200).json({
@@ -186,6 +189,21 @@ export async function handleGetExamAnalytics(req, res, next) {
     res.status(200).json({
       status: 'success',
       data: analytics
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Handles fetching list of all subjects.
+ */
+export async function handleListSubjects(req, res, next) {
+  try {
+    const subjects = await examsService.listSubjects();
+    res.status(200).json({
+      status: 'success',
+      data: { subjects }
     });
   } catch (err) {
     next(err);

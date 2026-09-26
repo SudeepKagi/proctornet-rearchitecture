@@ -30,6 +30,38 @@ export function useAutosave({
   const debounceTimersRef = useRef(new Map());
   const answersRef = useRef(answers);
   answersRef.current = answers;
+  const storageKey = attemptId ? `proctornet:attempt:${attemptId}:dirty-answers` : null;
+
+  const persistDirtyQueue = useCallback(() => {
+    if (!storageKey) return;
+    try {
+      localStorage.setItem(storageKey, JSON.stringify([...dirtyQueueRef.current.entries()]));
+    } catch {
+      // Private browsing or a full quota must never block answering an exam.
+    }
+  }, [storageKey]);
+
+  const clearPersistedQueue = useCallback(() => {
+    if (!storageKey) return;
+    try { localStorage.removeItem(storageKey); } catch { /* no-op */ }
+  }, [storageKey]);
+
+  // Recover answers queued before a connectivity loss or tab reload. These
+  // records contain answers only—never credentials or signing material.
+  useEffect(() => {
+    if (!storageKey) return;
+    try {
+      const stored = JSON.parse(localStorage.getItem(storageKey) || '[]');
+      if (!Array.isArray(stored)) return;
+      for (const [questionId, data] of stored) {
+        if (questionId && data && Object.hasOwn(data, 'answer_value')) {
+          dirtyQueueRef.current.set(questionId, data);
+          setAnswers((prev) => ({ ...prev, [questionId]: { answer_value: data.answer_value, revision_id: data.expected_revision || 1 } }));
+        }
+      }
+      if (stored.length) setSaveStatus('offline');
+    } catch { /* corrupted local state is safely ignored */ }
+  }, [storageKey]);
 
   // Persist an individual question answer
   const persistAnswer = useCallback(
@@ -53,6 +85,7 @@ export function useAutosave({
         }));
 
         dirtyQueueRef.current.delete(questionId);
+        persistDirtyQueue();
 
         if (dirtyQueueRef.current.size === 0) {
           setSaveStatus('saved');
@@ -71,6 +104,7 @@ export function useAutosave({
             }
             setAnswers(reconciled);
             dirtyQueueRef.current.delete(questionId);
+            persistDirtyQueue();
             setSaveStatus('saved');
           } catch {
             setSaveStatus('offline');
@@ -81,7 +115,7 @@ export function useAutosave({
         }
       }
     },
-    [attemptId]
+    [attemptId, persistDirtyQueue]
   );
 
   // Set an answer locally with immediate visual feedback and 1,000ms debounce
@@ -103,6 +137,7 @@ export function useAutosave({
         answer_value: answerValue,
         expected_revision: currentRev,
       });
+      persistDirtyQueue();
 
       // Clear existing debounce timer for this question
       if (debounceTimersRef.current.has(questionId)) {
@@ -117,7 +152,7 @@ export function useAutosave({
 
       debounceTimersRef.current.set(questionId, timer);
     },
-    [persistAnswer]
+    [persistAnswer, persistDirtyQueue]
   );
 
   // Flush all queued dirty answers in memory
@@ -145,13 +180,14 @@ export function useAutosave({
       setSaveStatus('saving');
       await answersApi.batchSaveAnswers(attemptId, payload);
       dirtyQueueRef.current.clear();
+      clearPersistedQueue();
       setSaveStatus('saved');
     } catch {
       setSaveStatus('offline');
     }
 
     return payload;
-  }, [attemptId]);
+  }, [attemptId, clearPersistedQueue]);
 
   // Returns array of currently unpersisted dirty answers (used by final submission payload)
   const getDirtyAnswersArray = useCallback(() => {

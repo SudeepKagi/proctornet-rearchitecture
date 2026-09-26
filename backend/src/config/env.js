@@ -191,6 +191,9 @@ const envSchema = z.object({
   S3_BUCKET_NAME: z
     .string()
     .default('proctornet-evidence-dev-01'),
+  S3_EVIDENCE_BUCKET: z
+    .string()
+    .default('proctornet-evidence-dev-01'),
   S3_ENDPOINT: z
     .string()
     .optional()

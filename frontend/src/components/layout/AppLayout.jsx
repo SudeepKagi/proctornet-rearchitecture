@@ -14,6 +14,7 @@ import {
   Users,
   X,
   HelpCircle,
+  ArrowLeft,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth.js';
 import { resolveWorkspace } from '../../routes/roleNavigation.js';
@@ -119,9 +120,9 @@ export function AppLayout() {
       <Navbar onMenuToggle={() => setMobileMenuOpen(true)} />
 
       <div className="flex flex-1 pt-16">
-        {/* Desktop Persistent Sidebar */}
+        {/* Desktop Persistent In-Flow Sidebar */}
         <aside
-          className="hidden md:flex flex-col w-64 fixed top-16 bottom-0 left-0 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 p-4 overflow-y-auto"
+          className="hidden md:flex flex-col w-64 shrink-0 sticky top-16 h-[calc(100vh-4rem)] z-30 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 p-4 overflow-y-auto"
           aria-label={`${roleLabel} navigation`}
         >
           <div className="mb-4 px-2 pb-3 border-b border-slate-100 dark:border-slate-800">
@@ -131,6 +132,15 @@ export function AppLayout() {
             <div className="text-sm font-bold text-slate-900 dark:text-slate-100 mt-0.5">
               {roleLabel}
             </div>
+            {user?.roles?.includes('ADMIN') && workspaceKey !== 'admin' && (
+              <NavLink
+                to="/admin"
+                className="mt-2.5 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition-colors"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" />
+                Return to Admin Console
+              </NavLink>
+            )}
           </div>
 
           <NavLinks />
@@ -151,14 +161,24 @@ export function AppLayout() {
               <div className="text-sm font-bold text-slate-900 dark:text-slate-100 mt-0.5">
                 {roleLabel}
               </div>
+              {user?.roles?.includes('ADMIN') && workspaceKey !== 'admin' && (
+                <NavLink
+                  to="/admin"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="mt-2.5 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition-colors"
+                >
+                  <ArrowLeft className="h-3.5 w-3.5" />
+                  Return to Admin Console
+                </NavLink>
+              )}
             </div>
             <NavLinks onLinkClick={() => setMobileMenuOpen(false)} />
           </SheetContent>
         </Sheet>
 
         {/* Main Workspace Content Area */}
-        <main className="flex-1 md:pl-64 min-w-0">
-          <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto min-h-[calc(100vh-4rem)]">
+        <main className="flex-1 min-w-0">
+          <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full min-h-[calc(100vh-4rem)]">
             <Outlet />
           </div>
         </main>

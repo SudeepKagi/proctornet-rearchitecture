@@ -10,6 +10,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import {
   Table,
@@ -37,6 +38,8 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
 } from '@/components/ui/alert-dialog';
+import { StudentVerificationDetailModal } from '../../components/admin/StudentVerificationDetailModal.jsx';
+import { FacultyVerificationModal } from '../../components/admin/FacultyVerificationModal.jsx';
 import {
   Users,
   UserPlus,
@@ -45,6 +48,12 @@ import {
   Filter,
   KeyRound,
   Shield,
+  ShieldCheck,
+  Eye,
+  Sliders,
+  Clock,
+  ArrowRight,
+  CheckCircle2,
   Copy,
   Check,
   ChevronLeft,
@@ -67,6 +76,12 @@ export function UserManagementPage() {
   const [role, setRole] = useState('');
   const [status, setStatus] = useState('');
   const [verificationStatus, setVerificationStatus] = useState('');
+
+  // Identity verification modals
+  const [verificationModalOpen, setVerificationModalOpen] = useState(false);
+  const [selectedStudentForVerification, setSelectedStudentForVerification] = useState(null);
+  const [facultyModalOpen, setFacultyModalOpen] = useState(false);
+  const [selectedFacultyForVerification, setSelectedFacultyForVerification] = useState(null);
 
   // Status Modal state
   const [selectedUser, setSelectedUser] = useState(null);
@@ -125,6 +140,16 @@ export function UserManagementPage() {
     setStatusReason('');
     setStatusError(null);
     setStatusModalOpen(true);
+  };
+
+  const handleOpenVerification = (user) => {
+    if (user.roles?.includes('FACULTY')) {
+      setSelectedFacultyForVerification(user);
+      setFacultyModalOpen(true);
+    } else {
+      setSelectedStudentForVerification(user);
+      setVerificationModalOpen(true);
+    }
   };
 
   const handleConfirmStatusChange = async (e) => {
@@ -192,7 +217,16 @@ export function UserManagementPage() {
       case 'VERIFIED':
         return <Badge variant="default" className="bg-emerald-600 hover:bg-emerald-700">VERIFIED</Badge>;
       case 'PENDING':
-        return <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300">PENDING</Badge>;
+        return (
+          <Badge
+            variant="secondary"
+            className="bg-amber-100 text-amber-900 dark:bg-amber-950/70 dark:text-amber-200 border border-amber-300 dark:border-amber-800 font-semibold gap-1 inline-flex items-center cursor-pointer hover:bg-amber-200 dark:hover:bg-amber-900/80 transition-colors"
+            title="Click to review student ID verification"
+          >
+            <Clock className="h-3 w-3 animate-pulse text-amber-600 dark:text-amber-400" />
+            PENDING
+          </Badge>
+        );
       case 'REJECTED':
         return <Badge variant="destructive">REJECTED</Badge>;
       case 'UNVERIFIED':
@@ -258,6 +292,17 @@ export function UserManagementPage() {
         <div className="flex items-center gap-3">
           <Button
             variant="outline"
+            className="flex items-center gap-2 border-amber-300 bg-amber-50/60 text-amber-800 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
+            onClick={() => navigate('/admin/verifications')}
+          >
+            <ShieldCheck className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            <span>Verification Queue</span>
+            {users.some((u) => u.verificationStatus === 'PENDING') && (
+              <span className="flex h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+            )}
+          </Button>
+          <Button
+            variant="outline"
             className="flex items-center gap-2"
             onClick={() => navigate('/admin/users/bulk')}
           >
@@ -273,6 +318,30 @@ export function UserManagementPage() {
           </Button>
         </div>
       </div>
+
+      {/* Pending Verifications Notice */}
+      {users.some((u) => u.verificationStatus === 'PENDING') && (
+        <Alert className="border-amber-200 bg-amber-50/70 text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200 flex items-center justify-between py-3">
+          <div className="flex items-center gap-3">
+            <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 animate-pulse" />
+            <div>
+              <div className="text-xs font-semibold">Student Identity Documents Pending Approval</div>
+              <div className="text-[11px] text-slate-600 dark:text-slate-300">
+                Candidates have uploaded physical Student ID cards. Click <strong>Review & Verify</strong> in the table below to inspect and approve.
+              </div>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 text-xs font-semibold border-amber-300 text-amber-900 hover:bg-amber-100 dark:border-amber-700 dark:text-amber-200 ml-4 shrink-0"
+            onClick={() => navigate('/admin/verifications')}
+          >
+            Open Full Queue
+            <ArrowRight className="h-3.5 w-3.5 ml-1" />
+          </Button>
+        </Alert>
+      )}
 
       {error && (
         <Alert variant="destructive">
@@ -306,10 +375,9 @@ export function UserManagementPage() {
               <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
                 Role Filter
               </label>
-              <select
+              <Select
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
-                className="w-full h-9 px-3 rounded-md border border-input bg-background text-foreground text-sm shadow-xs focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
               >
                 <option value="">All Roles</option>
                 <option value="STUDENT">Student / Candidate</option>
@@ -317,41 +385,39 @@ export function UserManagementPage() {
                 <option value="INVIGILATOR">Invigilator</option>
                 <option value="ADMIN">Administrator</option>
                 <option value="DEVELOPER">Developer</option>
-              </select>
+              </Select>
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
                 Account Status
               </label>
-              <select
+              <Select
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
-                className="w-full h-9 px-3 rounded-md border border-input bg-background text-foreground text-sm shadow-xs focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
               >
                 <option value="">All Statuses</option>
                 <option value="ACTIVE">Active</option>
                 <option value="SUSPENDED">Suspended</option>
                 <option value="LOCKED">Locked</option>
                 <option value="DISABLED">Disabled</option>
-              </select>
+              </Select>
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
                 Verification State
               </label>
-              <select
+              <Select
                 value={verificationStatus}
                 onChange={(e) => setVerificationStatus(e.target.value)}
-                className="w-full h-9 px-3 rounded-md border border-input bg-background text-foreground text-sm shadow-xs focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
               >
                 <option value="">All Verification States</option>
                 <option value="VERIFIED">Verified</option>
                 <option value="PENDING">Pending Review</option>
                 <option value="UNVERIFIED">Unverified</option>
                 <option value="REJECTED">Rejected</option>
-              </select>
+              </Select>
             </div>
           </div>
         </CardContent>
@@ -411,35 +477,53 @@ export function UserManagementPage() {
                       {getStatusBadge(u.status)}
                     </TableCell>
                     <TableCell>
-                      {getVerificationBadge(u.verificationStatus)}
+                      <div
+                        onClick={() => u.verificationStatus === 'PENDING' && handleOpenVerification(u)}
+                        className={u.verificationStatus === 'PENDING' ? 'cursor-pointer' : ''}
+                      >
+                        {getVerificationBadge(u.verificationStatus)}
+                      </div>
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                       {new Date(u.createdAt).toLocaleDateString()}
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="inline-flex items-center gap-1.5">
+                      <div className="inline-flex items-center gap-1.5 justify-end">
+                        {u.verificationStatus === 'PENDING' && (
+                          <Button
+                            size="sm"
+                            className="h-8 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs flex items-center gap-1.5"
+                            onClick={() => handleOpenVerification(u)}
+                          >
+                            <ShieldCheck className="h-3.5 w-3.5" />
+                            Review & Verify
+                          </Button>
+                        )}
                         <Button
-                          variant="ghost"
+                          variant="outline"
                           size="sm"
-                          className="h-8 text-xs font-medium"
+                          className="h-8 text-xs font-medium border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-1"
                           onClick={() => navigate(`/admin/users/${u.userId}`)}
                         >
+                          <Eye className="h-3.5 w-3.5 text-slate-500" />
                           Detail
                         </Button>
                         <Button
-                          variant="ghost"
+                          variant="outline"
                           size="sm"
-                          className="h-8 text-xs font-medium"
+                          className="h-8 text-xs font-medium border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-1"
                           onClick={() => handleOpenStatusModal(u)}
                         >
+                          <Sliders className="h-3.5 w-3.5 text-slate-500" />
                           Status
                         </Button>
                         <Button
-                          variant="ghost"
+                          variant="outline"
                           size="sm"
-                          className="h-8 text-xs font-medium text-amber-600 dark:text-amber-400 hover:text-amber-700"
+                          className="h-8 text-xs font-medium border-amber-200 text-amber-700 hover:bg-amber-50 dark:border-amber-900/50 dark:text-amber-400 dark:hover:bg-amber-950/40 flex items-center gap-1"
                           onClick={() => handleResetPassword(u)}
                         >
+                          <KeyRound className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
                           Reset PW
                         </Button>
                       </div>
@@ -507,16 +591,15 @@ export function UserManagementPage() {
               <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Target Status
               </label>
-              <select
+              <Select
                 value={newStatus}
                 onChange={(e) => setNewStatus(e.target.value)}
-                className="w-full h-10 px-3 rounded-md border border-input bg-background text-foreground text-sm shadow-xs focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
               >
                 <option value="ACTIVE">ACTIVE (Full access)</option>
                 <option value="SUSPENDED">SUSPENDED (Revokes active sessions)</option>
                 <option value="DISABLED">DISABLED (Permanent deactivation)</option>
                 <option value="LOCKED">LOCKED (Temporarily locked)</option>
-              </select>
+              </Select>
             </div>
 
             <div className="space-y-1.5">
@@ -607,6 +690,34 @@ export function UserManagementPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Student Identity Verification & Approval Modal */}
+      <StudentVerificationDetailModal
+        studentId={selectedStudentForVerification?.userId}
+        isOpen={verificationModalOpen}
+        onClose={() => {
+          setVerificationModalOpen(false);
+          setSelectedStudentForVerification(null);
+        }}
+        onReviewSuccess={() => {
+          showNotice('success', `Identity verification approved for ${selectedStudentForVerification?.name || 'student'}.`);
+          loadUsers(pagination.page);
+        }}
+      />
+
+      {/* Faculty Appointment Verification & Approval Modal */}
+      <FacultyVerificationModal
+        user={selectedFacultyForVerification}
+        isOpen={facultyModalOpen}
+        onClose={() => {
+          setFacultyModalOpen(false);
+          setSelectedFacultyForVerification(null);
+        }}
+        onReviewSuccess={() => {
+          showNotice('success', `Faculty appointment verified and privileges approved for ${selectedFacultyForVerification?.name || 'faculty member'}.`);
+          loadUsers(pagination.page);
+        }}
+      />
     </div>
   );
 }

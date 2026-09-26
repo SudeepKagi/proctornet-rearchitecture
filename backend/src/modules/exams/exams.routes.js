@@ -15,7 +15,8 @@ import {
   handlePublishExam,
   handleListExams,
   handleValidateBlueprint,
-  handleGetExamAnalytics
+  handleGetExamAnalytics,
+  handleListSubjects
 } from './exams.controller.js';
 import { examResultsRouter } from '../results/results.routes.js';
 
@@ -24,6 +25,9 @@ export const examsRouter = Router();
 // Protected exam routes
 examsRouter.post('/', authenticate, requireRole('FACULTY', 'ADMIN'), handleCreateExam);
 examsRouter.get('/', authenticate, handleListExams);
+
+// Subjects list (must be defined before /:id parameter)
+examsRouter.get('/subjects', authenticate, handleListSubjects);
 
 // Phase 9: Exam Results, Summaries, Publication & Policies (before /:id catchall)
 examsRouter.use('/:examId/results', examResultsRouter);

@@ -302,6 +302,16 @@ export async function countAvailableQuestionsForTopic(topicId, client = null) {
 }
 
 /**
+ * Lists all subjects ordered by subject code.
+ * @returns {Promise<Array<object>>}
+ */
+export async function listAllSubjects() {
+  const text = `SELECT subject_id, code, name, description FROM subjects ORDER BY code ASC;`;
+  const res = await query(text);
+  return res.rows;
+}
+
+/**
  * Finds a subject by ID.
  * @param {string} subjectId
  * @returns {Promise<object|null>}

@@ -30,7 +30,9 @@ export function getS3Client() {
   }
 
   const clientConfig = {
-    region: config.AWS_REGION
+    region: config.AWS_REGION,
+    requestChecksumCalculation: 'WHEN_REQUIRED',
+    responseChecksumValidation: 'WHEN_REQUIRED'
   };
 
   if (config.S3_ENDPOINT) {
@@ -54,7 +56,7 @@ export function setS3Client(client) {
 }
 
 /**
- * Generates an AWS Signature Version 4 presigned PUT URL for direct-to-S3 binary evidence upload.
+ * Generates an AWS Signature Version 4 presigned PUT URL for direct browser-to-S3 evidence upload.
  *
  * @param {object} params
  * @param {string} params.bucket
@@ -81,7 +83,10 @@ export async function generatePresignedUploadUrl({
       ContentLength: byteSize
     });
 
-    return await getSignedUrl(s3, command, { expiresIn: expiresInSeconds });
+    return await getSignedUrl(s3, command, {
+      expiresIn: expiresInSeconds,
+      unhoistableHeaders: new Set(['x-amz-checksum-crc32', 'x-amz-checksum-sha256'])
+    });
   } finally {
     timer();
   }

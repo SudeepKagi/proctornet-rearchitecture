@@ -74,18 +74,30 @@ export function VerificationPendingPage() {
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-slate-500 dark:text-slate-400 font-medium">Department:</span>
-                  <span className="font-semibold text-slate-900 dark:text-slate-100">{statusData.department || '—'}</span>
+                  <span className="font-semibold text-slate-900 dark:text-slate-100">{statusData.facultyProfile?.department || statusData.studentProfile?.department || statusData.department || '—'}</span>
                 </div>
-                {statusData.semester && (
+                {(statusData.studentProfile?.enrollmentNumber) && (
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-500 dark:text-slate-400 font-medium">Semester:</span>
-                    <span className="font-semibold text-slate-900 dark:text-slate-100">Semester {statusData.semester}</span>
+                    <span className="text-slate-500 dark:text-slate-400 font-medium">Student ID / USN:</span>
+                    <span className="font-semibold text-slate-900 dark:text-slate-100">{statusData.studentProfile.enrollmentNumber}</span>
                   </div>
                 )}
-                {statusData.designation && (
+                {(statusData.facultyProfile?.employeeId || (user?.roles?.includes('FACULTY') && statusData.identifier)) && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-500 dark:text-slate-400 font-medium">Faculty / Employee ID:</span>
+                    <span className="font-semibold font-mono text-slate-900 dark:text-slate-100">{statusData.facultyProfile?.employeeId || statusData.identifier}</span>
+                  </div>
+                )}
+                {(statusData.studentProfile?.semester || statusData.semester) && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-500 dark:text-slate-400 font-medium">Semester:</span>
+                    <span className="font-semibold text-slate-900 dark:text-slate-100">Semester {statusData.studentProfile?.semester || statusData.semester}</span>
+                  </div>
+                )}
+                {(statusData.facultyProfile?.designation || statusData.designation) && (
                   <div className="flex justify-between items-center">
                     <span className="text-slate-500 dark:text-slate-400 font-medium">Designation:</span>
-                    <span className="font-semibold text-slate-900 dark:text-slate-100">{statusData.designation}</span>
+                    <span className="font-semibold text-slate-900 dark:text-slate-100">{statusData.facultyProfile?.designation || statusData.designation}</span>
                   </div>
                 )}
               </div>

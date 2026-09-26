@@ -19,6 +19,7 @@ export function PublicLayout() {
         minHeight: '100vh',
         backgroundColor: 'var(--color-canvas)',
         color: 'var(--color-text-body)',
+        width: '100%',
       }}
     >
       {/* WCAG 2.4.1 Skip Link */}

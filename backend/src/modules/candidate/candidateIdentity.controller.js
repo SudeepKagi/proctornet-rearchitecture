@@ -4,6 +4,7 @@
  */
 
 import * as candidateIdentityService from './candidateIdentity.service.js';
+import { extractStudentIdCard } from './cardExtractor.js';
 import {
   requestUploadUrlSchema,
   confirmDocumentSchema,
@@ -78,3 +79,31 @@ export async function updateProfileHandler(req, res, next) {
     next(err);
   }
 }
+
+/**
+ * POST /api/v1/candidate/identity/extract-card
+ */
+export async function extractCardHandler(req, res, next) {
+  try {
+    if (!req.file || !req.file.buffer) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'BAD_REQUEST',
+          message: 'No Student ID card file provided for automated extraction.'
+        }
+      });
+    }
+
+    const extracted = await extractStudentIdCard(req.file.buffer);
+    res.status(200).json({
+      status: 'success',
+      data: {
+        extracted
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+

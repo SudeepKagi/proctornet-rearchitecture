@@ -3,9 +3,14 @@ import { Check } from 'lucide-react';
 import { cn } from '../../utils/cn.js';
 
 export const Checkbox = React.forwardRef(function Checkbox(
-  { className, checked, onChange, disabled, id, ...props },
+  { className, checked, onChange, onCheckedChange, disabled, id, ...props },
   ref
 ) {
+  const handleChange = (e) => {
+    if (onChange) onChange(e);
+    if (onCheckedChange) onCheckedChange(e.target.checked);
+  };
+
   return (
     <label
       htmlFor={id}
@@ -21,7 +26,7 @@ export const Checkbox = React.forwardRef(function Checkbox(
         type="checkbox"
         id={id}
         checked={checked}
-        onChange={onChange}
+        onChange={handleChange}
         disabled={disabled}
         className="sr-only"
         {...props}

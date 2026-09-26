@@ -38,7 +38,11 @@ export async function computeSha256(data) {
 
   // Fallback for Node.js test environments
   try {
-    const nodeCrypto = await import('node:crypto');
+    // Keep the test-only fallback out of the browser dependency graph. Browsers
+    // always use Web Crypto; dynamically constructing this specifier prevents
+    // Vite from shipping Node polyfill shims with the client bundle.
+    const nodeCryptoSpecifier = ['node', 'crypto'].join(':');
+    const nodeCrypto = await import(/* @vite-ignore */ nodeCryptoSpecifier);
     return nodeCrypto.createHash('sha256').update(typeof data === 'string' ? data : Buffer.from(data)).digest('hex');
   } catch {
     throw new Error('No crypto implementation available for SHA-256 verification');
@@ -110,8 +114,12 @@ export class ScreenInferenceEngine {
 
     if (isNodeOrJsdom && (modelUrl.startsWith('/') || !modelUrl.startsWith('http'))) {
       try {
-        const fs = await import('node:fs');
-        const path = await import('node:path');
+        // This path is only used by Node-based tests. Do not make Node's file
+        // system modules part of the production browser build.
+        const fsSpecifier = ['node', 'fs'].join(':');
+        const pathSpecifier = ['node', 'path'].join(':');
+        const fs = await import(/* @vite-ignore */ fsSpecifier);
+        const path = await import(/* @vite-ignore */ pathSpecifier);
         const candidatePaths = [
           modelUrl,
           path.resolve(process.cwd(), `frontend/public${modelUrl}`),

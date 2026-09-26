@@ -15,7 +15,13 @@ export const Table = React.forwardRef(function Table({ className, ...props }, re
 Table.displayName = 'Table';
 
 export const TableHeader = React.forwardRef(function TableHeader({ className, ...props }, ref) {
-  return <thead ref={ref} className={cn('[&_tr]:border-b border-slate-200 bg-slate-50/70', className)} {...props} />;
+  return (
+    <thead
+      ref={ref}
+      className={cn('[&_tr]:border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60', className)}
+      {...props}
+    />
+  );
 });
 TableHeader.displayName = 'TableHeader';
 
@@ -35,7 +41,7 @@ export const TableRow = React.forwardRef(function TableRow({ className, ...props
     <tr
       ref={ref}
       className={cn(
-        'border-b border-slate-200/80 transition-colors hover:bg-slate-50/50 data-[state=selected]:bg-slate-100',
+        'border-b border-slate-200/80 dark:border-slate-800 transition-colors hover:bg-slate-50/50 dark:hover:bg-slate-800/40 data-[state=selected]:bg-slate-100 dark:data-[state=selected]:bg-slate-800',
         className
       )}
       {...props}
@@ -49,7 +55,7 @@ export const TableHead = React.forwardRef(function TableHead({ className, ...pro
     <th
       ref={ref}
       className={cn(
-        'h-10 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider [&:has([role=checkbox])]:pr-0',
+        'h-10 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider [&:has([role=checkbox])]:pr-0',
         className
       )}
       {...props}
@@ -62,7 +68,7 @@ export const TableCell = React.forwardRef(function TableCell({ className, ...pro
   return (
     <td
       ref={ref}
-      className={cn('p-4 align-middle text-slate-700 text-sm [&:has([role=checkbox])]:pr-0', className)}
+      className={cn('p-4 align-middle text-slate-700 dark:text-slate-300 text-sm [&:has([role=checkbox])]:pr-0', className)}
       {...props}
     />
   );

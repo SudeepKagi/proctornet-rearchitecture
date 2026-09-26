@@ -127,7 +127,7 @@ export async function requestEnrollmentUploadUrl({ userId, fileName, mimeType, b
   const biometricId = crypto.randomUUID();
   const ext = mimeType === 'image/png' ? 'png' : 'jpg';
   const randomHex = crypto.randomBytes(16).toString('hex');
-  const s3Bucket = config.S3_EVIDENCE_BUCKET || 'proctornet-evidence';
+  const s3Bucket = config.S3_BUCKET_NAME || config.S3_EVIDENCE_BUCKET || 'proctornet-evidence-dev-01';
   const s3Key = `face-biometrics/${biometricId}/${randomHex}.${ext}`;
 
   await biometricsRepo.createFaceBiometric({
@@ -353,7 +353,7 @@ export async function requestLivenessChallenge({ userId, sessionId }) {
   const expectedActions = shuffled.slice(0, 2);
 
   const expiresAt = new Date(Date.now() + 8 * 1000); // 8 seconds TTL
-  const s3Bucket = config.S3_EVIDENCE_BUCKET || 'proctornet-evidence';
+  const s3Bucket = config.S3_BUCKET_NAME || config.S3_EVIDENCE_BUCKET || 'proctornet-evidence-dev-01';
   const liveMediaS3Key = `liveness-frames/${challengeId}/${crypto.randomBytes(16).toString('hex')}.bin`;
 
   await biometricsRepo.createLivenessChallenge({
@@ -546,7 +546,7 @@ export async function requestVerificationImageUrl({ userId, sessionId, mimeType,
   const liveImageId = crypto.randomUUID();
   const ext = mimeType === 'image/png' ? 'png' : 'jpg';
   const randomHex = crypto.randomBytes(16).toString('hex');
-  const s3Bucket = config.S3_EVIDENCE_BUCKET || 'proctornet-evidence';
+  const s3Bucket = config.S3_BUCKET_NAME || config.S3_EVIDENCE_BUCKET || 'proctornet-evidence-dev-01';
   const liveImageS3Key = `biometric-live/${liveImageId}/${randomHex}.${ext}`;
 
   await biometricsRepo.createProvisionalVerification({
@@ -598,7 +598,7 @@ export async function verifyFace({ userId, liveImageId, livenessToken }) {
   }
 
   // 3. S3 check & magic bytes on live selfie
-  const s3Bucket = config.S3_EVIDENCE_BUCKET || 'proctornet-evidence';
+  const s3Bucket = config.S3_BUCKET_NAME || config.S3_EVIDENCE_BUCKET || 'proctornet-evidence-dev-01';
   try {
     await headEvidenceObject({ bucket: s3Bucket, key: verification.live_image_s3_key });
   } catch (err) {

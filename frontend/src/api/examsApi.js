@@ -12,6 +12,11 @@ export async function listExams(params = {}) {
   return result.data?.exams || [];
 }
 
+export async function listSubjects() {
+  const result = await apiClient('/api/v1/exams/subjects', { method: 'GET' });
+  return result.data?.subjects || [];
+}
+
 export async function getExam(id) {
   const result = await apiClient(`/api/v1/exams/${id}`, { method: 'GET' });
   return result.data?.exam;

@@ -365,3 +365,12 @@ export async function getBlueprintValidation(examId, user) {
 
   return validateExamBlueprint(examId);
 }
+
+/**
+ * Lists all active subjects for exam authoring.
+ * @returns {Promise<Array<object>>}
+ */
+export async function listSubjects() {
+  return await examsRepo.listAllSubjects();
+}
+

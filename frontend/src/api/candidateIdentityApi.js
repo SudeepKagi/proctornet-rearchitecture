@@ -93,3 +93,21 @@ export async function updateCandidateProfile(updates) {
     body: updates
   });
 }
+
+/**
+ * Uploads Student ID card to automated OCR extraction service.
+ * @param {File} file
+ * @returns {Promise<object>} Extracted structured credentials
+ */
+export async function extractCardDetails(file) {
+  const formData = new FormData();
+  formData.append('card', file);
+
+  const res = await apiClient('/api/v1/candidate/identity/extract-card', {
+    method: 'POST',
+    body: formData
+  });
+
+  return res.data?.extracted || res.extracted;
+}
+

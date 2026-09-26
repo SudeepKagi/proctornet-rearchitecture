@@ -17,6 +17,15 @@ export function useExamTimer({
   const onExpireRef = useRef(onExpire);
   onExpireRef.current = onExpire;
 
+  // A proctor can extend an attempt while it is paused. Treat a new future
+  // expiry as a new countdown instead of leaving the prior expiry latched.
+  useEffect(() => {
+    if (expiresAt && new Date(expiresAt).getTime() > Date.now()) {
+      hasExpiredRef.current = false;
+      setIsExpired(false);
+    }
+  }, [expiresAt]);
+
   // Calculate clock offset between server and local browser
   const offsetMs = useMemo(() => {
     if (!serverTime) return 0;

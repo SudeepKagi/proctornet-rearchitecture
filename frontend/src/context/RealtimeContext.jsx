@@ -7,6 +7,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import { AuthContext } from './AuthContext.jsx';
 import { realtimeClient } from '../services/realtimeClient.js';
+import { getAccessToken } from '../api/client.js';
 import * as authApi from '../api/authApi.js';
 
 export const RealtimeContext = createContext(null);
@@ -20,7 +21,7 @@ export function RealtimeProvider({ children }) {
 
   // Synchronize client connection with authentication lifecycle
   useEffect(() => {
-    if (isAuthenticated && user) {
+    if (isAuthenticated && user && getAccessToken()) {
       realtimeClient.connect();
     } else {
       realtimeClient.disconnect();

@@ -5,9 +5,15 @@
  */
 
 import { Router } from 'express';
+import multer from 'multer';
 import { authenticate } from '../../middleware/authenticate.js';
 import { requireRole } from '../../middleware/authorize.js';
 import * as candidateIdentityController from './candidateIdentity.controller.js';
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }
+});
 
 export const candidateRouter = Router();
 
@@ -18,6 +24,8 @@ candidateRouter.use(requireRole('STUDENT'));
 candidateRouter.get('/identity/status', candidateIdentityController.getIdentityStatusHandler);
 candidateRouter.post('/identity/document-url', candidateIdentityController.requestUploadUrlHandler);
 candidateRouter.post('/identity/confirm-document', candidateIdentityController.confirmDocumentHandler);
+candidateRouter.post('/identity/extract-card', upload.single('card'), candidateIdentityController.extractCardHandler);
 
 candidateRouter.get('/profile', candidateIdentityController.getProfileHandler);
 candidateRouter.patch('/profile', candidateIdentityController.updateProfileHandler);
+

@@ -57,7 +57,10 @@ export class RealtimeClient {
   connect(overrideToken) {
     const token = overrideToken || this.getToken();
     if (!token) {
-      this.status = 'DISCONNECTED';
+      if (this.status !== 'DISCONNECTED') {
+        this.status = 'DISCONNECTED';
+        this._emit('status', { status: 'DISCONNECTED' });
+      }
       return;
     }
 
@@ -128,7 +131,9 @@ export class RealtimeClient {
         const wasClean = event.code === 1000 || event.code === 1001;
         this.ws = null;
 
-        if (this.status === 'DISCONNECTED') {
+        if (this.status === 'DISCONNECTED' || !this.getToken()) {
+          this.status = 'DISCONNECTED';
+          this._emit('status', { status: 'DISCONNECTED' });
           return;
         }
 
@@ -366,7 +371,7 @@ export class RealtimeClient {
 
     this.roomRefCounts.clear();
     this.roomListeners.clear();
-    this.eventListeners.clear();
+    this._emit('status', { status: 'DISCONNECTED' });
   }
 }
 

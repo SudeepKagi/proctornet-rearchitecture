@@ -261,6 +261,10 @@ export async function findUserDetailById(userId) {
     updatedAt: row.updated_at,
     roles: row.roles,
     activeSessionsCount: parseInt(row.active_sessions_count || 0, 10),
+    identifier: row.enrollment_number || row.employee_id || null,
+    department: row.student_department || row.faculty_department || null,
+    semester: row.student_semester || null,
+    designation: row.faculty_designation || null,
     studentProfile: row.enrollment_number
       ? {
           enrollmentNumber: row.enrollment_number,

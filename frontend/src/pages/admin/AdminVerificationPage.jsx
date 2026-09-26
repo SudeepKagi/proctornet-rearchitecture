@@ -10,6 +10,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import {
   Table,
@@ -179,32 +180,30 @@ export function AdminVerificationPage() {
               <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
                 Verification State
               </label>
-              <select
+              <Select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full h-9 px-3 rounded-md border border-input bg-background text-foreground text-sm shadow-xs focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
               >
                 <option value="">All Verification States</option>
                 <option value="PENDING">Pending Review (Action Required)</option>
                 <option value="VERIFIED">Verified (Approved)</option>
                 <option value="REJECTED">Rejected (Returned to Candidate)</option>
                 <option value="UNVERIFIED">Unverified (Profile Incomplete)</option>
-              </select>
+              </Select>
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
                 Role
               </label>
-              <select
+              <Select
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value)}
-                className="w-full h-9 px-3 rounded-md border border-input bg-background text-foreground text-sm shadow-xs focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
               >
                 <option value="">All Roles</option>
                 <option value="STUDENT">Student Only</option>
                 <option value="FACULTY">Faculty Only</option>
-              </select>
+              </Select>
             </div>
           </div>
         </CardContent>

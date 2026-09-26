@@ -12,7 +12,6 @@ Production-grade, accessible, and resilient client frontend for the **ProctorNet
 - **Routing**: React Router DOM v7
 - **Styling**: Vanilla CSS + CSS Custom Properties (Light-First Design Tokens)
 - **State Architecture**: React Context (`AuthContext`) + Domain Hooks (`useExamTimer`, `useAutosave`, `useNetworkStatus`, `useAuth`)
-- **Testing Harness**: Vitest + React Testing Library + `@testing-library/jest-dom` + `jsdom`
 - **Security Boundary**: In-memory JWT access token; HttpOnly cookie refresh token rotation; strict restriction of `localStorage` to UI preferences (`theme` only).
 
 ---
@@ -63,11 +62,6 @@ frontend/
 │       ├── invigilator/         # InvigilatorDashboardPage, SessionMonitorPage
 │       ├── admin/               # AdminOverviewPage
 │       └── NotFoundPage.jsx     # 404 handler
-└── tests/
-    ├── setup.js                 # Vitest test setup importing jest-dom
-    ├── components/              # Component unit tests (QuestionRenderer, QuestionNavigator, TimerDisplay, AutosaveIndicator)
-    ├── hooks/                   # Hook unit tests (useExamTimer, useAutosave)
-    └── pages/                   # Page integration tests (LoginPage, ExamTakingPage, CandidateResultPage, FacultyResultsPage)
 ```
 
 ---
@@ -104,9 +98,6 @@ npm --prefix frontend install
 
 # Run local development dev server (Vite with /api proxy to http://localhost:3000)
 npm --prefix frontend run dev
-
-# Run full Vitest unit and integration test suite
-npm --prefix frontend test
 
 # Build production bundle
 npm --prefix frontend run build

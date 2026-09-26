@@ -10,9 +10,13 @@ let inMemoryAccessToken = null;
 let inMemoryAntiTamperToken = null;
 let refreshPromise = null;
 let onUnauthorizedCallback = null;
+let isSessionInvalid = false;
 
 export function setAccessToken(token) {
   inMemoryAccessToken = token;
+  if (token) {
+    isSessionInvalid = false;
+  }
 }
 
 export function getAccessToken() {
@@ -29,6 +33,13 @@ export function getAntiTamperToken() {
 
 export function setOnUnauthorized(callback) {
   onUnauthorizedCallback = callback;
+}
+
+export function clearAuthSession() {
+  inMemoryAccessToken = null;
+  inMemoryAntiTamperToken = null;
+  refreshPromise = null;
+  isSessionInvalid = true;
 }
 
 /**
@@ -51,8 +62,13 @@ export class ApiError extends Error {
 
 /**
  * Executes a silent refresh using the HttpOnly cookie.
+ * Ensures a single shared promise across concurrent requests and avoids refresh storms.
  */
-async function refreshAuthToken() {
+export async function refreshAuthToken() {
+  if (isSessionInvalid) {
+    throw new ApiError('Your session has expired. Please sign in again.', 401);
+  }
+
   if (refreshPromise) {
     return refreshPromise;
   }
@@ -68,21 +84,39 @@ async function refreshAuthToken() {
       });
 
       if (!response.ok) {
-        throw new Error('Refresh failed');
+        isSessionInvalid = true;
+        setAccessToken(null);
+        if (onUnauthorizedCallback) {
+          try {
+            onUnauthorizedCallback();
+          } catch (callbackErr) {
+            console.error('Error in onUnauthorized callback:', callbackErr);
+          }
+        }
+        throw new ApiError('Your session has expired. Please sign in again.', response.status);
       }
 
       const body = await response.json();
       const newAccessToken = body.data?.accessToken;
       if (newAccessToken) {
+        isSessionInvalid = false;
         setAccessToken(newAccessToken);
-        return newAccessToken;
+        return body.data;
       }
-      throw new Error('Invalid refresh response');
-    } catch (err) {
+
+      isSessionInvalid = true;
       setAccessToken(null);
       if (onUnauthorizedCallback) {
-        onUnauthorizedCallback();
+        try {
+          onUnauthorizedCallback();
+        } catch (callbackErr) {
+          console.error('Error in onUnauthorized callback:', callbackErr);
+        }
       }
+      throw new ApiError('Invalid refresh response', 401);
+    } catch (err) {
+      isSessionInvalid = true;
+      setAccessToken(null);
       throw err;
     } finally {
       refreshPromise = null;
@@ -157,23 +191,29 @@ export async function apiClient(endpoint, options = {}) {
     response = await fetch(endpoint, config);
   } catch (_netErr) {
     throw new ApiError(
-      'Unable to connect to the ProctorNet service. Please check your network connection.',
+      "We can't connect to ProctorNet. Check your internet connection and try again.",
       0,
       null
     );
   }
 
-  // Intercept 401 Unauthorized for token refresh (except for auth endpoints)
-  if (response.status === 401 && !endpoint.includes('/auth/login') && !endpoint.includes('/auth/refresh')) {
+  // Intercept 401 Unauthorized for token refresh (except for auth endpoints and already-retried requests)
+  const isAuthEndpoint =
+    endpoint.includes('/auth/login') ||
+    endpoint.includes('/auth/refresh') ||
+    endpoint.includes('/auth/register');
+
+  if (response.status === 401 && !isAuthEndpoint && !options._retry && !isSessionInvalid) {
     try {
-      const newToken = await refreshAuthToken();
+      const refreshResult = await refreshAuthToken();
+      const newToken = typeof refreshResult === 'string' ? refreshResult : refreshResult?.accessToken;
       if (newToken) {
         config.headers['Authorization'] = `Bearer ${newToken}`;
         await attachSignatureHeader(config.headers);
-        response = await fetch(endpoint, config);
+        return await apiClient(endpoint, { ...options, _retry: true });
       }
     } catch {
-      // Refresh failed, proceed to handle original 401 response
+      // Refresh failed or session invalid; proceed to handle original 401 response
     }
   }
 
@@ -189,30 +229,41 @@ export async function apiClient(endpoint, options = {}) {
 
   if (!response.ok) {
     const rawError = responseData?.error;
-    const extractedMessage =
+    let extractedMessage =
       (typeof responseData?.message === 'string' && responseData.message) ||
       (typeof rawError?.message === 'string' && rawError.message) ||
       (typeof rawError === 'string' && rawError) ||
       null;
 
+    // Translate raw technical messages into simple English
+    if (extractedMessage) {
+      if (extractedMessage.toLowerCase().includes('concurrency') || extractedMessage.toLowerCase().includes('occ')) {
+        extractedMessage = 'This answer changed somewhere else. Please review it.';
+      } else if (extractedMessage.toLowerCase().includes('jwt') || extractedMessage.toLowerCase().includes('token expired')) {
+        extractedMessage = 'Your session has expired. Please sign in again.';
+      } else if (extractedMessage.toLowerCase().includes('authorization denied') || extractedMessage.toLowerCase().includes('forbidden')) {
+        extractedMessage = 'You do not have permission to do this.';
+      }
+    }
+
     const fallbackStatusMessages = {
-      400: 'Invalid request. Please verify the submitted information.',
+      400: 'Invalid request. Please check the information you entered.',
       401: 'Your session has expired. Please sign in again.',
-      403: 'You do not have permission to perform this action.',
-      404: 'The requested resource was not found.',
-      409: 'A conflict occurred with the current state of the resource.',
-      422: 'Unable to process the request due to validation errors.',
+      403: 'You do not have permission to do this.',
+      404: "We couldn't find that page.",
+      409: 'This information changed while you were working. Please review it.',
+      422: 'Some information was incomplete or incorrect. Please review and try again.',
       429: 'Too many requests. Please wait a moment and try again.',
-      500: 'Something went wrong on the server while processing your request.',
-      502: 'Unable to connect to the upstream service. Please retry shortly.',
-      503: 'Service temporarily unavailable. Please retry in a few moments.',
-      504: 'Gateway timeout waiting for server response.'
+      500: 'Something went wrong. Please try again.',
+      502: 'ProctorNet is temporarily unavailable. Please try again shortly.',
+      503: 'ProctorNet is temporarily unavailable. Please try again shortly.',
+      504: 'The server took too long to respond. Please try again.'
     };
 
     const finalMessage =
       extractedMessage ||
       fallbackStatusMessages[response.status] ||
-      `HTTP ${response.status}: Request failed`;
+      'Something went wrong. Please try again.';
 
     const requestId = rawError?.requestId || response.headers.get('x-request-id') || null;
 

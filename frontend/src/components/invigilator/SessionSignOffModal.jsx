@@ -48,56 +48,56 @@ export function SessionSignOffModal({ isOpen, onClose, sessionId, onSignedOff })
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="bg-slate-900 border border-slate-700 rounded-xl max-w-lg w-full p-6 shadow-2xl">
-        <h3 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4">
+      <div className="bg-white border border-slate-200 rounded-xl max-w-lg w-full p-6 shadow-2xl">
+        <h3 className="text-lg font-bold text-slate-900 mb-2 flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
           Formal Session Sign-Off & Conclusion
         </h3>
-        <p className="text-xs text-slate-400 mb-4">
+        <p className="text-xs text-slate-500 mb-4">
           Conclude this proctoring session and generate immutable audit log records.
         </p>
 
         {error && (
-          <div className="mb-4 text-xs text-rose-400 bg-rose-950/50 border border-rose-800 p-3 rounded-lg">
+          <div className="mb-4 text-xs text-rose-600 bg-rose-50 border border-rose-200 p-3 rounded-lg">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2 bg-slate-950/50 p-3 rounded-lg border border-slate-800 text-xs">
-            <div className="font-semibold text-slate-300 mb-1">Invigilator Checklist:</div>
-            <label className="flex items-center gap-2 text-slate-300 cursor-pointer">
+          <div className="space-y-2 bg-slate-50 p-3 rounded-lg border border-slate-200 text-xs">
+            <div className="font-semibold text-slate-700 mb-1">Invigilator Checklist:</div>
+            <label className="flex items-center gap-2 text-slate-700 cursor-pointer">
               <input
                 type="checkbox"
                 checked={checklist.allSubmissionsAccounted}
                 onChange={() => handleToggle('allSubmissionsAccounted')}
-                className="rounded border-slate-700 bg-slate-800 text-blue-600 focus:ring-0"
+                className="rounded border-slate-300 bg-white text-blue-600 focus:ring-0"
               />
               All candidate submissions and timers reconciled
             </label>
-            <label className="flex items-center gap-2 text-slate-300 cursor-pointer">
+            <label className="flex items-center gap-2 text-slate-700 cursor-pointer">
               <input
                 type="checkbox"
                 checked={checklist.anomaliesResolved}
                 onChange={() => handleToggle('anomaliesResolved')}
-                className="rounded border-slate-700 bg-slate-800 text-blue-600 focus:ring-0"
+                className="rounded border-slate-300 bg-white text-blue-600 focus:ring-0"
               />
               All integrity anomalies reviewed & addressed
             </label>
-            <label className="flex items-center gap-2 text-slate-300 cursor-pointer">
+            <label className="flex items-center gap-2 text-slate-700 cursor-pointer">
               <input
                 type="checkbox"
                 checked={checklist.identityVerified}
                 onChange={() => handleToggle('identityVerified')}
-                className="rounded border-slate-700 bg-slate-800 text-blue-600 focus:ring-0"
+                className="rounded border-slate-300 bg-white text-blue-600 focus:ring-0"
               />
               Candidate attendance roster certified
             </label>
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">
+            <label className="block text-xs font-medium text-slate-700 mb-1">
               Sign-Off Rationale & Proctor Notes *
             </label>
             <textarea
@@ -106,7 +106,7 @@ export function SessionSignOffModal({ isOpen, onClose, sessionId, onSignedOff })
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="e.g. Session concluded in good order. Room 402 clear."
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500"
+              className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
             />
           </div>
 
@@ -114,14 +114,14 @@ export function SessionSignOffModal({ isOpen, onClose, sessionId, onSignedOff })
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
+              className="px-4 py-2 text-xs font-medium rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="px-4 py-2 text-xs font-medium rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition disabled:opacity-50"
+              className="px-4 py-2 text-xs font-medium rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition disabled:opacity-50 shadow-xs"
             >
               {submitting ? 'Signing Off...' : 'Conclude Session'}
             </button>
@@ -168,29 +168,29 @@ export function IncidentReportModal({ isOpen, onClose, sessionId, candidates = [
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="bg-slate-900 border border-slate-700 rounded-xl max-w-md w-full p-6 shadow-2xl">
-        <h3 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4">
+      <div className="bg-white border border-slate-200 rounded-xl max-w-md w-full p-6 shadow-2xl">
+        <h3 className="text-lg font-bold text-slate-900 mb-2 flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
           File Formal Incident Report
         </h3>
-        <p className="text-xs text-slate-400 mb-4">
+        <p className="text-xs text-slate-500 mb-4">
           Record a proctor-flagged violation or environmental anomaly for institutional review.
         </p>
 
         {error && (
-          <div className="mb-4 text-xs text-rose-400 bg-rose-950/50 border border-rose-800 p-3 rounded-lg">
+          <div className="mb-4 text-xs text-rose-600 bg-rose-50 border border-rose-200 p-3 rounded-lg">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           <div>
-            <label className="block text-slate-300 font-medium mb-1">Associated Candidate</label>
+            <label className="block text-slate-700 font-medium mb-1">Associated Candidate</label>
             <select
               value={candidateId}
               onChange={(e) => setCandidateId(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-200 focus:outline-none focus:border-blue-500"
+              className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
             >
               <option value="">General Room / Environmental (None)</option>
               {candidates.map((c) => (
@@ -203,11 +203,11 @@ export function IncidentReportModal({ isOpen, onClose, sessionId, candidates = [
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-slate-300 font-medium mb-1">Incident Category</label>
+              <label className="block text-slate-700 font-medium mb-1">Incident Category</label>
               <select
                 value={incidentType}
                 onChange={(e) => setIncidentType(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-200 focus:outline-none focus:border-blue-500"
+                className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
               >
                 <option value="CHEATING_SUSPICION">Cheating Suspicion</option>
                 <option value="HARDWARE_FAILURE">Hardware Failure</option>
@@ -218,11 +218,11 @@ export function IncidentReportModal({ isOpen, onClose, sessionId, candidates = [
             </div>
 
             <div>
-              <label className="block text-slate-300 font-medium mb-1">Severity</label>
+              <label className="block text-slate-700 font-medium mb-1">Severity</label>
               <select
                 value={severity}
                 onChange={(e) => setSeverity(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-200 focus:outline-none focus:border-blue-500"
+                className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
               >
                 <option value="LOW">Low</option>
                 <option value="MEDIUM">Medium</option>
@@ -233,14 +233,14 @@ export function IncidentReportModal({ isOpen, onClose, sessionId, candidates = [
           </div>
 
           <div>
-            <label className="block text-slate-300 font-medium mb-1">Detailed Description *</label>
+            <label className="block text-slate-700 font-medium mb-1">Detailed Description *</label>
             <textarea
               required
               rows={3}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Detail observations, candidate actions, and context..."
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500"
+              className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
             />
           </div>
 
@@ -248,14 +248,14 @@ export function IncidentReportModal({ isOpen, onClose, sessionId, candidates = [
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
+              className="px-4 py-2 font-medium rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="px-4 py-2 font-medium rounded-lg bg-rose-600 hover:bg-rose-500 text-white transition disabled:opacity-50"
+              className="px-4 py-2 font-medium rounded-lg bg-rose-600 hover:bg-rose-700 text-white transition disabled:opacity-50 shadow-xs"
             >
               {submitting ? 'Submitting...' : 'File Report'}
             </button>

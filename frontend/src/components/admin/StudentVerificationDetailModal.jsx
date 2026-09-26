@@ -84,7 +84,11 @@ export function StudentVerificationDetailModal({ studentId, isOpen, onClose, onR
     setActionLoading(true);
     setError(null);
     try {
-      await adminUsersApi.reviewStudentVerification(studentId, 'APPROVED', 'Document verified successfully');
+      if (activeDoc) {
+        await adminUsersApi.reviewStudentVerification(studentId, 'APPROVED', 'Document verified successfully');
+      } else {
+        await adminUsersApi.reviewVerification(studentId, 'VERIFIED', 'Verified by administrator without physical ID document');
+      }
       if (onReviewSuccess) onReviewSuccess();
       onClose();
     } catch (err) {
@@ -103,7 +107,11 @@ export function StudentVerificationDetailModal({ studentId, isOpen, onClose, onR
     setActionLoading(true);
     setError(null);
     try {
-      await adminUsersApi.reviewStudentVerification(studentId, 'REJECTED', rejectReason.trim());
+      if (activeDoc) {
+        await adminUsersApi.reviewStudentVerification(studentId, 'REJECTED', rejectReason.trim());
+      } else {
+        await adminUsersApi.reviewVerification(studentId, 'REJECTED', rejectReason.trim());
+      }
       if (onReviewSuccess) onReviewSuccess();
       onClose();
     } catch (err) {
@@ -247,7 +255,7 @@ export function StudentVerificationDetailModal({ studentId, isOpen, onClose, onR
                       size="sm"
                       className="bg-emerald-600 hover:bg-emerald-700 text-white"
                       onClick={handleApprove}
-                      disabled={actionLoading || !activeDoc}
+                      disabled={actionLoading}
                     >
                       <CheckCircle2 className="h-4 w-4 mr-1" />
                       Approve
@@ -257,7 +265,7 @@ export function StudentVerificationDetailModal({ studentId, isOpen, onClose, onR
                       size="sm"
                       className="text-destructive hover:text-destructive hover:bg-destructive/10"
                       onClick={() => setShowRejectBox(true)}
-                      disabled={actionLoading || !activeDoc}
+                      disabled={actionLoading}
                     >
                       <XCircle className="h-4 w-4 mr-1" />
                       Reject...

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Camera, CheckCircle2, AlertCircle, RefreshCw, ArrowLeft, Shield, Eye, Lock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import FaceOvalGuide from '../../components/biometrics/FaceOvalGuide.jsx';
@@ -48,6 +48,18 @@ export default function CandidateFaceEnrollmentPage() {
     fetchStatus();
   }, []);
 
+  const attachVideoRef = useCallback((node) => {
+    videoRef.current = node;
+    if (node && streamRef.current) {
+      if (node.srcObject !== streamRef.current) {
+        node.srcObject = streamRef.current;
+      }
+      node.play().catch((err) => {
+        console.warn('Webcam stream play error:', err);
+      });
+    }
+  }, []);
+
   const startCamera = async () => {
     try {
       setFeedback(null);
@@ -67,10 +79,14 @@ export default function CandidateFaceEnrollmentPage() {
       });
 
       streamRef.current = mediaStream;
+      setCapturing(true);
+
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
+        videoRef.current.play().catch((err) => {
+          console.warn('Direct play error:', err);
+        });
       }
-      setCapturing(true);
     } catch (err) {
       setFeedback({
         type: 'error',
@@ -81,6 +97,17 @@ export default function CandidateFaceEnrollmentPage() {
       });
     }
   };
+
+  useEffect(() => {
+    if (capturing && streamRef.current && videoRef.current) {
+      if (videoRef.current.srcObject !== streamRef.current) {
+        videoRef.current.srcObject = streamRef.current;
+      }
+      videoRef.current.play().catch((err) => {
+        console.warn('Playback error on capturing effect:', err);
+      });
+    }
+  }, [capturing]);
 
   const stopCamera = () => {
     if (streamRef.current) {
@@ -260,11 +287,16 @@ export default function CandidateFaceEnrollmentPage() {
           <CardContent className="p-6 flex flex-col items-center">
             <div className="relative w-full max-w-md aspect-[4/3] bg-slate-900 rounded-lg overflow-hidden border border-slate-300 shadow-inner">
               <video
-                ref={videoRef}
+                ref={attachVideoRef}
                 autoPlay
                 playsInline
                 muted
                 className="w-full h-full object-cover transform -scale-x-100"
+                onLoadedMetadata={(e) => {
+                  e.currentTarget.play().catch((err) => {
+                    console.warn('onLoadedMetadata play error:', err);
+                  });
+                }}
               />
               <FaceOvalGuide status="aligning" message="Align face within the frame" />
             </div>
