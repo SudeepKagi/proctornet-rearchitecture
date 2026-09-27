@@ -28,7 +28,7 @@ export const DEFAULT_USERS = [
     role: 'ADMIN',
     name: 'System Administrator',
     email: 'admin@proctornet.edu',
-    password: 'AdminPassword#123!',
+    password: 'Admin#2026_SecureExams!',
     status: 'ACTIVE',
     verificationStatus: 'VERIFIED'
   },
@@ -36,7 +36,15 @@ export const DEFAULT_USERS = [
     role: 'DEVELOPER',
     name: 'Developer Operations',
     email: 'developer@proctornet.edu',
-    password: 'DevPassword#123!',
+    password: 'Dev#2026_SecureExams!',
+    status: 'ACTIVE',
+    verificationStatus: 'VERIFIED'
+  },
+  {
+    role: 'DEVELOPER',
+    name: 'Developer Operations',
+    email: 'dev@proctornet.edu',
+    password: 'Dev#2026_SecureExams!',
     status: 'ACTIVE',
     verificationStatus: 'VERIFIED'
   },
@@ -44,7 +52,7 @@ export const DEFAULT_USERS = [
     role: 'FACULTY',
     name: 'Professor Faculty',
     email: 'faculty@proctornet.edu',
-    password: 'FacultyPassword#123!',
+    password: 'Faculty#2026_SecureExams!',
     status: 'ACTIVE',
     verificationStatus: 'VERIFIED'
   },
@@ -52,7 +60,7 @@ export const DEFAULT_USERS = [
     role: 'INVIGILATOR',
     name: 'Exam Invigilator',
     email: 'invigilator@proctornet.edu',
-    password: 'InvigilatorPassword#123!',
+    password: 'Invigilator#2026_SecureExams!',
     status: 'ACTIVE',
     verificationStatus: 'VERIFIED'
   },
@@ -60,7 +68,15 @@ export const DEFAULT_USERS = [
     role: 'STUDENT',
     name: 'Candidate Student',
     email: 'student@proctornet.edu',
-    password: 'StudentPassword#123!',
+    password: 'Student#2026_SecureExams!',
+    status: 'ACTIVE',
+    verificationStatus: 'VERIFIED'
+  },
+  {
+    role: 'STUDENT',
+    name: 'Sudeep Shankaranarayana Kagi',
+    email: 'sudeep@proctornet.edu',
+    password: 'Student#2026_SecureExams!',
     status: 'ACTIVE',
     verificationStatus: 'VERIFIED'
   }

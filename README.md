@@ -177,11 +177,12 @@ npm run seed:users
 
 | Role | Email | Password | Accessible Portals |
 | :--- | :--- | :--- | :--- |
-| **`ADMIN`** | `admin@proctornet.edu` | `AdminPassword#123!` | `/admin/overview`, `/admin/users`, `/admin/verification`, `/admin/audit` |
-| **`DEVELOPER`** | `developer@proctornet.edu` | `DevPassword#123!` | `/developer/overview`, `/developer/health`, `/developer/logs`, `/developer/topology` |
-| **`FACULTY`** | `faculty@proctornet.edu` | `FacultyPassword#123!` | `/faculty/dashboard`, `/faculty/exams`, `/faculty/sessions`, `/faculty/grading` |
-| **`INVIGILATOR`** | `invigilator@proctornet.edu` | `InvigilatorPassword#123!` | `/invigilator`, `/invigilator/sessions/:sessionId` |
-| **`STUDENT`** | `student@proctornet.edu` | `StudentPassword#123!` | `/candidate/dashboard`, `/candidate/exams`, `/candidate/profile` |
+| **`ADMIN`** | `admin@proctornet.edu` | `Admin#2026_SecureExams!` | `/admin/overview`, `/admin/users`, `/admin/verification`, `/admin/audit` |
+| **`DEVELOPER`** | `developer@proctornet.edu` (or `dev@...`) | `Dev#2026_SecureExams!` | `/developer/overview`, `/developer/health`, `/developer/logs`, `/developer/topology` |
+| **`FACULTY`** | `faculty@proctornet.edu` | `Faculty#2026_SecureExams!` | `/faculty/dashboard`, `/faculty/exams`, `/faculty/sessions`, `/faculty/grading` |
+| **`INVIGILATOR`** | `invigilator@proctornet.edu` | `Invigilator#2026_SecureExams!` | `/invigilator`, `/invigilator/sessions/:sessionId` |
+| **`STUDENT`** | `student@proctornet.edu` | `Student#2026_SecureExams!` | `/candidate/dashboard`, `/candidate/exams`, `/candidate/profile` |
+| **`STUDENT (Enrolled)`** | `sudeep@proctornet.edu` | `Student#2026_SecureExams!` | `/candidate/dashboard`, `/candidate/exams`, `/candidate/profile` |
 
 ---
 

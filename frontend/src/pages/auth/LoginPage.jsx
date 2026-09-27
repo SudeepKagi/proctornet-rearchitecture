@@ -207,27 +207,33 @@ export function LoginPage() {
             </form>
 
             {/* Quick Demo Credentials */}
-            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
-              <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                <Sparkles size={13} className="text-amber-500" />
-                <span>Quick-Fill Evaluation Accounts</span>
+            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                  <Sparkles size={13} className="text-amber-500" />
+                  <span>Quick-Fill Evaluation Accounts</span>
+                </div>
+                <span className="text-[10px] text-slate-400">Click to fill</span>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
                 {[
-                  { role: 'Admin', email: 'admin@proctornet.edu', pass: 'Admin#2026_SecureExams!' },
-                  { role: 'Dev', email: 'dev@proctornet.edu', pass: 'Dev#2026_SecureExams!' },
-                  { role: 'Faculty', email: 'faculty@proctornet.edu', pass: 'Faculty#2026_SecureExams!' },
-                  { role: 'Student (Sudeep)', email: 'sudeep@proctornet.edu', pass: 'Student#2026_SecureExams!' },
+                  { label: 'Admin', email: 'admin@proctornet.edu', pass: 'Admin#2026_SecureExams!' },
+                  { label: 'Developer', email: 'developer@proctornet.edu', pass: 'Dev#2026_SecureExams!' },
+                  { label: 'Faculty', email: 'faculty@proctornet.edu', pass: 'Faculty#2026_SecureExams!' },
+                  { label: 'Invigilator', email: 'invigilator@proctornet.edu', pass: 'Invigilator#2026_SecureExams!' },
+                  { label: 'Candidate', email: 'student@proctornet.edu', pass: 'Student#2026_SecureExams!' },
+                  { label: 'Sudeep (Enrolled)', email: 'sudeep@proctornet.edu', pass: 'Student#2026_SecureExams!' },
                 ].map((demo) => (
                   <Button
-                    key={demo.role}
+                    key={demo.label}
                     type="button"
                     variant="outline"
                     size="sm"
                     onClick={() => fillDemo(demo.email, demo.pass)}
-                    className="text-xs h-8 py-1.5 px-2 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 font-medium cursor-pointer"
+                    className="text-xs h-8 py-1 px-2 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 font-medium cursor-pointer justify-center truncate"
+                    title={`Click to fill ${demo.email}`}
                   >
-                    {demo.role}
+                    {demo.label}
                   </Button>
                 ))}
               </div>
@@ -236,9 +242,9 @@ export function LoginPage() {
         </Card>
 
         <div className="text-center text-xs text-slate-500 dark:text-slate-400">
-          Need an account?{' '}
+          Need an institutional account?{' '}
           <Link to="/register" className="font-semibold text-blue-600 hover:underline dark:text-blue-400">
-            Register for evaluation
+            Institutional Provisioning Policy
           </Link>
         </div>
       </div>
