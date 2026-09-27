@@ -2,7 +2,7 @@
  * @file anomalyScorer.js
  * @description Server-authoritative event taxonomy, severity weights, deterministic anomaly risk scoring,
  * technical risk contribution ceiling, 5-minute fullscreen escalation, and server-side context correlation.
- * Strictly adheres to Phase 28 specifications and review conditions.
+ * Evaluates multi-modal proctoring telemetry heuristics and computes cumulative anomaly scores.
  */
 
 /**

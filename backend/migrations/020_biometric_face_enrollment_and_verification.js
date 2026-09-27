@@ -1,6 +1,6 @@
 /**
  * Migration 020: Biometric Identity — Face Enrollment, Verification & Anti-Spoofing
- * Implements Phase 25 database schema:
+ * Implements biometric face enrollment and verification database schema:
  * - face_biometrics (reference face embeddings, 128-d contract, quality scores, S3 keys)
  * - liveness_challenges (ephemeral nonces, expected actions, media keys, consumption state)
  * - biometric_verifications (pre-exam verification verdicts, similarity scores, attempt counts, overrides)

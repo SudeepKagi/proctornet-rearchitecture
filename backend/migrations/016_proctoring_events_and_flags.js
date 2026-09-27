@@ -1,6 +1,6 @@
 /**
  * Migration 016: Proctoring Events Extension, Violation Flags, and Risk Score
- * Implements Phase 14 database schema evolution for the Proctoring Control Plane.
+ * Implements database schema evolution for the proctoring control plane.
  */
 export async function up(pgm) {
   pgm.sql(`

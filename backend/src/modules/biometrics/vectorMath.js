@@ -2,7 +2,7 @@
  * @file vectorMath.js
  * @description Biometric vector mathematics module for 128-dimensional float embeddings.
  * Provides L2 normalization, dimension and finiteness validation, and cosine similarity computation.
- * Conforms strictly to Phase 25 Biometric Vector Contract (§10).
+ * Mathematical vector operations: cosine similarity, Euclidean distance, L2 normalization.
  */
 
 export const EMBEDDING_DIMENSION = 128;

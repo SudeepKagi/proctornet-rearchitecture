@@ -1,6 +1,6 @@
 /**
  * @file iceService.js
- * @description Generates ephemeral STUN/TURN ICE server credentials for authorized session participants (Phase 17).
+ * @description Generates ephemeral STUN/TURN ICE server credentials for authorized session participants.
  */
 
 import crypto from 'node:crypto';

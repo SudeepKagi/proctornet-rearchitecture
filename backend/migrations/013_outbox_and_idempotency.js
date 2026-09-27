@@ -1,6 +1,6 @@
 /**
  * Migration 013: Transactional Outbox & Submission Idempotency
- * Conforms to Step 13.5 and Step 13.7 architectural specifications.
+ * Implements transactional outbox pattern and idempotent submission tracking.
  */
 export async function up(pgm) {
   pgm.sql(`

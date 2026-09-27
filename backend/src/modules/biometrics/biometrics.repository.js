@@ -1,6 +1,6 @@
 /**
  * @file biometrics.repository.js
- * @description Database repository for Phase 25 Biometric Identity:
+ * @description Database repository for candidate biometric identity and verification audit records:
  * face_biometrics, liveness_challenges, and biometric_verifications.
  */
 

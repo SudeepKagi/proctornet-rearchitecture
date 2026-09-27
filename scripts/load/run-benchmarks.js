@@ -1,6 +1,6 @@
 /**
  * @file run-benchmarks.js
- * @description Master load test orchestration runner for Phase 21.
+ * @description Master load test orchestration runner for ProctorNet scalability benchmarks.
  * Coordinates data generation, k6 scenario execution, metrics collection,
  * data integrity verification, and report synthesis.
  *

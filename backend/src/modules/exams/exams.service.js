@@ -118,7 +118,7 @@ export async function updateDraftExam(examId, updates, user, requestId = null) {
     throw new ForbiddenError('Access denied: You do not have permission to modify this exam');
   }
 
-  // Enforce Phase 3 Domain Invariant: Only DRAFT exams can be modified
+  // Enforce Domain Invariant: Only DRAFT exams can be modified
   assertExamCanBeMutated(exam.status);
 
   // Validate merged attributes

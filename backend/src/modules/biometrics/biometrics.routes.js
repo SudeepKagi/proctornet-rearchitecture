@@ -1,6 +1,6 @@
 /**
  * @file biometrics.routes.js
- * @description Express routers for Phase 25 Biometric Identity endpoints.
+ * @description Express routers for candidate and admin biometric identity endpoints.
  */
 
 import { Router } from 'express';

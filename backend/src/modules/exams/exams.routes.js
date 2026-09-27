@@ -29,7 +29,7 @@ examsRouter.get('/', authenticate, handleListExams);
 // Subjects list (must be defined before /:id parameter)
 examsRouter.get('/subjects', authenticate, handleListSubjects);
 
-// Phase 9: Exam Results, Summaries, Publication & Policies (before /:id catchall)
+// Exam Results, Summaries, Publication & Policies (before /:id catchall)
 examsRouter.use('/:examId/results', examResultsRouter);
 
 examsRouter.get('/:id', authenticate, handleGetExam);

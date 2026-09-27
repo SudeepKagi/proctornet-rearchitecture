@@ -1,7 +1,7 @@
 /**
  * @file CandidateMediaGrid.jsx
  * @description 12-candidate grid layout for invigilator dashboards with muted-by-default audio policy,
- * single-candidate solo listening, simulcast layer switching, and visual VU meters (Phase 17).
+ * single-candidate solo listening, simulcast layer switching, and visual VU meters.
  */
 
 import React, { useState } from 'react';

@@ -1,6 +1,6 @@
 /**
  * Migration 011: Auth Sessions & Account Lockout Tracking
- * Phase 4 requirement: persistent server-controlled session/refresh state and brute-force tracking.
+ * Enforces persistent server-controlled session/refresh state and brute-force tracking.
  */
 export async function up(pgm) {
   pgm.sql(`

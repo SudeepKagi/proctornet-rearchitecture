@@ -1,6 +1,6 @@
 /**
  * @file verify-resilience-invariants.js
- * @description Automated 8/8 ACID and Resilience Invariant Auditor for ProctorNet Phase 22.
+ * @description Automated 8/8 ACID and Resilience Invariant Auditor for ProctorNet.
  * Asserts zero data corruption, zero orphan records, strict idempotency non-duplication,
  * monotonic OCC revisions, outbox consistency, and database trigger-level audit immutability.
  *
@@ -191,7 +191,7 @@ export async function verifyResilienceInvariants(options = {}) {
 
     // -------------------------------------------------------------
     // Invariant 8: Audit Log Immutability (Independent Trigger Invariant)
-    // Note per Phase 22 specification: The audit-log immutability check
+    // Note: The audit-log immutability check
     // is an independent invariant asserting database-level trigger protection
     // and does not by itself prove post-fault durability of business records.
     // -------------------------------------------------------------

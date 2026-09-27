@@ -1,7 +1,7 @@
 /**
  * @file interventions.schemas.js
  * @description Zod validation schemas for invigilator realtime interventions.
- * Conforms to Phase 26 Track 2 Workstream F.
+ * Zod schemas validating live intervention payloads, warnings, and session pauses.
  */
 
 import { z } from 'zod';

@@ -1,7 +1,7 @@
 /**
  * @file manualGradingApi.js
  * @description API client for subjective manual grading, rubrics, and score overrides.
- * Conforms to Phase 26 Track 1 Workstream C.
+ * API service for faculty subjective grading, rubric evaluations, and score submissions.
  */
 
 import { apiClient } from './client.js';

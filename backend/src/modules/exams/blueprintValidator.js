@@ -1,7 +1,7 @@
 /**
  * @file blueprintValidator.js
  * @description Validates exam blueprint topic rules against question inventory and point allocations.
- * Conforms to Phase 26 Track 1 Workstream B specifications.
+ * Validates exam blueprint integrity, question coverage, and point distribution.
  */
 
 import { query } from '../../infrastructure/postgres/pool.js';
@@ -38,7 +38,7 @@ export async function validateExamBlueprint(examId, client = null) {
     throw new NotFoundError(`Exam with ID '${examId}' not found`);
   }
 
-  const topicRules = await examsRepo.getTopicRules(examId, client);
+  const topicRules = await examsRepo.getExamQuestionsAsBlueprintRows(examId, client);
   const issues = [];
   const ruleEvaluations = [];
 

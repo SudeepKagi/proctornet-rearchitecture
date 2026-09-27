@@ -1,6 +1,6 @@
 /**
  * Migration 017: Evidence Storage Metadata and Lifecycle
- * Implements Phase 15 database schema for proctoring evidence tracking.
+ * Implements database schema for proctoring evidence tracking and S3 object keys.
  */
 export async function up(pgm) {
   pgm.sql(`

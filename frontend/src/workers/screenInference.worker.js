@@ -1,7 +1,7 @@
 /**
  * @file screenInference.worker.js
  * @description Dedicated Web Worker for client-side screen context AI inference.
- * Conforms to Phase 28:
+ * Operational characteristics:
  *  - OffscreenCanvas 224x224 RGB preprocessing
  *  - Single-item inference queue: immediately drops stale frames under backpressure
  *  - SHA-256 model asset integrity verification

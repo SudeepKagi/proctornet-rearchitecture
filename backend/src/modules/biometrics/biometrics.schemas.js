@@ -1,6 +1,6 @@
 /**
  * @file biometrics.schemas.js
- * @description Zod validation schemas for Phase 25 Biometric Identity endpoints.
+ * @description Zod validation schemas for candidate biometric identity endpoints.
  * CRITICAL INVARIANT: Rejects any client-supplied embedding, liveEmbedding, vector,
  * faceVector, or motionDelta payload with 400 Bad Request.
  */

@@ -4,7 +4,7 @@
  * Loads the pinned model weights artifact, verifies its SHA-256 hash integrity,
  * computes multi-scale spatial facial descriptors, and projects them into an
  * L2-normalized 128-dimensional float embedding vector.
- * Conforms to Phase 25 §9 and §10.
+ * Extracts 128-dimensional facial embedding vectors with normalization.
  */
 
 import fs from 'node:fs';

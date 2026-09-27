@@ -2,7 +2,7 @@
  * @file evaluator.js
  * @description Pure deterministic objective grading engine for MCQ, TRUE_FALSE, and NUMERIC questions.
  * Completely free of side effects, database calls, or external I/O.
- * Conforms to Step 13.5 and Step 13.7 specifications.
+ * Deterministic question evaluator comparing candidate responses against authoritative answer keys.
  */
 
 import { QuestionType } from '../../domain/question/questionTypes.js';

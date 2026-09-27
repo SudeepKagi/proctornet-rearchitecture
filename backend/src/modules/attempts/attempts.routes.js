@@ -36,22 +36,22 @@ const submitRateLimiter = createRateLimiter({
 // Candidate attempt-start alias
 attemptsRouter.post('/start', authenticate, requireRole('STUDENT'), startAttempt);
 
-// Phase 7: Answers, Autosave, OCC Revisions & Clear
+// Answers, Autosave, OCC Revisions & Clear
 attemptsRouter.use('/:attemptId/answers', answersRouter);
 
-// Phase 8: Candidate Exam Submission & Finalization
+// Candidate Exam Submission & Finalization
 attemptsRouter.post('/:attemptId/submit', authenticate, requireRole('STUDENT'), submitRateLimiter, submitAttempt);
 
-// Phase 9: Candidate Result Inspection
+// Candidate Result Inspection
 attemptsRouter.use('/:attemptId/result', candidateResultsRouter);
 
-// Phase 14: Proctoring Telemetry Ingestion & Violation Timeline
+// Proctoring Telemetry Ingestion & Violation Timeline
 attemptsRouter.use('/:attemptId/events', attemptEventsRouter);
 
-// Phase 14: Proctoring Flags (Manual Creation & Status Reviews)
+// Proctoring Flags (Manual Creation & Status Reviews)
 attemptsRouter.use('/:attemptId/proctoring/flags', attemptProctoringFlagsRouter);
 
-// Phase 15: Proctoring Evidence Storage & Direct-to-S3 Uploads
+// Proctoring Evidence Storage & Direct-to-S3 Uploads
 attemptsRouter.use('/:attemptId/evidence', evidenceRouter);
 
 // Attempt inspection & question mapping endpoints

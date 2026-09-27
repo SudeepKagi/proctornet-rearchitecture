@@ -148,7 +148,7 @@ export const rateLimitBlocksTotal = new promClient.Counter({
 });
 
 // ============================================================================
-// 6. Proctoring Events & Anomaly Telemetry (Phase 14)
+// 6. Proctoring Events & Anomaly Telemetry
 // ============================================================================
 
 export const proctoringEventsTotal = new promClient.Counter({
@@ -174,7 +174,7 @@ export const proctoringFlagsTotal = new promClient.Counter({
 });
 
 // ============================================================================
-// 6. Evidence Storage Metrics (Phase 15 - Bounded Labels, Zero UUIDs)
+// 7. Evidence Storage Metrics (Bounded Labels, Zero UUIDs)
 // ============================================================================
 
 export const evidenceUploadsInitiatedTotal = new promClient.Counter({
@@ -214,7 +214,7 @@ export const evidenceStorageLatencySeconds = new promClient.Histogram({
 });
 
 // ============================================================================
-// 7. WebSocket Realtime Metrics (Phase 16 - Bounded Labels, Zero UUIDs)
+// 8. WebSocket Realtime Metrics (Bounded Labels, Zero UUIDs)
 // ============================================================================
 
 export const wsConnectionsActive = new promClient.Gauge({
@@ -264,7 +264,7 @@ export const wsBroadcastErrorsTotal = new promClient.Counter({
 });
 
 // ============================================================================
-// 9. WebRTC / SFU Media Metrics (Phase 17 - Bounded Cardinality, Zero UUIDs)
+// 9. WebRTC / SFU Media Metrics (Bounded Cardinality, Zero UUIDs)
 // ============================================================================
 
 export const wsMediaTransportsActive = new promClient.Gauge({
@@ -302,7 +302,7 @@ export const wsMediaIceRestartsTotal = new promClient.Counter({
 });
 
 // ============================================================================
-// 10. Phase 18 Security Hardening Metrics (Bounded Labels)
+// 10. Security Hardening Metrics (Bounded Labels)
 // ============================================================================
 
 export const securityTamperViolationsTotal = new promClient.Counter({

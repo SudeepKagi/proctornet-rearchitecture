@@ -4,7 +4,7 @@
  * Evaluates raw media frames:
  * 1. Passive texture / micro-motion variance (discriminates 3D living face vs. static print / 2D screen replay)
  * 2. Active action sequence matching (verifies that candidate performed required randomized challenge actions).
- * Conforms to Phase 25 §9.2 and §12.3.
+ * Evaluates active challenge-response and passive texture anti-spoofing heuristics.
  */
 
 import { detectFace } from './faceDetector.js';

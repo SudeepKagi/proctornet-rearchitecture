@@ -3,7 +3,7 @@
  * @description Server-side facial detection and landmark extraction module.
  * Evaluates raw JPEG/PNG image buffers, detects face presence, computes face bounding boxes,
  * facial landmarks, and head pose angles (pitch, yaw, roll).
- * Conforms to Phase 25 §9 specification.
+ * Performs bounding-box facial detection, landmark extraction, and head-pose estimation.
  */
 
 import { validateDocumentMagicBytes } from '../candidate/candidateIdentity.schemas.js';

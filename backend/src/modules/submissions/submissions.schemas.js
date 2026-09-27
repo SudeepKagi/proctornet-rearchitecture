@@ -1,7 +1,7 @@
 /**
  * @file submissions.schemas.js
  * @description Zod validation schemas for Exam Submission endpoint.
- * Conforms to Step 13.5 and Phase 8 specifications.
+ * Zod validation schemas for candidate attempt submission payloads.
  */
 
 import { z } from 'zod';

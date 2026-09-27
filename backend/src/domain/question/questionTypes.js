@@ -1,7 +1,7 @@
 /**
  * @file questionTypes.js
  * @description Question domain types and structural invariant validators.
- * Conforms to Step 13.5 Finalized Architecture specification.
+ * Supported question types and evaluation category definitions.
  */
 
 import { InvalidQuestionDefinitionError, DomainInvariantError } from '../shared/domainErrors.js';

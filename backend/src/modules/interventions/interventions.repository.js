@@ -1,7 +1,7 @@
 /**
  * @file interventions.repository.js
  * @description Database operations for invigilator realtime interventions, state transitions, and audit logs.
- * Conforms to Phase 26 Track 2 Workstream F.
+ * Database repository for proctor interventions, announcements, and candidate warnings.
  */
 
 import { query, getPool } from '../../infrastructure/postgres/pool.js';

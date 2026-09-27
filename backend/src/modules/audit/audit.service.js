@@ -1,7 +1,7 @@
 /**
  * @file audit.service.js
  * @description Centralized business service for recording and querying immutable audit events.
- * Conforms to Step 13.5 and Phase 13 specifications.
+ * Centralized audit query orchestration and structured security event logging.
  */
 
 import * as auditRepository from './audit.repository.js';

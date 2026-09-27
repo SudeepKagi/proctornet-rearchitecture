@@ -1,7 +1,7 @@
 /**
  * @file submissions.controller.js
  * @description HTTP REST Controller for Exam Submissions and Finalization.
- * Conforms to Step 13.5 and Phase 8 specifications.
+ * HTTP controllers for exam attempt submission and finalization.
  */
 
 import * as submissionsService from './submissions.service.js';

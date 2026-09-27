@@ -1,7 +1,7 @@
 /**
  * @file useMediaCapture.js
  * @description React hook for candidate media capture (camera, microphone, screen) with hardware
- * lock prevention, track cleanup lifecycle, and audio level VU telemetry (Phase 17).
+ * lock prevention, track cleanup lifecycle, and audio level VU telemetry.
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';

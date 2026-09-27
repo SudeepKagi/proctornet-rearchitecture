@@ -1,7 +1,7 @@
 /**
  * @file developerApi.js
  * @description API client for Developer Operations and Telemetry Control Plane.
- * Conforms to Phase 27 Track 1 specifications.
+ * API service for developer operations, telemetry metrics, and system incident logs.
  */
 
 import { apiClient } from './client.js';

@@ -1,6 +1,6 @@
 /**
  * @file media.schemas.js
- * @description Zod validation schemas for WebRTC / SFU media signaling commands (Phase 17).
+ * @description Zod validation schemas for WebRTC / SFU media signaling commands.
  */
 
 import { z } from 'zod';

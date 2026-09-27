@@ -2,7 +2,7 @@
  * @file InterventionModals.jsx
  * @description Dialog modals for invigilator interventions: Room Announcements, Direct Messages/Warnings,
  * Remote Pause, Remote Resume, and Emergency Termination.
- * Conforms to Phase 26 Track 2 Workstream F.
+ * Invigilator intervention modal workflows for warnings, announcements, pauses, and disqualifications.
  */
 
 import React, { useState } from 'react';

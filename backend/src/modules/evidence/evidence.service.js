@@ -1,6 +1,6 @@
 /**
  * @file evidence.service.js
- * @description Core business logic for Phase 15 Evidence Storage.
+ * @description Core business logic for proctoring evidence presigned URL generation and metadata logging.
  * Direct presigned uploads, authoritative S3 HeadObject verification, VersionId pinning,
  * RBAC/BOLA access control, audit logging, and decoupled concurrency maintenance sweepers.
  */

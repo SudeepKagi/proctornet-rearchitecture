@@ -38,7 +38,7 @@ adminRouter.post('/users/:id/revoke-sessions', userController.handleRevokeSessio
 adminRouter.get('/verifications', userController.handleGetVerificationQueue);
 adminRouter.patch('/users/:id/verification', userController.handleReviewVerification);
 
-// Phase 24: Student Identity Verification Dossier, Preview & Configuration
+// Student Identity Verification Dossier, Preview & Configuration
 adminRouter.get('/students/:id/verification', userController.handleGetStudentVerificationDossier);
 adminRouter.get('/students/:id/document-preview', userController.handleGetStudentDocumentPreview);
 adminRouter.patch('/students/:id/verification', userController.handleReviewStudentVerification);

@@ -1,7 +1,7 @@
 /**
  * @file submissions.service.js
  * @description Business workflow service for Exam Submissions, Durable Idempotency, Final Dirty Answer Persistence, and Unified Attempt Finalization.
- * Conforms to Step 13.5, 13.7, and Phase 8 specifications.
+ * Orchestrates atomic attempt finalization, transactional outbox emission, and idempotency checks.
  */
 
 import crypto from 'node:crypto';

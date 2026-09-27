@@ -1,6 +1,6 @@
 /**
  * @file run-official-tier.js
- * @description Official Stage 21C tier benchmark runner executing clean baseline setup,
+ * @description Official high-concurrency tier benchmark runner executing clean baseline setup,
  * isolated data generation, k6 scenario execution, real-time metrics collection,
  * integrity verification, and cascading cleanup for a single concurrency tier.
  *
@@ -118,7 +118,7 @@ function parseK6Summary(filePath) {
 
 async function main() {
   if (isDryRun) {
-    console.log('\n[Dry-Run] Validating Stage 21C configuration and runner readiness...');
+    console.log('\n[Dry-Run] Validating high-concurrency tier configuration and runner readiness...');
     console.log(`  - Target Concurrency: ${vus} VUs`);
     console.log(`  - Target Base URL: ${baseUrl}`);
     console.log(`  - Autosave Duration: ${autosaveDuration}`);

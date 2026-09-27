@@ -2,7 +2,7 @@
  * @file qualityAnalyzer.js
  * @description Analyzes image quality metrics for biometric face captures:
  * Laplacian variance (sharpness), illumination balance, pose bounds, and composite Q score.
- * Conforms to Phase 25 §9 and §11 specification.
+ * Validates image resolution, sharpness, illumination balance, and background cleanliness.
  */
 
 export const QUALITY_WEIGHTS = {

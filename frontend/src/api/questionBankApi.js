@@ -1,7 +1,7 @@
 /**
  * @file questionBankApi.js
  * @description API client for Question Bank CRUD, rich question authoring, taxonomies, and cloning.
- * Conforms to Phase 26 Track 1 Workstream A.
+ * API service for faculty question banks, question pool browsing, and item authoring.
  */
 
 import { apiClient } from './client.js';

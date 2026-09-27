@@ -1,7 +1,7 @@
 /**
  * @file evaluation.service.js
  * @description Business workflow service for asynchronous objective exam attempt evaluation.
- * Conforms to Step 13.5, 13.7, and Phase 8 specifications.
+ * Core scoring engine coordinating objective answer evaluation and result compilation.
  */
 
 import { getPool } from '../../infrastructure/postgres/pool.js';

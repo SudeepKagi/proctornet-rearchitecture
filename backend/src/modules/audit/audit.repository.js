@@ -1,7 +1,7 @@
 /**
  * @file audit.repository.js
  * @description Authoritative database access layer for the immutable audit_logs table.
- * Implements parameterized queries, transactional client support, and filtering per Phase 13 specifications.
+ * Implements parameterized queries, transactional client support, and audit log filtering.
  */
 
 import { query, getPool } from '../../infrastructure/postgres/pool.js';

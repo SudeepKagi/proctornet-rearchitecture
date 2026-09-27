@@ -152,12 +152,12 @@ export async function listSessions(
         OR (
           (s.target_semester = $${idx + 1} OR e.target_semester = $${idx + 1})
           AND (
-            s.target_department ILIKE $${idx + 2}
-            OR e.target_department ILIKE $${idx + 2}
-            OR $${idx + 2} ILIKE '%' || COALESCE(s.target_department, e.target_department, '') || '%'
-            OR REGEXP_REPLACE(LOWER(REPLACE(COALESCE(s.target_department, e.target_department, '')::text, '&', 'and')), '\\s*\\([^)]*\\)|[^a-z0-9]', '', 'g') = REGEXP_REPLACE(LOWER(REPLACE($${idx + 2}::text, '&', 'and')), '\\s*\\([^)]*\\)|[^a-z0-9]', '', 'g')
-            OR REGEXP_REPLACE(LOWER(REPLACE(COALESCE(s.target_department, e.target_department, '')::text, '&', 'and')), '\\s*\\([^)]*\\)|[^a-z0-9]', '', 'g') LIKE '%' || REGEXP_REPLACE(LOWER(REPLACE($${idx + 2}::text, '&', 'and')), '\\s*\\([^)]*\\)|[^a-z0-9]', '', 'g') || '%'
-            OR REGEXP_REPLACE(LOWER(REPLACE($${idx + 2}::text, '&', 'and')), '\\s*\\([^)]*\\)|[^a-z0-9]', '', 'g') LIKE '%' || REGEXP_REPLACE(LOWER(REPLACE(COALESCE(s.target_department, e.target_department, '')::text, '&', 'and')), '\\s*\\([^)]*\\)|[^a-z0-9]', '', 'g') || '%'
+            s.department_id = (SELECT department_id FROM departments WHERE LOWER(name) = LOWER($${idx + 2}) OR LOWER(code) = LOWER($${idx + 2}) LIMIT 1)
+            OR e.department_id = (SELECT department_id FROM departments WHERE LOWER(name) = LOWER($${idx + 2}) OR LOWER(code) = LOWER($${idx + 2}) LIMIT 1)
+            OR LOWER(s.target_department) = LOWER($${idx + 2})
+            OR LOWER(e.target_department) = LOWER($${idx + 2})
+            OR s.target_department ILIKE '%' || $${idx + 2} || '%'
+            OR e.target_department ILIKE '%' || $${idx + 2} || '%'
           )
         )
       )`);
@@ -230,12 +230,12 @@ export async function countSessions({ examId, roomId, status, studentTarget }, c
         OR (
           (s.target_semester = $${idx + 1} OR e.target_semester = $${idx + 1})
           AND (
-            s.target_department ILIKE $${idx + 2}
-            OR e.target_department ILIKE $${idx + 2}
-            OR $${idx + 2} ILIKE '%' || COALESCE(s.target_department, e.target_department, '') || '%'
-            OR REGEXP_REPLACE(LOWER(REPLACE(COALESCE(s.target_department, e.target_department, '')::text, '&', 'and')), '\\s*\\([^)]*\\)|[^a-z0-9]', '', 'g') = REGEXP_REPLACE(LOWER(REPLACE($${idx + 2}::text, '&', 'and')), '\\s*\\([^)]*\\)|[^a-z0-9]', '', 'g')
-            OR REGEXP_REPLACE(LOWER(REPLACE(COALESCE(s.target_department, e.target_department, '')::text, '&', 'and')), '\\s*\\([^)]*\\)|[^a-z0-9]', '', 'g') LIKE '%' || REGEXP_REPLACE(LOWER(REPLACE($${idx + 2}::text, '&', 'and')), '\\s*\\([^)]*\\)|[^a-z0-9]', '', 'g') || '%'
-            OR REGEXP_REPLACE(LOWER(REPLACE($${idx + 2}::text, '&', 'and')), '\\s*\\([^)]*\\)|[^a-z0-9]', '', 'g') LIKE '%' || REGEXP_REPLACE(LOWER(REPLACE(COALESCE(s.target_department, e.target_department, '')::text, '&', 'and')), '\\s*\\([^)]*\\)|[^a-z0-9]', '', 'g') || '%'
+            s.department_id = (SELECT department_id FROM departments WHERE LOWER(name) = LOWER($${idx + 2}) OR LOWER(code) = LOWER($${idx + 2}) LIMIT 1)
+            OR e.department_id = (SELECT department_id FROM departments WHERE LOWER(name) = LOWER($${idx + 2}) OR LOWER(code) = LOWER($${idx + 2}) LIMIT 1)
+            OR LOWER(s.target_department) = LOWER($${idx + 2})
+            OR LOWER(e.target_department) = LOWER($${idx + 2})
+            OR s.target_department ILIKE '%' || $${idx + 2} || '%'
+            OR e.target_department ILIKE '%' || $${idx + 2} || '%'
           )
         )
       )`);

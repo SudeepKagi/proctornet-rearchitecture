@@ -2,7 +2,7 @@
 
 /**
  * ProctorNet Infrastructure Invariant Verification Script
- * Validates non-negotiable architectural rules for Phase 20:
+ * Validates non-negotiable architectural infrastructure invariants:
  * 1. Zero DynamoDB references in active Terraform code (native S3 lockfile locking)
  * 2. use_lockfile = true present in production and staging backend configs
  * 3. Zero external ingress (0.0.0.0/0) for internal ports (4000, 5432, 6379, 5672, 15672)
@@ -79,7 +79,7 @@ console.log(`✅ [PASS] Rule 5: Migration count verified at exactly 21 (found: $
 
 // 6. Assert scale-ready modules default to disabled (false)
 const prodVars = fs.readFileSync(path.join(ROOT_DIR, 'terraform/environments/production/variables.tf'), 'utf8');
-if (!prodVars.includes('variable "enable_rds" {\n  type        = bool\n  description = "Feature toggle for Amazon RDS PostgreSQL 16 (default false in Phase 20; containerized DB active)"\n  default     = false') &&
+if (!prodVars.includes('variable "enable_rds" {\n  type        = bool\n  description = "Feature toggle for Amazon RDS PostgreSQL 16 (default false; containerized DB active)"\n  default     = false') &&
     !prodVars.match(/variable\s+"enable_rds"[\s\S]*?default\s*=\s*false/)) {
   console.error('[FAIL] enable_rds must default to false in production variables.tf');
   process.exit(1);

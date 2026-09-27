@@ -1,6 +1,6 @@
 /**
  * @file index.js
- * @description Public exports for WebRTC SFU Media Infrastructure (Phase 17).
+ * @description Public exports for WebRTC SFU Media Infrastructure.
  */
 
 export { SfuManager, defaultSfuManager, defaultMediaCodecs, deterministicHash } from './sfuManager.js';

@@ -1,7 +1,6 @@
 /**
  * @file results.repository.js
- * @description PostgreSQL persistence layer for Phase 9 Results visibility, listing, summary stats, publication, and release policy.
- * Conforms to Step 13.5, Step 13.7, and Phase 9 Architecture specifications.
+ * @description PostgreSQL persistence layer for exam results, score summaries, and visibility policies.
  */
 
 import { query, getPool } from '../../infrastructure/postgres/pool.js';

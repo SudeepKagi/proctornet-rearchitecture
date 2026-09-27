@@ -2,7 +2,7 @@
  * @file candidateIdentity.service.js
  * @description Core business logic for Candidate Government-ID Document Onboarding,
  * Private S3 Presigned Upload/Download lifecycle, file validation, and state synchronization.
- * Conforms to Step 13.5, Step 13.7, and Phase 24 specifications.
+ * Orchestrates candidate profile onboarding, document upload, and administrative verification state.
  */
 
 import crypto from 'node:crypto';

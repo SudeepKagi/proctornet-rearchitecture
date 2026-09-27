@@ -1,7 +1,7 @@
 /**
  * @file proctoring.repository.js
  * @description PostgreSQL persistence layer for proctoring events, violation flags, and attempt risk scores.
- * Conforms strictly to Phase 14 specifications.
+ * PostgreSQL persistence layer for proctoring telemetry events and violation flags.
  */
 
 import { query } from '../../infrastructure/postgres/pool.js';

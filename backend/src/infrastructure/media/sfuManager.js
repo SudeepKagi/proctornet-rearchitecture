@@ -1,7 +1,7 @@
 /**
  * @file sfuManager.js
  * @description Central SFU manager orchestrating mediasoup C++ worker pool, deterministic session
- * pinning, per-worker generation epoch fencing, and crash recovery (Phase 17).
+ * pinning, per-worker generation epoch fencing, and crash recovery.
  */
 
 import os from 'node:os';

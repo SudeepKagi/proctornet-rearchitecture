@@ -1,7 +1,7 @@
 /**
  * @file manualGrading.controller.js
  * @description HTTP Controllers for Manual Grading and Score Override endpoints.
- * Conforms to Phase 26 Track 1 Workstream C.
+ * HTTP controllers for subjective evaluation and faculty manual score adjustments.
  */
 
 import * as manualGradingService from './manualGrading.service.js';

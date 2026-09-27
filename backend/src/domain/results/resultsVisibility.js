@@ -1,7 +1,7 @@
 /**
  * @file resultsVisibility.js
  * @description Pure domain functions for evaluating result visibility and derived fields.
- * Conforms to Step 13.5 and Phase 9 Architecture specifications.
+ * Candidate scorecard visibility policies and role-based score exposure.
  * Note: PostgreSQL visibility predicate is the authoritative runtime enforcement.
  * This module is the pure domain reference model used for unit testing, documentation,
  * and business-rule consistency.

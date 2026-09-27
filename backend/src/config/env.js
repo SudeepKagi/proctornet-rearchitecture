@@ -184,7 +184,7 @@ const envSchema = z.object({
     .optional()
     .transform((val) => (val && val.trim() !== '' ? val : undefined)),
 
-  // Evidence Storage & AWS S3 configuration (Phase 15)
+  // Evidence Storage & AWS S3 configuration
   AWS_REGION: z
     .string()
     .default('ap-south-1'),
@@ -218,13 +218,13 @@ const envSchema = z.object({
     .transform(Number)
     .default('900'),
 
-  // Biometric Verification Gate configuration (Phase 25)
+  // Biometric Verification Gate configuration
   BIOMETRIC_GATE_ENFORCED: z
     .union([z.boolean(), z.enum(['true', 'false', '1', '0'])])
     .default(process.env.NODE_ENV === 'test' ? 'false' : 'true')
     .transform((val) => (typeof val === 'boolean' ? val : val === 'true' || val === '1')),
 
-  // WebSocket Realtime configuration (Phase 16)
+  // WebSocket Realtime configuration
   WS_ENABLED: z
     .union([z.boolean(), z.enum(['true', 'false', '1', '0'])])
     .default('true')
@@ -292,7 +292,7 @@ const envSchema = z.object({
   GOOGLE_API_KEY: z.string().optional(),
   OPENAI_API_KEY: z.string().optional(),
 
-  // WebRTC / SFU Media configuration (Phase 17)
+  // WebRTC / SFU Media configuration
   MEDIA_ENABLED: z
     .union([z.boolean(), z.enum(['true', 'false', '1', '0'])])
     .default('true')
@@ -352,7 +352,7 @@ const envSchema = z.object({
     .optional()
     .transform((val) => (val && val.trim() !== '' ? val : undefined)),
 
-  // Phase 18 Security Hardening configuration
+  // Security Hardening configuration
   ANTI_TAMPER_SECRET: z
     .string()
     .min(32, { message: 'ANTI_TAMPER_SECRET must be at least 32 characters' })
@@ -379,7 +379,7 @@ const envSchema = z.object({
     .default('false')
     .transform((val) => (typeof val === 'boolean' ? val : val === 'true' || val === '1'))
 }).superRefine((data, ctx) => {
-  // Phase 18 Security Hardening production checks
+  // Security Hardening production checks
   if (data.NODE_ENV === 'production') {
     if (!data.ANTI_TAMPER_SECRET || data.ANTI_TAMPER_SECRET.length < 32) {
       ctx.addIssue({

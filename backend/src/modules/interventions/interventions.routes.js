@@ -1,7 +1,7 @@
 /**
  * @file interventions.routes.js
  * @description Express routes for invigilator realtime interventions.
- * Conforms to Phase 26 Track 2 Workstream F.
+ * Express router for live invigilation intervention endpoints.
  */
 
 import { Router } from 'express';

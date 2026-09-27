@@ -1,6 +1,6 @@
 /**
  * @file evidenceApi.js
- * @description API service functions for Phase 15 Evidence Storage.
+ * @description API service functions for proctoring evidence retrieval and storage.
  * Handles requesting direct S3 upload URLs, confirming uploads, listing evidence,
  * retrieving presigned playback URLs, and administrative purging.
  */

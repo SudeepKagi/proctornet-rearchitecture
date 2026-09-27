@@ -1,8 +1,7 @@
 /**
  * @file CandidateDetailDrawer.jsx
  * @description Slide-out drawer for inspecting candidate live details, focused high-resolution stream,
- * hardware readiness, violation timeline, evidence inspection, and triggering interventions.
- * Conforms to Phase 26 & Phase 28:
+ * Proctoring telemetry and risk analysis capabilities:
  * - 0-100 risk score with clear severity tiers (LOW, MEDIUM, ELEVATED, HIGH)
  * - Source attribution badges: [BROWSER], [SCREEN AI], [TECHNICAL]
  * - Clear separation of Technical Degradation (capped at 15 pts) vs Behavioral Misconduct

@@ -1,7 +1,7 @@
 /**
  * @file results.schemas.js
  * @description Zod validation schemas for Result query parameters, body payloads, and route parameters.
- * Conforms to Step 13.5 and Phase 9 specifications.
+ * Zod schemas for results queries, publication toggles, and release policy updates.
  */
 
 import { z } from 'zod';

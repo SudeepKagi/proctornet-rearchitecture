@@ -1,7 +1,7 @@
 /**
  * @file evaluation.repository.js
  * @description PostgreSQL persistence layer for reading authoritative exam data and persisting evaluated results.
- * Conforms to Step 13.5 and Phase 8 specifications.
+ * Database persistence for atomic evaluation results, score tallies, and question-level breakdowns.
  */
 
 import { query } from '../../infrastructure/postgres/pool.js';

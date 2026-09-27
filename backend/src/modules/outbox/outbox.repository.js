@@ -1,7 +1,7 @@
 /**
  * @file outbox.repository.js
  * @description PostgreSQL persistence layer for Transactional Outbox Events, Claiming, and State Transitions.
- * Conforms to Step 13.5 and Phase 8 specifications.
+ * Database repository for transactional outbox persistence and atomic status transitions.
  */
 
 import { query } from '../../infrastructure/postgres/pool.js';

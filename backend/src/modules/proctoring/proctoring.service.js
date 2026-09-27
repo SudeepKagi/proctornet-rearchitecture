@@ -2,7 +2,7 @@
  * @file proctoring.service.js
  * @description Core business logic for Candidate Proctoring Telemetry Ingestion,
  * Server-Authoritative Anomaly Scoring, Outbox Event Creation, and Flag Lifecycle Management.
- * Strictly adheres to Phase 14 specifications.
+ * Proctoring business logic coordinating violation telemetry, flag evaluation, and metric recording.
  */
 
 import { getPool } from '../../infrastructure/postgres/pool.js';
@@ -266,7 +266,7 @@ export async function ingestCandidateEvents(attemptId, user, events) {
       await client.query('COMMIT');
     }
 
-    // 8. Track Prometheus metrics
+    // 8. Record Prometheus metrics
     const endTime = process.hrtime.bigint();
     const durationSeconds = Number(endTime - startTime) / 1e9;
     proctoringIngestDuration.observe({ status: 'success' }, durationSeconds);

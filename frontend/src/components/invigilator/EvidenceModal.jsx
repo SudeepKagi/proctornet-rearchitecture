@@ -1,7 +1,7 @@
 /**
  * @file EvidenceModal.jsx
  * @description Secure evidence inspector modal for invigilators and faculty.
- * Implements Workstream H: S3 presigned URL retrieval, snapshot preview, audio playback.
+ * Modal displaying proctoring evidence snapshots and audio recordings via S3 presigned URLs.
  */
 
 import React, { useState, useEffect } from 'react';

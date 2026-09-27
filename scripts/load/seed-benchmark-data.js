@@ -1,6 +1,6 @@
 /**
  * @file seed-benchmark-data.js
- * @description Deterministic benchmark fixture generator for ProctorNet Phase 21 load testing.
+ * @description Deterministic benchmark fixture generator for ProctorNet load testing.
  * Seeds isolated benchmark entities directly into PostgreSQL without modifying schemas or migrations.
  *
  * Usage:
@@ -169,11 +169,14 @@ async function run() {
     );
     const examId = examRes.rows[0].exam_id;
 
-    await client.query(
-      `INSERT INTO exam_topic_rules (exam_id, topic_id, question_count, points_per_question)
-       VALUES ($1, $2, 50, 2.00);`,
-      [examId, topicId]
-    );
+    for (let i = 0; i < createdQuestions.length; i++) {
+      await client.query(
+        `INSERT INTO exam_questions (exam_id, question_id, display_order, points)
+         VALUES ($1, $2, $3, 2.00)
+         ON CONFLICT (exam_id, question_id) DO NOTHING;`,
+        [examId, createdQuestions[i].questionId, i + 1]
+      );
+    }
 
     // Step D: Create Room & Active Session
     const roomRes = await client.query(

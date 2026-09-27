@@ -1,7 +1,7 @@
 /**
  * @file userStates.js
  * @description Authoritative UserStatus and VerificationStatus enumerations and transition maps.
- * Conforms to Step 13.5 and Phase 23 specifications.
+ * Institutional user lifecycle states and account status definitions.
  */
 
 /**

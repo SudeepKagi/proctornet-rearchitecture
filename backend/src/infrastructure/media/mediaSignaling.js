@@ -1,6 +1,6 @@
 /**
  * @file mediaSignaling.js
- * @description Inbound WebRTC signaling command dispatcher and PostgreSQL BOLA authorizer (Phase 17).
+ * @description Inbound WebRTC signaling command dispatcher and PostgreSQL BOLA authorizer.
  */
 
 import { query } from '../postgres/pool.js';

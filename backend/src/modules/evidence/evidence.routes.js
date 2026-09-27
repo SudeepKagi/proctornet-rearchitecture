@@ -1,6 +1,6 @@
 /**
  * @file evidence.routes.js
- * @description Express router for Phase 15 Evidence Storage endpoints.
+ * @description Express router for proctoring evidence upload authorization and retrieval.
  */
 
 import { Router } from 'express';

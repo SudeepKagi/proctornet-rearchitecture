@@ -1,7 +1,7 @@
 /**
  * @file manualGrading.repository.js
  * @description Database operations for Subjective Manual Grading, Score Auditing, and Result Recalculation.
- * Conforms to Phase 26 Track 1 Workstream C.
+ * Database repository for manual grading submissions, criteria rubrics, and grade audit trails.
  */
 
 import { query, getPool } from '../../infrastructure/postgres/pool.js';

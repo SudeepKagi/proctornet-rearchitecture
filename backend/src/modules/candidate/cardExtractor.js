@@ -5,8 +5,15 @@
  * tailored to university student identification cards.
  */
 
+import path from 'node:path';
+import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { createWorker } from 'tesseract.js';
 import { logger } from '../../utils/logger.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const LOCAL_TESSERACT_PATH = path.resolve(__dirname, '../../../assets/tesseract');
 
 let sharedWorkerPromise = null;
 
@@ -16,7 +23,11 @@ let sharedWorkerPromise = null;
 async function getWorker() {
   if (!sharedWorkerPromise) {
     sharedWorkerPromise = (async () => {
-      const worker = await createWorker('eng');
+      const options = {};
+      if (fs.existsSync(path.join(LOCAL_TESSERACT_PATH, 'eng.traineddata'))) {
+        options.langPath = LOCAL_TESSERACT_PATH;
+      }
+      const worker = await createWorker('eng', 1, options);
       return worker;
     })();
   }

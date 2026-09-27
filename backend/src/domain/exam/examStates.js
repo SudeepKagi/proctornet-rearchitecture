@@ -1,7 +1,7 @@
 /**
  * @file examStates.js
  * @description Authoritative Exam lifecycle states and allowed forward transition definitions.
- * Conforms to Step 13.5 Finalized Architecture specification.
+ * Authoritative examination lifecycle states and transition invariants.
  */
 
 /**

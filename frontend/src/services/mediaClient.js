@@ -1,7 +1,7 @@
 /**
  * @file mediaClient.js
  * @description Frontend WebRTC / mediasoup-client service singleton managing local Device,
- * send/recv transports, simulcast encoding, and batched consumer subscription (Phase 17).
+ * send/recv transports, simulcast encoding, and batched consumer subscription.
  */
 
 import { Device } from 'mediasoup-client';

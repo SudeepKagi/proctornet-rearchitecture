@@ -1,7 +1,7 @@
 /**
  * @file audit.controller.js
  * @description HTTP REST Controller for Audit Log Inspection.
- * Conforms to Step 13.5 and Phase 13 specifications.
+ * HTTP controllers for administrative audit log queries and incident tracking.
  */
 
 import * as auditService from './audit.service.js';

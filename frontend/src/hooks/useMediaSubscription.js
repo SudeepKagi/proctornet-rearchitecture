@@ -1,7 +1,7 @@
 /**
  * @file useMediaSubscription.js
  * @description React hook for invigilator multi-stream consumption, 12-grid batch subscription,
- * solo audio listening control, and simulcast layer switching (Phase 17).
+ * solo audio listening control, and simulcast layer switching.
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';

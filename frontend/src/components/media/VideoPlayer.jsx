@@ -1,7 +1,7 @@
 /**
  * @file VideoPlayer.jsx
  * @description High-performance video tile component with track attachment, hardware cleanup,
- * quality indicator, and visual VU meter telemetry (Phase 17).
+ * quality indicator, and visual VU meter telemetry.
  */
 
 import React, { useEffect, useRef } from 'react';

@@ -45,7 +45,7 @@ export function canonicalJson(val) {
 
 /**
  * Generates valid ProctorNet anti-tamper signature headers.
- * Conforms to Step 13.5 HMAC-SHA256 protocol.
+ * Implements candidate client-request HMAC-SHA256 signature protocol.
  *
  * @param {string} signingKey Candidate attempt signing key
  * @param {string} method HTTP method (e.g. 'PUT', 'POST')

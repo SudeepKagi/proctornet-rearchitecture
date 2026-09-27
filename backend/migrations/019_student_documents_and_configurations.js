@@ -1,6 +1,6 @@
 /**
  * Migration 019: Candidate Onboarding, Document Verification & Per-Student Configuration
- * Implements Phase 24 database schema:
+ * Implements student documents and configurations database schema:
  * - student_identity_documents (government/student ID upload metadata, S3 keys, magic byte verification, document review state machine)
  * - student_configurations (per-student accommodations: extra time multiplier, break allowances, assistive tech, proctoring strictness)
  * - Dedicated lookup, filtering, and review queue indexes

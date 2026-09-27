@@ -1,5 +1,5 @@
 /**
- * Migration 021: Phase 26 — Examination & Invigilation Schema
+ * Migration 021: Examination & Invigilation Schema Extensions
  * Implements authoritative database schema for:
  * 1. question_banks (Reusable question bank repositories)
  * 2. questions extensions (difficulty, bloom_level, tags, version, rubric, subjective question types)

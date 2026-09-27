@@ -1,7 +1,7 @@
 /**
  * @file resultsReleasePolicy.js
  * @description Domain definition for Exam Results Release Policies.
- * Conforms to Step 13.5 and Phase 9 Architecture specifications.
+ * Authoritative results release policies and automated evaluation rules.
  */
 
 /**

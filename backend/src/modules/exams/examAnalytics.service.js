@@ -1,7 +1,7 @@
 /**
  * @file examAnalytics.service.js
  * @description Computes psychometric item statistics (P-value / item difficulty, upper-lower 27% discrimination index, point-biserial correlation), score histograms, and candidate completion stats with caching.
- * Conforms to Phase 26 Track 1 Workstream D.
+ * Calculates item difficulty indices, discrimination scores, and score distribution metrics.
  */
 
 import { query } from '../../infrastructure/postgres/pool.js';

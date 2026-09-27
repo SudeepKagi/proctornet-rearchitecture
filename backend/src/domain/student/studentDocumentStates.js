@@ -2,7 +2,7 @@
  * @file studentDocumentStates.js
  * @description Authoritative DocumentType, DocumentVerificationStatus, and ProctoringStrictness
  * enumerations and state transition maps for candidate identity document verification.
- * Conforms to Step 13.5 and Phase 24 specifications.
+ * Student verification document lifecycle and verification review states.
  */
 
 /**

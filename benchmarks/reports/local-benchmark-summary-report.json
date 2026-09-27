@@ -1,5 +1,5 @@
 {
-  "benchmark_title": "ProctorNet Phase 21 Limited Local Benchmark",
+  "benchmark_title": "ProctorNet Scalability Baseline Local Benchmark",
   "governance_status": "LIMITED_LOCAL_BENCHMARK_COMPLETED",
   "disclaimer": "Limited local benchmark only; results are environment-specific and do not establish AWS c6i.xlarge capacity.",
   "started_at": "2026-09-08T15:23:30.797Z",

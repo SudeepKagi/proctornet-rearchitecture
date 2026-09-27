@@ -481,7 +481,7 @@ export class ProctorNetWebSocketServer {
     context._inboundMsgCount = 0;
     context._inboundWindowStart = Date.now();
 
-    // Dedicated media signaling token bucket (Phase 17)
+    // Dedicated media signaling token bucket
     context._mediaTokenBucket = {
       tokens: config.WS_MEDIA_BURST_CAPACITY,
       capacity: config.WS_MEDIA_BURST_CAPACITY,

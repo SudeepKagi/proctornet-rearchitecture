@@ -1,12 +1,12 @@
 /**
  * @file useScreenAI.js
  * @description Candidate-side hook managing client screen AI inference in a dedicated Web Worker.
- * Conforms to Phase 28:
+ * Architectural capabilities:
  *  - Target ~0.25 FPS sampling rate (4000ms)
  *  - Worker lifecycle with 3-attempt circuit breaker
  *  - Graceful degradation: worker or model failure never blocks the examination
- *  - Dispatches Stage 2 SCREEN_CONTEXT_CLASSIFICATION
- *  - Dispatches Stage 1 technical degradation on screen capture track interruption
+ *  - Dispatches SCREEN_CONTEXT_CLASSIFICATION anomaly events
+ *  - Dispatches technical degradation on screen capture track interruption
  */
 
 import { useEffect, useRef, useState, useCallback } from 'react';
@@ -97,8 +97,9 @@ export function useScreenAI({
     }
 
     try {
-      const workerUrl = '/workers/screenInference.worker.js';
-      const worker = new Worker(workerUrl);
+      const worker = new Worker(new URL('../workers/screenInference.worker.js', import.meta.url), {
+        type: 'module'
+      });
 
       worker.onmessage = (e) => {
         const { type, result, error, reason } = e.data || {};

@@ -1,7 +1,6 @@
 /**
  * @file SessionSignOffModal.jsx
- * @description Modals for Invigilator Session Sign-Off & Incident Reporting.
- * Implements Workstream H.
+ * Concludes exam session with formal invigilator sign-off statement.
  */
 
 import React, { useState } from 'react';

@@ -35,11 +35,11 @@ sessionsRouter.get('/', authenticate, handleListSessions);
 sessionsRouter.get('/:id', authenticate, handleGetSession);
 sessionsRouter.put('/:id', authenticate, requireRole('FACULTY', 'ADMIN'), handleUpdateSession);
 
-// Phase 14: Session Proctoring Summary (Invigilator Console)
+// Session Proctoring Summary (Invigilator Console)
 sessionsRouter.get('/:id/proctoring/summary', authenticate, handleGetSessionSummary);
 sessionsRouter.get('/:sessionId/proctoring/summary', authenticate, handleGetSessionSummary);
 
-// Phase 17: WebRTC STUN/TURN ICE Servers Endpoint
+// WebRTC STUN/TURN ICE Servers Endpoint
 sessionsRouter.get('/:id/ice-servers', authenticate, handleGetIceServers);
 sessionsRouter.get('/:sessionId/ice-servers', authenticate, handleGetIceServers);
 
@@ -52,6 +52,6 @@ sessionsRouter.delete('/:id/students/:studentId', authenticate, requireRole('FAC
 sessionsRouter.post('/:id/invigilators', authenticate, requireRole('FACULTY', 'ADMIN'), handleAssignInvigilator);
 sessionsRouter.delete('/:id/invigilators/:userId', authenticate, requireRole('FACULTY', 'ADMIN'), handleRemoveInvigilator);
 
-// Phase 6: Candidate Attempt Start & Status for Session
+// Candidate Attempt Start & Status for Session
 sessionsRouter.post('/:id/attempts', authenticate, requireRole('STUDENT'), startAttempt);
 sessionsRouter.get('/:id/my-attempt', authenticate, requireRole('STUDENT'), getMyAttempt);

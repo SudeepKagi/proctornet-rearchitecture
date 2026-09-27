@@ -162,12 +162,12 @@ async function run() {
     );
     deletedCounts.rooms = roomsDel.rowCount;
 
-    // J. Exam Topic Rules
-    const rulesDel = await client.query(
-      `DELETE FROM exam_topic_rules WHERE exam_id = ANY($1::uuid[]);`,
+    // J. Exam Questions
+    const eqDel = await client.query(
+      `DELETE FROM exam_questions WHERE exam_id = ANY($1::uuid[]);`,
       [examIds]
     );
-    deletedCounts.exam_topic_rules = rulesDel.rowCount;
+    deletedCounts.exam_questions = eqDel.rowCount;
 
     // K. Exams
     const examsDel = await client.query(

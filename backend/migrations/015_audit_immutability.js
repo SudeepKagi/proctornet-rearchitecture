@@ -1,6 +1,6 @@
 /**
  * Migration 015: Audit Immutability Triggers and Indexes
- * Implements Phase 13 append-only immutability for audit_logs.
+ * Implements append-only immutability triggers for audit_logs.
  * Strictly blocks UPDATE, DELETE, and TRUNCATE with SQLSTATE 20000.
  */
 export async function up(pgm) {

@@ -1,7 +1,6 @@
 /**
  * RabbitMQ Topology Definitions & Assertions.
- *
- * Implements the approved Phase 12 architecture:
+ * Declares durable messaging broker topology:
  * - 3 direct exchanges: proctornet.events, proctornet.retry, proctornet.dlx
  * - 4 Quorum Queues (x-queue-type: 'quorum', durable: true):
  *   - proctornet.evaluation.jobs (primary evaluation work queue)

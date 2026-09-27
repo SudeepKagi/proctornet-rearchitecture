@@ -2,7 +2,7 @@
  * @file interventions.service.js
  * @description Business workflow service for Invigilator Realtime Interventions.
  * Enforces PostgreSQL authoritative state transitions, race condition safety, idempotency, BOLA authorization, and WebSocket event dispatching.
- * Conforms to Phase 26 Track 2 Workstream F.
+ * Business service orchestrating live invigilator interventions and candidate notifications.
  */
 
 import { getPool } from '../../infrastructure/postgres/pool.js';

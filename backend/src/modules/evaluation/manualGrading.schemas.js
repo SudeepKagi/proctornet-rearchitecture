@@ -1,7 +1,7 @@
 /**
  * @file manualGrading.schemas.js
  * @description Zod validation schemas for subjective question manual evaluation.
- * Conforms to Phase 26 Track 1 Workstream C.
+ * Zod schemas validating subjective score adjustments, feedback text, and rubric evaluations.
  */
 
 import { z } from 'zod';

@@ -1,6 +1,6 @@
 /**
  * @file CandidateInterventionOverlays.jsx
- * @description Candidate-facing realtime intervention overlays conforming to Phase 26 Workstream G.
+ * @description Candidate-facing realtime intervention overlays for announcements, warnings, and proctor notices.
  * Includes Pause Overlay, Termination Overlay, Announcement Banner, and Direct Warning Toast.
  */
 

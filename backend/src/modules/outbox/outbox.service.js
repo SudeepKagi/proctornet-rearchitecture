@@ -1,7 +1,7 @@
 /**
  * @file outbox.service.js
  * @description Outbox Service lifecycle management, singleton dispatcher initialization, and dispatch triggering.
- * Conforms to Step 13.5 and Step 13.17 specifications.
+ * Outbox orchestration service managing polling cycles and retry backoff.
  */
 
 import { config } from '../../config/env.js';

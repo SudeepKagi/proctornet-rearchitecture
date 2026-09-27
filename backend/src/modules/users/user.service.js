@@ -635,10 +635,17 @@ export async function bulkImportUsers({
       await client.query('BEGIN');
     }
 
+    // Batch query existing emails in a single round-trip
+    const emailsToCheck = validRows.map((r) => r.email.toLowerCase());
+    const existingEmailsRes = await client.query(
+      `SELECT LOWER(email) AS email FROM users WHERE LOWER(email) = ANY($1::text[])`,
+      [emailsToCheck]
+    );
+    const existingEmailSet = new Set(existingEmailsRes.rows.map((r) => r.email));
+
     for (const row of validRows) {
       // Check database duplicate email
-      const existingEmail = await authRepo.findUserByEmail(row.email);
-      if (existingEmail) {
+      if (existingEmailSet.has(row.email.toLowerCase())) {
         errors.push({
           rowNumber: row.rowNumber,
           data: row,

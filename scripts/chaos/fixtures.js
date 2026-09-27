@@ -1,6 +1,6 @@
 /**
  * @file fixtures.js
- * @description Isolated deterministic test fixture management for ProctorNet Phase 22 Chaos Testing.
+ * @description Isolated deterministic test fixture management for ProctorNet Chaos & Resilience Testing.
  * Generates and tears down isolated CHAOS_* prefixed records with strict boundaries protecting production data.
  */
 
@@ -34,7 +34,7 @@ export function getDbPool() {
 
 /**
  * Seeds isolated chaos test fixtures (instructor, candidates, subject, topic, questions, exam, session, attempts).
- * Concurrency is strictly bounded (max 10 candidates) per Phase 22 safety guidelines.
+ * Concurrency is strictly bounded (max 10 candidates) for test environment stability.
  *
  * @param {object} [options]
  * @param {number} [options.candidateCount=5] - Number of candidate attempts to seed (capped at 10)
@@ -165,11 +165,14 @@ export async function seedChaosFixtures(options = {}) {
       [examId, examTitle, 'Automated Chaos Resilience Test Exam', subjectId, instructor.user_id]
     );
 
-    await client.query(
-      `INSERT INTO exam_topic_rules (rule_id, exam_id, topic_id, question_count, points_per_question, created_at)
-       VALUES ($1, $2, $3, 3, 1.0, NOW());`,
-      [randomUUID(), examId, topicId]
-    );
+    for (let i = 0; i < questions.length; i++) {
+      await client.query(
+        `INSERT INTO exam_questions (exam_id, question_id, display_order, points)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (exam_id, question_id) DO NOTHING;`,
+        [examId, questions[i].id, i + 1, questions[i].points]
+      );
+    }
 
     // 6. Create Session
     const sessionId = randomUUID();
@@ -332,9 +335,9 @@ export async function teardownChaosFixtures(options = {}) {
         await client.query(`DELETE FROM exam_sessions WHERE session_id = ANY($1::uuid[]);`, [sessionIds]);
       }
 
-      // Delete exam topic rules
+      // Delete exam questions
       if (examIds.length > 0) {
-        await client.query(`DELETE FROM exam_topic_rules WHERE exam_id = ANY($1::uuid[]);`, [examIds]);
+        await client.query(`DELETE FROM exam_questions WHERE exam_id = ANY($1::uuid[]);`, [examIds]);
       }
 
       // Delete exams

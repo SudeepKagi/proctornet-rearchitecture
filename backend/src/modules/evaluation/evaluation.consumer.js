@@ -1,7 +1,7 @@
 /**
  * @file evaluation.consumer.js
  * @description Idempotent RabbitMQ consumer for evaluation jobs with Quorum Queue tiered retry & DLQ routing.
- * Conforms strictly to Phase 12 Model A retry semantics.
+ * Consumes exam submission events from RabbitMQ and coordinates grading worker execution.
  */
 
 import { logger } from '../../utils/logger.js';

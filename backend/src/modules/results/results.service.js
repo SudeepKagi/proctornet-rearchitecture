@@ -1,7 +1,7 @@
 /**
  * @file results.service.js
  * @description Business workflow service for Results visibility, listing, summary stats, publication, and release policy mutations.
- * Conforms to Step 13.5, Step 13.7, and Phase 9 Architecture specifications.
+ * Business service orchestrating result calculation, visibility gate evaluation, and manual publication.
  */
 
 import { getPool } from '../../infrastructure/postgres/pool.js';

@@ -1,6 +1,6 @@
 /**
  * @file run-isolated-restore-drill.js
- * @description Executes an automated isolated restore verification drill for ProctorNet Phase 29.
+ * @description Executes an automated isolated restore verification drill for ProctorNet.
  * Validates single-region disaster recovery readiness in an isolated sandbox database:
  * 1. Schema Validity: 21/21 migrations (001-021)
  * 2. Row Count Parity: Exact match across business tables

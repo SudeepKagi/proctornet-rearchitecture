@@ -1,6 +1,6 @@
 /**
  * @file run-resilience-suite.js
- * @description Master Resilience & Chaos Testing Orchestrator for ProctorNet Phase 22.
+ * @description Master Resilience & Chaos Testing Orchestrator for ProctorNet.
  * Executes Level 4 Controlled Chaos Scenarios (CH-01 to CH-10) and Level 5 Compound Multi-Fault,
  * collects empirical Fault Detection Time and Fault Recovery Time metrics, audits 8/8 data invariants,
  * and generates benchmarks/reports/resilience-suite-report.json.
@@ -519,7 +519,7 @@ export async function runResilienceSuite() {
     const reportPath = path.join(reportDir, 'resilience-suite-report.json');
 
     const reportData = {
-      suite: 'ProctorNet Phase 22 Failure, Resilience & Chaos Testing',
+      suite: 'ProctorNet Failure, Resilience & Chaos Testing',
       timestamp: new Date().toISOString(),
       durationSeconds: parseFloat((totalDurationMs / 1000).toFixed(2)),
       overallPassed,

@@ -1,7 +1,7 @@
 /**
  * @file attemptStates.js
  * @description Authoritative Exam Attempt lifecycle states and forward transition rules.
- * Conforms to Step 13.5 Finalized Architecture specification.
+ * Authoritative exam attempt lifecycle states and transition invariants.
  */
 
 /**

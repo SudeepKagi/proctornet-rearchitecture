@@ -1,7 +1,7 @@
 /**
  * @file questions.schemas.js
  * @description Zod validation schemas for Question Bank and Rich Question Authoring.
- * Conforms to Phase 26 Track 1 Workstream A specifications.
+ * Zod schemas validating question creation, update, and search filtering.
  */
 
 import { z } from 'zod';

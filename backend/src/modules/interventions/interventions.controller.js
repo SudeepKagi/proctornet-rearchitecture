@@ -1,7 +1,7 @@
 /**
  * @file interventions.controller.js
  * @description HTTP controllers for invigilator realtime interventions.
- * Conforms to Phase 26 Track 2 Workstream F.
+ * HTTP controllers for invigilator live intervention dispatch and management.
  */
 
 import { BadRequestError } from '../../utils/errors.js';

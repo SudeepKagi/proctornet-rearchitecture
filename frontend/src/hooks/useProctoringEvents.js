@@ -1,13 +1,13 @@
 /**
  * @file useProctoringEvents.js
- * @description Candidate-side proctoring telemetry hook conforming to Phase 28 Stage 1 & Stage 2 taxonomy.
- * Stage 1: Deterministic Browser/Media Telemetry:
+ * @description Candidate-side proctoring telemetry hook collecting browser events and screen AI inferences.
+ * Browser & Media Telemetry:
  *  - BROWSER_FOCUS_LOST
  *  - EXAM_VISIBILITY_LOST
  *  - FULLSCREEN_EXIT
  *  - SCREEN_CAPTURE_INTERRUPTED [TECHNICAL]
  *  - SCREEN_STREAM_DEGRADED [TECHNICAL]
- * Stage 2: Client Screen AI:
+ * Screen AI Heuristic Analysis:
  *  - SCREEN_CONTEXT_CLASSIFICATION (EXAM_CONTEXT, NON_EXAM_CONTEXT, UNKNOWN_CONTEXT)
  *
  * Privacy Invariants:
@@ -103,7 +103,7 @@ export function useProctoringEvents({
     }
   }, [flushBuffer, maxBufferSize]);
 
-  // Public helper methods for Stage 1 & Stage 2 events
+  // Public helper methods for browser telemetry & screen AI events
   const recordScreenInterruption = useCallback((reason = 'SCREEN_TRACK_ENDED') => {
     enqueueEvent('SCREEN_CAPTURE_INTERRUPTED', {
       reason,

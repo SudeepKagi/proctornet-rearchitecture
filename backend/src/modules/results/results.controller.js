@@ -1,7 +1,7 @@
 /**
  * @file results.controller.js
  * @description HTTP REST Controller for Candidate Results, Staff Result Lists, Summaries, Publication, and Release Policies.
- * Conforms to Step 13.5 and Phase 9 specifications.
+ * HTTP controllers for evaluation scorecards, statistical summaries, and results publication.
  */
 
 import * as resultsService from './results.service.js';

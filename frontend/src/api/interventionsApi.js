@@ -1,7 +1,7 @@
 /**
  * @file interventionsApi.js
  * @description API client for invigilator realtime interventions, incident reports, and session sign-off.
- * Conforms to Phase 26 Track 2 Workstreams F & H.
+ * API service for live invigilator interventions, announcements, and candidate warnings.
  */
 
 import { apiClient } from './client.js';

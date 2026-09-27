@@ -1,7 +1,7 @@
 /**
  * @file submissions.repository.js
  * @description PostgreSQL persistence layer for Exam Submissions, Idempotency Records, Final Dirty Answers, and Finalization.
- * Conforms to Step 13.5, 13.7, and Phase 8 specification.
+ * Database persistence for atomic submission state transitions and idempotency records.
  */
 
 import { query } from '../../infrastructure/postgres/pool.js';

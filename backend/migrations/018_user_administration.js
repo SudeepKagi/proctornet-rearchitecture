@@ -1,6 +1,6 @@
 /**
  * Migration 018: Complete User & Account Administration
- * Implements Phase 23 database schema:
+ * Implements user administration database schema:
  * - 4-state account lifecycle ('ACTIVE', 'LOCKED', 'SUSPENDED', 'DISABLED')
  * - 5 authoritative roles ('STUDENT', 'FACULTY', 'INVIGILATOR', 'ADMIN', 'DEVELOPER')
  * - Verification status ('UNVERIFIED', 'PENDING', 'VERIFIED', 'REJECTED')

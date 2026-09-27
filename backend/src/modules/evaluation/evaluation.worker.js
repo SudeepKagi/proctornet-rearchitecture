@@ -1,7 +1,7 @@
 /**
  * @file evaluation.worker.js
  * @description Decoupled Evaluation Worker consumer handling ATTEMPT_SUBMITTED domain events.
- * Conforms to Step 13.5, 13.7, and Phase 8 specifications.
+ * Background worker executing evaluation passes for finalized candidate submissions.
  */
 
 import { logger } from '../../utils/logger.js';

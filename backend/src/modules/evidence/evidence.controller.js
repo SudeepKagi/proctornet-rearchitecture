@@ -1,6 +1,6 @@
 /**
  * @file evidence.controller.js
- * @description HTTP controllers for Phase 15 Evidence Storage endpoints.
+ * @description HTTP controllers for proctoring evidence upload authorization and retrieval.
  */
 
 import * as evidenceService from './evidence.service.js';

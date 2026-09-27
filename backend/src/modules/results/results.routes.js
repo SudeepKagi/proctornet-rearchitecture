@@ -1,7 +1,7 @@
 /**
  * @file results.routes.js
  * @description Express routers for Candidate Results and Staff Exam Results.
- * Conforms to Step 13.5 and Phase 9 specifications.
+ * Express router for results inspection, manual release triggers, and performance summaries.
  */
 
 import { Router } from 'express';

@@ -1,7 +1,7 @@
 /**
  * @file questions.repository.js
  * @description PostgreSQL database repository for Question Banks and Questions.
- * Conforms to Phase 26 Track 1 Workstream A.
+ * Database repository for reusable question repositories and subject-scoped question items.
  */
 
 import { query, getPool } from '../../infrastructure/postgres/pool.js';

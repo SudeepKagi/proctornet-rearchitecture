@@ -1,6 +1,6 @@
 /**
  * Migration 014: Results Publication and Visibility
- * Implements Phase 9 Results release policies, scheduled release timestamps,
+ * Implements results release policies, scheduled release timestamps,
  * and explicit publication metadata on exams.
  */
 export async function up(pgm) {

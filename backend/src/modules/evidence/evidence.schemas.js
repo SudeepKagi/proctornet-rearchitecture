@@ -1,6 +1,6 @@
 /**
  * @file evidence.schemas.js
- * @description Zod validation schemas, MIME allowlists, and size limits for Phase 15 Evidence Storage.
+ * @description Zod validation schemas, MIME allowlists, and size limits for proctoring evidence artifacts.
  */
 
 import { z } from 'zod';
@@ -111,7 +111,7 @@ export const listEvidenceQuerySchema = z.object({
 
 /**
  * Validates whether the first few bytes (magic bytes) match the declared MIME content type.
- * Strict binary file signature verification across the 6 Phase 15 evidence types.
+ * Strict binary magic number verification across supported proctoring evidence formats.
  *
  * @param {Buffer} buffer
  * @param {string} contentType

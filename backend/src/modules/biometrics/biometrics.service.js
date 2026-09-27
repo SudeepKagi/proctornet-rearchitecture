@@ -1,6 +1,6 @@
 /**
  * @file biometrics.service.js
- * @description Centralized business service for Phase 25 Biometric Identity.
+ * @description Centralized business service for candidate biometric face enrollment and verification.
  * Orchestrates face enrollment, anti-spoofing liveness verification, pre-exam face verification,
  * and admin overrides.
  *
@@ -8,7 +8,7 @@
  * - Server-authoritative biometric embedding extraction (client never supplies embeddings).
  * - Server-authoritative liveness evaluation of actual media frames.
  * - Single-use liveness challenge nonces and HMAC-signed anti-tamper tokens.
- * - Conforms strictly to Phase 25 Specification.
+ * - Evaluates liveness, image quality, and vector cosine similarity.
  */
 
 import crypto from 'node:crypto';

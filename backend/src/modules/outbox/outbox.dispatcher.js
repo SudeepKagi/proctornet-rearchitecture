@@ -2,7 +2,7 @@
  * @file outbox.dispatcher.js
  * @description Outbox Dispatcher engine: safely claims pending events using FOR UPDATE SKIP LOCKED,
  * hands off to the transport layer, orchestrates exponential retry backoff, and recovers stale processing locks.
- * Conforms to Step 13.5 and Phase 8 specifications.
+ * Dispatches pending outbox events to message transport and marks records published.
  */
 
 import { getPool } from '../../infrastructure/postgres/pool.js';

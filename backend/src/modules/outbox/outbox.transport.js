@@ -1,7 +1,7 @@
 /**
  * @file outbox.transport.js
  * @description Event Transport abstraction decoupling outbox dispatching from underlying message brokers.
- * Conforms to Step 13.5 and Step 13.17 specifications.
+ * Event transport abstraction layer supporting in-process and RabbitMQ dispatch.
  */
 
 import { publishConfirmed, createConfirmChannel } from '../../infrastructure/rabbitmq/client.js';
@@ -22,9 +22,9 @@ export class EventTransport {
 }
 
 /**
- * Phase 8 In-Process Event Transport.
+ * In-Process Event Transport.
  * Directly invokes the EvaluationWorker locally and awaits completion before resolving.
- * In Phase 12, this will be replaced by RabbitMQEventTransport without changing worker logic.
+ * Used for local test execution without requiring an external message broker.
  */
 export class InProcessEventTransport extends EventTransport {
   /**
@@ -55,7 +55,7 @@ export class InProcessEventTransport extends EventTransport {
 }
 
 /**
- * Phase 12 RabbitMQ Event Transport.
+ * RabbitMQ Event Transport.
  * Publishes events to RabbitMQ exchange using mandatory publishConfirmed on ConfirmChannel.
  * Resolves only when confirmed by the broker AND verified not returned as unroutable.
  * Rejects if broker rejects (nack), unroutable return occurs, channel drops, or timeout expires.

@@ -2,7 +2,7 @@
  * @file s3Storage.js
  * @description AWS S3 storage client abstraction for presigned URL generation,
  * authoritative object metadata verification, and version-aware permanent object deletion.
- * Conforms to Phase 15 specification and ADR-0005.
+ * Object storage integration supporting AWS S3 and LocalStack with pre-signed URLs.
  */
 
 import {

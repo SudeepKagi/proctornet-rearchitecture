@@ -1,7 +1,7 @@
 /**
  * @file questions.controller.js
  * @description HTTP Controllers for Question Bank and Rich Question Authoring endpoints.
- * Conforms to Phase 26 Track 1 Workstream A.
+ * HTTP controllers for question bank authoring, question CRUD, and faculty pool management.
  */
 
 import * as questionsService from './questions.service.js';
