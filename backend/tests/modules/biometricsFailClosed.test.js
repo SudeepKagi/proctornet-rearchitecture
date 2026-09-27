@@ -1,14 +1,15 @@
 /**
  * @file biometricsFailClosed.test.js
- * @description Unit tests verifying fail-closed invariants and provider thresholds
- * for facial identity verification per ADR-0016.
+ * @description Unit tests verifying fail-closed invariants, provider thresholds,
+ * and exact score scaling for facial identity verification per ADR-0016.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   AWS_REKOGNITION_SIMILARITY_THRESHOLD,
   LOCAL_HEURISTIC_SIMILARITY_THRESHOLD,
-  BIOMETRIC_SIMILARITY_THRESHOLD
+  BIOMETRIC_SIMILARITY_THRESHOLD,
+  evaluateIdentityMatch
 } from '../../src/modules/biometrics/biometrics.service.js';
 
 describe('Biometrics Fail-Closed Invariants & Threshold Isolation (ADR-0016)', () => {
@@ -21,35 +22,105 @@ describe('Biometrics Fail-Closed Invariants & Threshold Isolation (ADR-0016)', (
     expect(AWS_REKOGNITION_SIMILARITY_THRESHOLD / 100.0).not.toBe(LOCAL_HEURISTIC_SIMILARITY_THRESHOLD);
   });
 
-  it('prohibits fail-open auto-pass when Rekognition is unavailable and reference embedding is missing', async () => {
-    // Mock repositories and external services to simulate absent Rekognition and absent embedding
-    const biometricsRepo = {
-      countVerificationsBySessionUser: vi.fn().mockResolvedValue(0),
-      createProvisionalVerification: vi.fn().mockResolvedValue({}),
-      updateVerificationVerdict: vi.fn().mockResolvedValue({})
-    };
+  describe('Identity Verification Scoring & Provider Normalization (evaluateIdentityMatch)', () => {
+    const dummyRefBuffer = Buffer.from('fake-ref-image-bytes');
+    const dummySnapBuffer = Buffer.from('fake-snapshot-image-bytes');
 
-    // Verify mathematical cosine similarity behavior
-    const { cosineSimilarity } = await import('../../src/modules/biometrics/vectorMath.js');
-    const vecA = new Array(128).fill(0.1);
-    const vecB = new Array(128).fill(0.1);
-    const perfectScore = cosineSimilarity(vecA, vecB);
-    expect(perfectScore).toBeCloseTo(1.0, 4);
+    it('correctly passes legitimate AWS Rekognition match (0.95 similarity) without double-scaling regression', async () => {
+      // compareFacesWithRekognition returns normalized similarity: 0.95
+      const mockRekognitionMatcher = vi.fn().mockResolvedValue({
+        matched: true,
+        similarity: 0.95,
+        faceMatches: [{ Similarity: 95.0 }]
+      });
 
-    const vecOrthogonal = new Array(128).fill(0);
-    vecOrthogonal[0] = 1.0;
-    const vecOrthogonal2 = new Array(128).fill(0);
-    vecOrthogonal2[1] = 1.0;
-    expect(cosineSimilarity(vecOrthogonal, vecOrthogonal2)).toBeCloseTo(0.0, 4);
-  });
+      const res = await evaluateIdentityMatch({
+        referenceBuffer: dummyRefBuffer,
+        snapshotBuffer: dummySnapBuffer,
+        enrolled: null,
+        rekognitionMatcher: mockRekognitionMatcher,
+        rekThreshold: 80.0
+      });
 
-  it('guarantees that biometric verification fails closed when no reference face is registered', async () => {
-    const { ValidationError } = await import('../../src/utils/errors.js');
-    expect(ValidationError).toBeDefined();
+      expect(mockRekognitionMatcher).toHaveBeenCalledTimes(1);
+      expect(res.matchMethod).toBe('AWS_REKOGNITION');
+      expect(res.matchVerdict).toBe('MATCHED');
+      expect(res.isHeuristic).toBe(false);
+      // Critical assertion: similarityScore MUST be ~0.95, NOT 0.0095
+      expect(res.similarityScore).toBeCloseTo(0.95, 2);
+      // isVerified MUST be true against the 0.8 applied threshold
+      expect(res.isVerified).toBe(true);
+    });
 
-    // Verify error class classification
-    const err = new ValidationError('Identity verification failed: Reference biometric data unavailable.');
-    expect(err.statusCode).toBe(422);
-    expect(err.message).toContain('Reference biometric data unavailable');
+    it('correctly rejects AWS Rekognition match when similarity is below threshold (0.3 similarity)', async () => {
+      const mockRekognitionMatcher = vi.fn().mockResolvedValue({
+        matched: false,
+        similarity: 0.30,
+        faceMatches: []
+      });
+
+      const res = await evaluateIdentityMatch({
+        referenceBuffer: dummyRefBuffer,
+        snapshotBuffer: dummySnapBuffer,
+        enrolled: null,
+        rekognitionMatcher: mockRekognitionMatcher,
+        rekThreshold: 80.0
+      });
+
+      expect(res.matchMethod).toBe('AWS_REKOGNITION');
+      expect(res.matchVerdict).toBe('MISMATCH');
+      expect(res.similarityScore).toBeCloseTo(0.30, 2);
+      expect(res.isVerified).toBe(false);
+    });
+
+    it('fails closed when Rekognition throws and enrolled reference embedding is missing', async () => {
+      const mockRekognitionMatcher = vi.fn().mockRejectedValue(new Error('AWS Rekognition service unavailable'));
+      const mockFaceDetector = vi.fn().mockResolvedValue({
+        faceDetected: true,
+        boundingBox: { top: 10, left: 10, width: 100, height: 100 }
+      });
+
+      const res = await evaluateIdentityMatch({
+        referenceBuffer: dummyRefBuffer,
+        snapshotBuffer: dummySnapBuffer,
+        enrolled: null, // No reference embedding enrolled!
+        rekognitionMatcher: mockRekognitionMatcher,
+        faceDetector: mockFaceDetector
+      });
+
+      expect(res.matchMethod).toBe('NONE');
+      expect(res.matchVerdict).toBe('REFERENCE_DATA_UNAVAILABLE');
+      expect(res.similarityScore).toBe(0.0);
+      expect(res.isVerified).toBe(false);
+      expect(res.isHeuristic).toBe(false);
+    });
+
+    it('routes to local heuristic projection when Rekognition is unavailable but reference embedding exists', async () => {
+      const mockRekognitionMatcher = vi.fn().mockRejectedValue(new Error('Network timeout'));
+      const mockFaceDetector = vi.fn().mockResolvedValue({
+        faceDetected: true,
+        boundingBox: { top: 10, left: 10, width: 100, height: 100 }
+      });
+      const dummyEmbedding = new Array(128).fill(0.1);
+      const mockEmbeddingExtractor = vi.fn().mockResolvedValue({
+        embedding: dummyEmbedding
+      });
+
+      const res = await evaluateIdentityMatch({
+        referenceBuffer: dummyRefBuffer,
+        snapshotBuffer: dummySnapBuffer,
+        enrolled: { embedding: dummyEmbedding },
+        rekognitionMatcher: mockRekognitionMatcher,
+        faceDetector: mockFaceDetector,
+        embeddingExtractor: mockEmbeddingExtractor,
+        heuristicThreshold: 0.88
+      });
+
+      expect(res.matchMethod).toBe('LOCAL_HEURISTIC_PROJECTION');
+      expect(res.isHeuristic).toBe(true);
+      expect(res.similarityScore).toBeCloseTo(1.0, 4);
+      expect(res.matchVerdict).toBe('MATCHED');
+      expect(res.isVerified).toBe(true);
+    });
   });
 });

@@ -852,6 +852,115 @@ export async function getSessionVerifications({ sessionId, page = 1, limit = 20,
  * @param {string} params.image - Base64 encoded snapshot or data URL
  * @returns {Promise<object>}
  */
+/**
+ * Pure evaluation function comparing live snapshot against enrolled reference.
+ * Decoupled from S3 I/O and PostgreSQL persistence to allow deterministic unit testing.
+ *
+ * @param {object} params
+ * @param {Buffer|null} [params.referenceBuffer]
+ * @param {Buffer} params.snapshotBuffer
+ * @param {object|null} [params.enrolled]
+ * @param {Function} [params.rekognitionMatcher]
+ * @param {Function} [params.faceDetector]
+ * @param {Function} [params.embeddingExtractor]
+ * @param {number} [params.rekThreshold]
+ * @param {number} [params.heuristicThreshold]
+ * @returns {Promise<{
+ *   isVerified: boolean,
+ *   similarityScore: number,
+ *   matchVerdict: string,
+ *   matchMethod: string,
+ *   isHeuristic: boolean,
+ *   appliedThreshold: number,
+ *   noFaceDetected?: boolean
+ * }>}
+ */
+export async function evaluateIdentityMatch({
+  referenceBuffer = null,
+  snapshotBuffer,
+  enrolled = null,
+  rekognitionMatcher = compareFacesWithRekognition,
+  faceDetector = detectFace,
+  embeddingExtractor = extractEmbedding,
+  rekThreshold = AWS_REKOGNITION_SIMILARITY_THRESHOLD,
+  heuristicThreshold = LOCAL_HEURISTIC_SIMILARITY_THRESHOLD
+}) {
+  let similarityScore = 0;
+  let matchVerdict = 'MISMATCH';
+  let matchMethod = 'NONE';
+  let isHeuristic = false;
+
+  if (referenceBuffer) {
+    try {
+      const rekResult = await rekognitionMatcher({
+        sourceImage: referenceBuffer,
+        targetImage: snapshotBuffer,
+        similarityThreshold: rekThreshold
+      });
+      similarityScore = rekResult.similarity; // already normalized to 0.0 - 1.0 by rekognitionClient.js
+      matchMethod = 'AWS_REKOGNITION';
+      matchVerdict = rekResult.matched ? 'MATCHED' : 'MISMATCH';
+      isHeuristic = false;
+    } catch (rekErr) {
+      logger.warn({ err: rekErr.message }, 'AWS Rekognition CompareFaces call skipped or unavailable; checking fallback options');
+    }
+  }
+
+  // Local Spatial-Gradient Heuristic Fallback if Rekognition could not execute
+  if (matchMethod === 'NONE') {
+    const det = await faceDetector(snapshotBuffer);
+    if (!det?.faceDetected || !det?.boundingBox) {
+      return {
+        isVerified: false,
+        similarityScore: 0,
+        matchVerdict: 'EXTRACTION_FAILED',
+        matchMethod: 'NONE',
+        isHeuristic: false,
+        appliedThreshold: heuristicThreshold,
+        noFaceDetected: true
+      };
+    }
+
+    if (enrolled?.embedding) {
+      // Local Spatial Gradient Projection Heuristic (Uncalibrated; for offline/demo use only per ADR-0016)
+      const liveEmbeddingRes = await embeddingExtractor(snapshotBuffer, det.boundingBox);
+      const enrolledEmbedding = typeof enrolled.embedding === 'string' ? JSON.parse(enrolled.embedding) : enrolled.embedding;
+      similarityScore = cosineSimilarity(enrolledEmbedding, liveEmbeddingRes.embedding);
+      matchMethod = 'LOCAL_HEURISTIC_PROJECTION';
+      matchVerdict = similarityScore >= heuristicThreshold ? 'MATCHED' : 'MISMATCH';
+      isHeuristic = true;
+      logger.info(
+        { similarityScore, heuristicThreshold, matchVerdict },
+        'Evaluated local spatial projection heuristic (non-authoritative developmental fallback)'
+      );
+    } else {
+      // CRITICAL SECURITY FIX (§1): Fail-closed invariant.
+      // Under NO circumstances does presence of a detected face equate to an identity match.
+      // If reference biometric embedding is unavailable and AWS Rekognition cannot be reached,
+      // the system MUST fail closed and require proctor / admin manual verification clearance.
+      similarityScore = 0.0;
+      matchMethod = 'NONE';
+      matchVerdict = 'REFERENCE_DATA_UNAVAILABLE';
+      isHeuristic = false;
+      logger.warn(
+        'Face verification failed closed: No enrolled reference embedding and AWS Rekognition unavailable. Auto-pass rejected.'
+      );
+    }
+  }
+
+  const appliedThreshold = matchMethod === 'AWS_REKOGNITION' ? rekThreshold / 100.0 : heuristicThreshold;
+  const isVerified = matchVerdict === 'MATCHED' && similarityScore >= appliedThreshold;
+
+  return {
+    isVerified,
+    similarityScore,
+    matchVerdict,
+    matchMethod,
+    isHeuristic,
+    appliedThreshold
+  };
+}
+
 export async function verifyIdentitySnapshot({ userId, sessionId, image, imageBuffer = null, mimeType = 'image/jpeg' }) {
   if (!sessionId) {
     throw new ValidationError('sessionId is required for identity verification');
@@ -980,79 +1089,44 @@ export async function verifyIdentitySnapshot({ userId, sessionId, image, imageBu
   // ---------------------------------------------------------
   // STEP 4: Compare live snapshot against S3 reference image using AWS Rekognition CompareFaces
   // ---------------------------------------------------------
-  let similarityScore = 0;
-  let matchVerdict = 'MISMATCH';
-  let matchMethod = 'NONE';
-  let isHeuristic = false;
   const rekThreshold = AWS_REKOGNITION_SIMILARITY_THRESHOLD; // e.g. 80.0
   const heuristicThreshold = LOCAL_HEURISTIC_SIMILARITY_THRESHOLD; // e.g. 0.88
 
-  if (referenceBuffer) {
-    try {
-      const rekResult = await compareFacesWithRekognition({
-        sourceImage: referenceBuffer,
-        targetImage: snapshotBuffer,
-        similarityThreshold: rekThreshold
-      });
-      similarityScore = rekResult.similarity / 100.0; // Normalized 0..1
-      matchMethod = 'AWS_REKOGNITION';
-      matchVerdict = rekResult.matched ? 'MATCHED' : 'MISMATCH';
-      isHeuristic = false;
-    } catch (rekErr) {
-      logger.warn({ err: rekErr.message }, 'AWS Rekognition CompareFaces call skipped or unavailable; checking fallback options');
-    }
-  }
+  const evalResult = await evaluateIdentityMatch({
+    referenceBuffer,
+    snapshotBuffer,
+    enrolled,
+    rekThreshold,
+    heuristicThreshold
+  });
 
-  // Local Spatial-Gradient Heuristic Fallback if Rekognition could not execute
-  if (matchMethod === 'NONE') {
-    const det = await detectFace(snapshotBuffer);
-    if (!det.faceDetected || !det.boundingBox) {
-      await biometricsRepo.updateVerificationVerdict(verificationId, {
-        finalStatus: isLocked ? 'LOCKED' : 'FAILED',
-        matchVerdict: 'EXTRACTION_FAILED',
-        livenessVerdict: 'PASSED',
-        attemptNumber,
-        biometricReferenceId: enrolled?.biometric_id || null
-      });
-      if (isLocked) {
-        throw new ForbiddenError('BIOMETRIC_VERIFICATION_LOCKED: Maximum attempts exceeded.');
-      }
-      throw new ValidationError('No face detected in the captured snapshot. Please look straight into the camera.');
-    }
+  const {
+    similarityScore,
+    matchVerdict,
+    matchMethod,
+    isHeuristic,
+    appliedThreshold,
+    isVerified,
+    noFaceDetected
+  } = evalResult;
 
-    if (enrolled?.embedding) {
-      // Local Spatial Gradient Projection Heuristic (Uncalibrated; for offline/demo use only per ADR-0016)
-      const liveEmbeddingRes = await extractEmbedding(snapshotBuffer, det.boundingBox);
-      const enrolledEmbedding = typeof enrolled.embedding === 'string' ? JSON.parse(enrolled.embedding) : enrolled.embedding;
-      similarityScore = cosineSimilarity(enrolledEmbedding, liveEmbeddingRes.embedding);
-      matchMethod = 'LOCAL_HEURISTIC_PROJECTION';
-      matchVerdict = similarityScore >= heuristicThreshold ? 'MATCHED' : 'MISMATCH';
-      isHeuristic = true;
-      logger.info(
-        { similarityScore, heuristicThreshold, matchVerdict },
-        'Evaluated local spatial projection heuristic (non-authoritative developmental fallback)'
-      );
-    } else {
-      // CRITICAL SECURITY FIX (§1): Fail-closed invariant.
-      // Under NO circumstances does presence of a detected face equate to an identity match.
-      // If reference biometric embedding is unavailable and AWS Rekognition cannot be reached,
-      // the system MUST fail closed and require proctor / admin manual verification clearance.
-      similarityScore = 0.0;
-      matchMethod = 'NONE';
-      matchVerdict = 'REFERENCE_DATA_UNAVAILABLE';
-      isHeuristic = false;
-      logger.warn(
-        { userId, sessionId, verificationId },
-        'Face verification failed closed: No enrolled reference embedding and AWS Rekognition unavailable. Auto-pass rejected.'
-      );
+  if (noFaceDetected) {
+    await biometricsRepo.updateVerificationVerdict(verificationId, {
+      finalStatus: isLocked ? 'LOCKED' : 'FAILED',
+      matchVerdict: 'EXTRACTION_FAILED',
+      livenessVerdict: 'PASSED',
+      attemptNumber,
+      biometricReferenceId: enrolled?.biometric_id || null
+    });
+    if (isLocked) {
+      throw new ForbiddenError('BIOMETRIC_VERIFICATION_LOCKED: Maximum attempts exceeded.');
     }
+    throw new ValidationError('No face detected in the captured snapshot. Please look straight into the camera.');
   }
 
   // ---------------------------------------------------------
   // STEP 5: Strict verification evaluation. Fail closed if match fails.
   // ---------------------------------------------------------
-  const appliedThreshold = matchMethod === 'AWS_REKOGNITION' ? rekThreshold / 100.0 : heuristicThreshold;
-  const isVerified = matchVerdict === 'MATCHED' && similarityScore >= appliedThreshold;
   const finalStatus = isVerified ? 'VERIFIED' : isLocked ? 'LOCKED' : 'FAILED';
 
   await biometricsRepo.updateVerificationVerdict(verificationId, {
