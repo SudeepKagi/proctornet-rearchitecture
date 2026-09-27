@@ -223,12 +223,12 @@ export async function countExams({ createdBy, status, subjectId }) {
 }
 
 /**
- * Retrieves all assigned questions for an exam.
+ * Retrieves all assigned exam questions formatted as blueprint rows.
  * @param {string} examId
  * @param {object} [client]
  * @returns {Promise<object[]>}
  */
-export async function getTopicRules(examId, client = null) {
+export async function getExamQuestionsAsBlueprintRows(examId, client = null) {
   const text = `
     SELECT 
       eq.exam_question_id AS rule_id,
@@ -250,6 +250,9 @@ export async function getTopicRules(examId, client = null) {
   const res = client ? await client.query(text, [examId]) : await query(text, [examId]);
   return res.rows;
 }
+
+// Backward-compatible alias for blueprint validator and existing callers
+export const getTopicRules = getExamQuestionsAsBlueprintRows;
 
 /**
  * Upserts a topic question rule for an exam by assigning its questions statically.

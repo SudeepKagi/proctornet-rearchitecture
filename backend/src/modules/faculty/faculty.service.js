@@ -452,15 +452,29 @@ export async function scheduleExam(
       throw new BadRequestError('The selected Question Pool has no published questions available');
     }
 
+    // 1b. Resolve canonical department from departments table
+    const deptRes = await client.query(
+      `SELECT department_id, name FROM departments 
+       WHERE LOWER(name) = LOWER($1) 
+          OR LOWER(code) = LOWER($1)
+          OR name ILIKE '%' || $1 || '%'
+          OR $1 ILIKE '%' || code || '%'
+       LIMIT 1`,
+      [targetDepartment.trim()]
+    );
+    const canonicalDept = deptRes.rows[0] || null;
+    const deptId = canonicalDept?.department_id || null;
+    const deptName = canonicalDept?.name || targetDepartment.trim();
+
     // 2. Insert into exams
     const examRes = await client.query(
       `INSERT INTO exams (
         title, description, duration_minutes, total_marks, passing_marks,
-        target_semester, target_department, scheduled_start_time, scheduled_end_time,
+        target_semester, target_department, department_id, scheduled_start_time, scheduled_end_time,
         status, created_by, results_release_policy, pool_id
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'SCHEDULED', $10, 'IMMEDIATE', $11)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'SCHEDULED', $11, 'IMMEDIATE', $12)
       RETURNING exam_id, title, duration_minutes, total_marks, passing_marks,
-                target_semester, target_department, scheduled_start_time, scheduled_end_time, status, pool_id`,
+                target_semester, target_department, department_id, scheduled_start_time, scheduled_end_time, status, pool_id`,
       [
         title.trim(),
         description?.trim() || null,
@@ -468,7 +482,8 @@ export async function scheduleExam(
         parsedTotalMarks,
         finalPassingMarks,
         Number(targetSemester),
-        targetDepartment.trim(),
+        deptName,
+        deptId,
         start.toISOString(),
         end.toISOString(),
         facultyUserId,
@@ -478,69 +493,58 @@ export async function scheduleExam(
 
     const exam = examRes.rows[0];
 
-    // 3. Statically assign all selected questions to this exam
-    for (let i = 0; i < selectedQuestions.length; i++) {
-      const q = selectedQuestions[i];
-      await client.query(
-        `INSERT INTO exam_questions (
-          exam_id, question_id, display_order, points
-        ) VALUES ($1, $2, $3, $4)
-        ON CONFLICT (exam_id, question_id) DO UPDATE SET
-          display_order = EXCLUDED.display_order,
-          points = EXCLUDED.points`,
-        [
-          exam.exam_id,
-          q.question_id,
-          i + 1,
-          Number(q.default_points) || 1.00
-        ]
-      );
-    }
+    // 3. Statically assign all selected questions to this exam in a single batched insert
+    const qIds = selectedQuestions.map((q) => q.question_id);
+    const orders = selectedQuestions.map((_, i) => i + 1);
+    const pointsList = selectedQuestions.map((q) => Number(q.default_points) || 1.00);
+
+    await client.query(
+      `INSERT INTO exam_questions (
+        exam_id, question_id, display_order, points
+      )
+      SELECT $1, unnest($2::uuid[]), unnest($3::int[]), unnest($4::numeric[])
+      ON CONFLICT (exam_id, question_id) DO UPDATE SET
+        display_order = EXCLUDED.display_order,
+        points = EXCLUDED.points`,
+      [exam.exam_id, qIds, orders, pointsList]
+    );
 
     // 4. Create operational exam_session matching schedule
     const sessionRes = await client.query(
       `INSERT INTO exam_sessions (
         exam_id, scheduled_start_time, scheduled_end_time,
-        target_semester, target_department, status
-      ) VALUES ($1, $2, $3, $4, $5, 'SCHEDULED')
+        target_semester, target_department, department_id, status
+      ) VALUES ($1, $2, $3, $4, $5, $6, 'SCHEDULED')
       RETURNING session_id, scheduled_start_time, scheduled_end_time, status`,
       [
         exam.exam_id,
         start.toISOString(),
         end.toISOString(),
         Number(targetSemester),
-        targetDepartment.trim()
+        deptName,
+        deptId
       ]
     );
     const session = sessionRes.rows[0];
 
-    // 5. Automatically assign all eligible students matching Semester and Branch
-    const studentsRes = await client.query(
-      `SELECT sp.user_id
+    // 5. Automatically assign all eligible students in a single atomic batched INSERT ... SELECT
+    const assignRes = await client.query(
+      `INSERT INTO session_students (session_id, student_id, status)
+       SELECT $1, sp.user_id, 'ASSIGNED'
        FROM student_profiles sp
        JOIN users u ON sp.user_id = u.user_id
-       WHERE sp.semester = $1
+       WHERE sp.semester = $2
          AND (
-           sp.department ILIKE $2 
-           OR $2 ILIKE '%' || sp.department || '%'
-           OR REGEXP_REPLACE(LOWER(REPLACE(sp.department::text, '&', 'and')), '\\s*\\([^)]*\\)|[^a-z0-9]', '', 'g') = REGEXP_REPLACE(LOWER(REPLACE($2::text, '&', 'and')), '\\s*\\([^)]*\\)|[^a-z0-9]', '', 'g')
-           OR REGEXP_REPLACE(LOWER(REPLACE(sp.department::text, '&', 'and')), '\\s*\\([^)]*\\)|[^a-z0-9]', '', 'g') LIKE '%' || REGEXP_REPLACE(LOWER(REPLACE($2::text, '&', 'and')), '\\s*\\([^)]*\\)|[^a-z0-9]', '', 'g') || '%'
-           OR REGEXP_REPLACE(LOWER(REPLACE($2::text, '&', 'and')), '\\s*\\([^)]*\\)|[^a-z0-9]', '', 'g') LIKE '%' || REGEXP_REPLACE(LOWER(REPLACE(sp.department::text, '&', 'and')), '\\s*\\([^)]*\\)|[^a-z0-9]', '', 'g') || '%'
+           ($3::uuid IS NOT NULL AND sp.department_id = $3)
+           OR LOWER(sp.department) = LOWER($4)
+           OR sp.department ILIKE '%' || $4 || '%'
          )
-         AND u.status = 'ACTIVE'`,
-      [Number(targetSemester), targetDepartment.trim()]
+         AND u.status = 'ACTIVE'
+       ON CONFLICT (session_id, student_id) DO NOTHING
+       RETURNING student_id;`,
+      [session.session_id, Number(targetSemester), deptId, deptName]
     );
-
-    let assignedCount = 0;
-    for (const student of studentsRes.rows) {
-      await client.query(
-        `INSERT INTO session_students (session_id, student_id, status)
-         VALUES ($1, $2, 'ASSIGNED')
-         ON CONFLICT (session_id, student_id) DO NOTHING`,
-        [session.session_id, student.user_id]
-      );
-      assignedCount++;
-    }
+    const assignedCount = assignRes.rowCount;
 
     // 6. Assign the faculty as primary session invigilator
     await client.query(
