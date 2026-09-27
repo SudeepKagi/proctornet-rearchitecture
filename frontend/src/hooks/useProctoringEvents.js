@@ -29,18 +29,20 @@ const HEARTBEAT_INTERVAL_MS = 30000;
 export function useProctoringEvents({
   attemptId,
   isActive = true,
+  enabled,
   flushIntervalMs = DEFAULT_FLUSH_INTERVAL_MS,
   maxBufferSize = MAX_BUFFER_BATCH_SIZE
 }) {
+  const effectiveActive = enabled !== undefined ? Boolean(enabled) : Boolean(isActive);
   const bufferRef = useRef([]);
   const isFlushingRef = useRef(false);
   const attemptIdRef = useRef(attemptId);
-  const isActiveRef = useRef(isActive);
+  const isActiveRef = useRef(effectiveActive);
   const blurStartRef = useRef(null);
   const visibilityHiddenStartRef = useRef(null);
 
   attemptIdRef.current = attemptId;
-  isActiveRef.current = isActive;
+  isActiveRef.current = effectiveActive;
 
   /**
    * Flushes up to 50 buffered events to the backend in a non-blocking request.
@@ -58,7 +60,16 @@ export function useProctoringEvents({
       // Remove successfully processed events from buffer
       const sentIds = new Set(batch.map((e) => e.eventId));
       bufferRef.current = bufferRef.current.filter((e) => !sentIds.has(e.eventId));
-    } catch {
+    } catch (err) {
+      if (err.status === 422 || err.code === 'ATTEMPT_EXPIRED' || err.status === 403) {
+        // Attempt is closed or expired: clear buffer and cease ingestion
+        bufferRef.current = [];
+        isActiveRef.current = false;
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('proctornet:attempt-expired', { detail: { attemptId: attemptIdRef.current } }));
+        }
+        return;
+      }
       // Network or temporary failure: retain in buffer for subsequent retry.
       // Cap buffer size to prevent unbounded memory growth during extended disconnections.
       if (bufferRef.current.length > MAX_BUFFER_CAP) {

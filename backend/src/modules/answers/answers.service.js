@@ -121,9 +121,9 @@ async function assertCanReadAnswers(user, attempt) {
  */
 async function assertActiveAndValidDeadline(attempt, client, actorUserId, requestId = null) {
   if (attempt.status !== AttemptStatus.ACTIVE) {
-    throw new ConflictError(
-      `Cannot modify answers: Exam attempt is in '${attempt.status}' state. Answers can only be modified in ACTIVE state.`,
-      'ATTEMPT_NOT_ACTIVE'
+    throw new UnprocessableEntityError(
+      `Exam attempt is in '${attempt.status}' state and can no longer be modified.`,
+      'ATTEMPT_EXPIRED'
     );
   }
 
@@ -151,7 +151,7 @@ async function assertActiveAndValidDeadline(attempt, client, actorUserId, reques
       'Attempt transitioned to EXPIRED on answer write attempt'
     );
 
-    throw new ConflictError(
+    throw new UnprocessableEntityError(
       'Cannot save answer: Your exam attempt deadline has expired',
       'ATTEMPT_EXPIRED'
     );
@@ -209,13 +209,13 @@ export async function saveAnswer(attemptId, attemptQuestionId, data, user, reque
     let resultRecord;
 
     if (!existingAnswer) {
-      // Unanswered question -> expected_revision MUST be 0
-      if (expected_revision !== 0) {
+      // Unanswered question -> initial save accepts expected_revision 0 or 1
+      if (expected_revision !== 0 && expected_revision !== 1) {
         try {
           answerRevisionsConflictTotal.inc({ conflict_type: 'revision_mismatch' });
         } catch {}
         throw new ConflictError(
-          `Stale revision conflict: Question is currently unanswered (expected_revision MUST be 0, received ${expected_revision})`,
+          `Stale revision conflict: Question is currently unanswered (expected_revision must be 0 or 1, received ${expected_revision})`,
           'STALE_REVISION_CONFLICT'
         );
       }

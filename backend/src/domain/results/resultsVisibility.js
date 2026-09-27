@@ -48,14 +48,14 @@ export function isResultCandidateVisible({
     return true;
   }
 
+  // 2. IMMEDIATE policy: visible immediately upon evaluation
+  if (releasePolicy === ResultsReleasePolicy.IMMEDIATE || !releasePolicy) {
+    return true;
+  }
+
   // All non-manual automatic visibility policies require the exam to have ended
   if (!POST_EXAM_STATUSES.includes(examStatus)) {
     return false;
-  }
-
-  // 2. IMMEDIATE policy: visible once exam has ended
-  if (releasePolicy === ResultsReleasePolicy.IMMEDIATE) {
-    return true;
   }
 
   // 3. SCHEDULED policy: visible once exam has ended AND release time has arrived

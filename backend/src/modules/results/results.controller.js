@@ -29,7 +29,10 @@ export async function getCandidateResult(req, res, next) {
 
     return res.status(200).json({
       success: true,
-      data: result
+      data: {
+        result,
+        ...result
+      }
     });
   } catch (err) {
     return next(err);

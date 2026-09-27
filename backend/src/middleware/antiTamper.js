@@ -190,8 +190,20 @@ export async function antiTamperMiddleware(req, res, next) {
   if (!attempt || attempt.student_id !== user.userId) {
     return res.status(403).json({
       success: false,
-      error: 'Access denied: You do not own this exam attempt',
-      code: 'ERR_ATTEMPT_FORBIDDEN'
+      message: 'Access denied: You do not own this exam attempt',
+      code: 'ERR_ATTEMPT_FORBIDDEN',
+      details: []
+    });
+  }
+
+  // Graceful handling for expired or non-active attempts (422 instead of hard 403)
+  const isTimeExpired = attempt.expires_at && new Date() >= new Date(attempt.expires_at);
+  if (attempt.status !== 'ACTIVE' || isTimeExpired) {
+    return res.status(422).json({
+      success: false,
+      message: 'Exam attempt has expired or is no longer active',
+      code: 'ATTEMPT_EXPIRED',
+      details: []
     });
   }
 
@@ -210,6 +222,14 @@ export async function antiTamperMiddleware(req, res, next) {
   const isValid = verifySignatureConstantTime(signature, expectedSignature);
 
   if (!isValid) {
+    if (!enforceSignature) {
+      logger.warn(
+        { attemptId, userId: user.userId },
+        'Anti-tamper signature mismatch ignored in non-production environment'
+      );
+      return next();
+    }
+
     securityTamperViolationsTotal.inc({ reason: 'signature_mismatch' });
     recordAuditEvent({
       actorUserId: user.userId,
@@ -225,8 +245,9 @@ export async function antiTamperMiddleware(req, res, next) {
 
     return res.status(403).json({
       success: false,
-      error: 'Payload signature verification failed: anti-tampering validation error',
-      code: 'ERR_SIGNATURE_INVALID'
+      message: 'Payload signature verification failed: anti-tampering validation error',
+      code: 'ERR_SIGNATURE_INVALID',
+      details: []
     });
   }
 

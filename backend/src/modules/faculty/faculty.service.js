@@ -350,7 +350,10 @@ export async function getTopicPoolQuestions(topicId) {
  * @returns {Promise<object>}
  */
 export async function scheduleExam(
-  {
+  params,
+  facultyUserId
+) {
+  const {
     title,
     description = '',
     durationMinutes = 60,
@@ -361,10 +364,13 @@ export async function scheduleExam(
     targetDepartment,
     scheduledStartTime,
     scheduledEndTime = null,
-    topicRules = []
-  },
-  facultyUserId
-) {
+    topicRules = [],
+    poolId: paramPoolId = null,
+    pool_id: paramPoolIdSnake = null,
+    questionIds: paramQuestionIds = [],
+    question_ids: paramQuestionIdsSnake = []
+  } = params || {};
+
   if (!title?.trim()) throw new BadRequestError('Exam title is required');
   if (!targetSemester) throw new BadRequestError('Target Semester is required (1-12)');
   if (!targetDepartment?.trim()) throw new BadRequestError('Target Branch/Department is required');
@@ -387,8 +393,26 @@ export async function scheduleExam(
   if (end <= start) {
     throw new BadRequestError('Scheduled End Time must be later than Start Time');
   }
-  const poolId = payload.pool_id || payload.poolId || payload.topic_id || payload.topicId || (payload.topic_rules?.[0]?.topic_id) || (payload.topicRules?.[0]?.topic_id) || null;
-  const questionIds = Array.isArray(payload.question_ids) ? payload.question_ids : [];
+
+  const poolId =
+    paramPoolId ||
+    paramPoolIdSnake ||
+    params?.pool_id ||
+    params?.poolId ||
+    params?.topic_id ||
+    params?.topicId ||
+    (topicRules?.[0]?.topic_id) ||
+    (topicRules?.[0]?.topicId) ||
+    null;
+
+  const questionIds =
+    Array.isArray(paramQuestionIds) && paramQuestionIds.length > 0
+      ? paramQuestionIds
+      : (Array.isArray(paramQuestionIdsSnake) && paramQuestionIdsSnake.length > 0
+        ? paramQuestionIdsSnake
+        : (Array.isArray(params?.question_ids)
+          ? params.question_ids
+          : (Array.isArray(params?.questionIds) ? params.questionIds : [])));
 
   if (!poolId && questionIds.length === 0) {
     throw new BadRequestError('A Question Pool or specific questions must be selected for this exam');

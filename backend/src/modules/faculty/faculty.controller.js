@@ -126,27 +126,76 @@ export async function saveQuestionsToPoolHandler(req, res, next) {
 
 export async function scheduleExamHandler(req, res, next) {
   try {
-    const payload = req.body;
+    const payload = req.body || {};
+    const {
+      title,
+      description,
+      duration_minutes,
+      durationMinutes,
+      total_marks,
+      totalMarks,
+      passing_marks,
+      passingMarks,
+      passing_percentage,
+      passingPercentage,
+      target_semester,
+      targetSemester,
+      target_department,
+      targetDepartment,
+      scheduled_start_time,
+      scheduledStartTime,
+      scheduled_end_time,
+      scheduledEndTime,
+      topic_rules,
+      topicRules,
+      pool_id,
+      poolId,
+      topic_id,
+      topicId,
+      question_ids,
+      questionIds
+    } = payload;
+
     const result = await facultyService.scheduleExam(
       {
-        title: payload.title,
-        description: payload.description,
-        durationMinutes: payload.duration_minutes || payload.durationMinutes,
-        totalMarks: payload.total_marks || payload.totalMarks,
-        passingMarks: payload.passing_marks || payload.passingMarks,
-        passingPercentage: payload.passing_percentage ?? payload.passingPercentage,
-        targetSemester: payload.target_semester || payload.targetSemester,
-        targetDepartment: payload.target_department || payload.targetDepartment,
-        scheduledStartTime: payload.scheduled_start_time || payload.scheduledStartTime,
-        scheduledEndTime: payload.scheduled_end_time || payload.scheduledEndTime,
-        topicRules: payload.topic_rules || payload.topicRules || []
+        title,
+        description,
+        durationMinutes: duration_minutes || durationMinutes,
+        totalMarks: total_marks || totalMarks,
+        passingMarks: passing_marks || passingMarks,
+        passingPercentage: passing_percentage ?? passingPercentage,
+        targetSemester: target_semester || targetSemester,
+        targetDepartment: target_department || targetDepartment,
+        scheduledStartTime: scheduled_start_time || scheduledStartTime,
+        scheduledEndTime: scheduled_end_time || scheduledEndTime,
+        topicRules: topic_rules || topicRules || [],
+        poolId: pool_id || poolId || topic_id || topicId,
+        pool_id: pool_id || poolId || topic_id || topicId,
+        questionIds: question_ids || questionIds || [],
+        question_ids: question_ids || questionIds || []
       },
-      req.user.userId
+      req.user?.userId
     );
 
-    res.status(201).json({ status: 'success', data: result });
+    return res.status(201).json({
+      status: 'success',
+      success: true,
+      data: result
+    });
   } catch (err) {
-    next(err);
+    logger.error({ err: err.message, stack: err.stack }, 'scheduleExamHandler failed');
+    if (err.statusCode && typeof err.statusCode === 'number') {
+      return res.status(err.statusCode).json({
+        status: 'error',
+        success: false,
+        message: err.message,
+        error: {
+          code: err.code || 'BAD_REQUEST',
+          message: err.message
+        }
+      });
+    }
+    return next(err);
   }
 }
 

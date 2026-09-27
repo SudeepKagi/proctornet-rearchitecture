@@ -62,8 +62,12 @@ export class ConflictError extends AppError {
 }
 
 export class UnprocessableEntityError extends AppError {
-  constructor(message = 'Unprocessable Entity', details = null) {
-    super(message, 422, 'UNPROCESSABLE_ENTITY', details);
+  constructor(message = 'Unprocessable Entity', codeOrDetails = 'UNPROCESSABLE_ENTITY', details = null) {
+    if (typeof codeOrDetails === 'string') {
+      super(message, 422, codeOrDetails, details);
+    } else {
+      super(message, 422, 'UNPROCESSABLE_ENTITY', codeOrDetails);
+    }
   }
 }
 

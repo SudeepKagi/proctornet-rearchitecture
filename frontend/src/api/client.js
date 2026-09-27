@@ -50,9 +50,12 @@ export function clearAuthSession() {
  */
 export class ApiError extends Error {
   constructor(message, status, data = null, requestId = null) {
-    const stringMessage = typeof message === 'string'
+    let stringMessage = typeof message === 'string'
       ? message
       : (data?.error?.message || data?.message || 'Request failed');
+    if (typeof stringMessage === 'string' && (stringMessage.trim().startsWith('[') || stringMessage.trim().startsWith('{'))) {
+      stringMessage = 'Invalid submission data. Please check your answers and try again.';
+    }
     super(stringMessage);
     this.name = 'ApiError';
     this.status = status;
@@ -235,32 +238,63 @@ export async function apiClient(endpoint, options = {}) {
 
   if (!response.ok) {
     const rawError = responseData?.error;
+    const errorCode = responseData?.code || rawError?.code || null;
     let extractedMessage =
       (typeof responseData?.message === 'string' && responseData.message) ||
       (typeof rawError?.message === 'string' && rawError.message) ||
       (typeof rawError === 'string' && rawError) ||
       null;
 
-    // Translate raw technical messages into simple English
-    if (extractedMessage) {
-      if (extractedMessage.toLowerCase().includes('concurrency') || extractedMessage.toLowerCase().includes('occ')) {
-        extractedMessage = 'This answer changed somewhere else. Please review it.';
-      } else if (extractedMessage.toLowerCase().includes('jwt') || extractedMessage.toLowerCase().includes('token expired')) {
+    // Detect and unpack stringified JSON (e.g. raw Zod error arrays)
+    if (extractedMessage && (extractedMessage.trim().startsWith('[') || extractedMessage.trim().startsWith('{'))) {
+      try {
+        const parsed = JSON.parse(extractedMessage);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const first = parsed[0];
+          if (first?.code === 'unrecognized_keys') {
+            extractedMessage = 'Invalid submission data. Please check your answers and try again.';
+          } else if (first?.message) {
+            extractedMessage = first.message;
+          } else {
+            extractedMessage = 'Invalid submission data. Please check your answers and try again.';
+          }
+        } else if (parsed && typeof parsed === 'object' && parsed.message) {
+          extractedMessage = parsed.message;
+        } else {
+          extractedMessage = 'Invalid submission data. Please check your answers and try again.';
+        }
+      } catch {
+        extractedMessage = 'Invalid submission data. Please check your answers and try again.';
+      }
+    }
+
+    // Specific domain / lifecycle status handling
+    if (response.status === 422 && (errorCode === 'ATTEMPT_EXPIRED' || (extractedMessage && extractedMessage.toLowerCase().includes('expired')))) {
+      extractedMessage = 'Your exam time has ended. Finalizing submission...';
+    } else if (extractedMessage) {
+      const lower = extractedMessage.toLowerCase();
+      if (lower.includes('concurrency') || lower.includes('occ') || lower.includes('stale revision')) {
+        extractedMessage = 'This answer changed concurrently. Please review your answers.';
+      } else if (lower.includes('jwt') || lower.includes('token expired') || lower.includes('session invalid')) {
         extractedMessage = 'Your session has expired. Please sign in again.';
-      } else if (extractedMessage.toLowerCase().includes('authorization denied') || extractedMessage.toLowerCase().includes('forbidden')) {
-        extractedMessage = 'You do not have permission to do this.';
+      } else if (lower.includes('authorization denied') || lower.includes('forbidden') || lower.includes('access denied')) {
+        extractedMessage = 'You do not have permission to perform this action.';
+      } else if (lower.includes('unrecognized_keys') || lower.includes('invalid_type')) {
+        extractedMessage = 'Invalid submission data. Please check your answers and try again.';
       }
     }
 
     const fallbackStatusMessages = {
-      400: 'Invalid request. Please check the information you entered.',
+      400: 'Invalid submission data. Please check your answers and try again.',
       401: 'Your session has expired. Please sign in again.',
-      403: 'You do not have permission to do this.',
-      404: "We couldn't find that page.",
-      409: 'This information changed while you were working. Please review it.',
-      422: 'Some information was incomplete or incorrect. Please review and try again.',
+      403: 'You do not have permission to perform this action.',
+      404: 'The requested resource could not be found.',
+      409: 'This information was updated while you were working. Please review it.',
+      422: errorCode === 'ATTEMPT_EXPIRED'
+        ? 'Your exam time has ended. Finalizing submission...'
+        : 'Some information was incomplete or incorrect. Please review and try again.',
       429: 'Too many requests. Please wait a moment and try again.',
-      500: 'Something went wrong. Please try again.',
+      500: 'A server error occurred. Our team has been notified. Please try again.',
       502: 'ProctorNet is temporarily unavailable. Please try again shortly.',
       503: 'ProctorNet is temporarily unavailable. Please try again shortly.',
       504: 'The server took too long to respond. Please try again.'
@@ -271,7 +305,33 @@ export async function apiClient(endpoint, options = {}) {
       fallbackStatusMessages[response.status] ||
       'Something went wrong. Please try again.';
 
-    const requestId = rawError?.requestId || response.headers.get('x-request-id') || null;
+    const requestId = rawError?.requestId || responseData?.requestId || response.headers.get('x-request-id') || null;
+
+    // Global event notification for server/network errors
+    if (typeof window !== 'undefined') {
+      if (response.status >= 500) {
+        window.dispatchEvent(
+          new CustomEvent('proctornet:error', {
+            detail: {
+              message: finalMessage,
+              status: response.status,
+              code: errorCode || 'SERVER_ERROR',
+              requestId
+            }
+          })
+        );
+      } else if (response.status === 422 && errorCode === 'ATTEMPT_EXPIRED') {
+        window.dispatchEvent(
+          new CustomEvent('proctornet:attempt-expired', {
+            detail: {
+              message: finalMessage,
+              status: response.status,
+              code: errorCode
+            }
+          })
+        );
+      }
+    }
 
     throw new ApiError(finalMessage, response.status, responseData, requestId);
   }

@@ -96,6 +96,12 @@ export function ScheduleExamModal({ isOpen, onClose, onSuccess }) {
     setError('');
 
     const startObj = new Date(`${examDate}T${startTime}`);
+    if (isNaN(startObj.getTime())) {
+      setError('Please provide a valid exam date and start time.');
+      setSubmitting(false);
+      return;
+    }
+
     const startDateTime = startObj.toISOString();
     const durationNum = Number(durationMinutes) || 60;
     const endDateTime = new Date(startObj.getTime() + durationNum * 60000).toISOString();

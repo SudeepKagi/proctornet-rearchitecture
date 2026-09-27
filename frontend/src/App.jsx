@@ -390,7 +390,7 @@ export function App() {
           <Route
             path="/invigilator"
             element={
-              <RoleRoute allowedRoles={['INVIGILATOR', 'ADMIN']}>
+              <RoleRoute allowedRoles={['INVIGILATOR', 'FACULTY', 'ADMIN']}>
                 <InvigilatorDashboardPage />
               </RoleRoute>
             }
@@ -398,7 +398,7 @@ export function App() {
           <Route
             path="/invigilator/sessions/:sessionId"
             element={
-              <RoleRoute allowedRoles={['INVIGILATOR', 'ADMIN']}>
+              <RoleRoute allowedRoles={['INVIGILATOR', 'FACULTY', 'ADMIN']}>
                 <SessionMonitorPage />
               </RoleRoute>
             }

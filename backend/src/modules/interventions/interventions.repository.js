@@ -14,8 +14,11 @@ export async function checkInvigilatorSessionAccess(sessionId, userId, isAdmin =
   if (isAdmin) return true;
 
   const sql = `
-    SELECT 1 FROM session_invigilators
-    WHERE session_id = $1 AND user_id = $2;
+    SELECT 1 FROM exam_sessions es
+    LEFT JOIN exams e ON es.exam_id = e.exam_id
+    LEFT JOIN session_invigilators si ON es.session_id = si.session_id AND si.user_id = $2
+    WHERE es.session_id = $1 AND (si.user_id IS NOT NULL OR e.created_by = $2)
+    LIMIT 1;
   `;
   const res = await query(sql, [sessionId, userId]);
   return res.rowCount > 0;

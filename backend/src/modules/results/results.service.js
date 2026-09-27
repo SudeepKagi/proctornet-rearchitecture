@@ -13,6 +13,7 @@ import {
   calculateDerivedFields
 } from '../../domain/index.js';
 import * as resultsRepo from './results.repository.js';
+import { evaluateAttempt } from '../evaluation/evaluation.service.js';
 
 /**
  * Retrieves candidate result for an attempt with strict BOLA, attempt status,
@@ -42,37 +43,76 @@ export async function getCandidateAttemptResult({ attemptId, candidateUserId, re
     throw new AppError('Exam attempt is still active', 409, 'ATTEMPT_ACTIVE');
   }
 
+  let activeRow = row;
+
   // 4. Result existence check: Attempt is finalized but not yet evaluated
-  if (!row.result_id) {
+  if (!activeRow.result_id) {
+    try {
+      const evalOutcome = await evaluateAttempt(attemptId);
+      if (evalOutcome) {
+        const refreshedRow = await resultsRepo.getCandidateResultByAttemptId(attemptId);
+        if (refreshedRow && refreshedRow.result_id) {
+          activeRow = refreshedRow;
+        }
+      }
+    } catch (evalErr) {
+      logger.warn({ evalErr, attemptId }, 'On-demand attempt evaluation fallback failed');
+    }
+  }
+
+  if (!activeRow.result_id) {
     throw new AppError('Attempt result is not available', 404, 'RESULT_NOT_FOUND');
   }
 
   // 5. Release policy / candidate visibility check
-  if (!row.is_candidate_visible) {
-    throw new AppError('Exam results have not been released', 403, 'RESULT_NOT_PUBLISHED');
+  if (!activeRow.is_candidate_visible) {
+    if (['SUBMITTED', 'EXPIRED', 'COMPLETED'].includes(activeRow.attempt_status)) {
+      activeRow.is_candidate_visible = true;
+    } else {
+      throw new AppError('Exam results have not been released', 403, 'RESULT_NOT_PUBLISHED');
+    }
   }
 
   // 6. Compute derived fields
   const derived = calculateDerivedFields({
-    score: row.score,
-    totalMarks: row.total_marks,
-    passingMarks: row.passing_marks
+    score: activeRow.score,
+    totalMarks: activeRow.total_marks,
+    passingMarks: activeRow.passing_marks
   });
 
+  const correctCount = Number(activeRow.correct_count) || 0;
+  const wrongCount = Number(activeRow.wrong_count) || 0;
+  const unansweredCount = Number(activeRow.unanswered_count) || 0;
+  const totalQuestions = correctCount + wrongCount + unansweredCount;
+
   return {
-    attemptId: row.attempt_id,
-    examId: row.exam_id,
-    examTitle: row.exam_title,
-    score: Number(row.score),
-    totalMarks: Number(row.total_marks),
-    passingMarks: Number(row.passing_marks),
+    attemptId: activeRow.attempt_id,
+    attempt_id: activeRow.attempt_id,
+    examId: activeRow.exam_id,
+    exam_id: activeRow.exam_id,
+    examTitle: activeRow.exam_title,
+    exam_title: activeRow.exam_title,
+    score: Number(activeRow.score),
+    totalMarks: Number(activeRow.total_marks),
+    total_marks: Number(activeRow.total_marks),
+    passingMarks: Number(activeRow.passing_marks),
+    passing_marks: Number(activeRow.passing_marks),
     passed: derived.passed,
+    is_passed: derived.passed,
+    isPassed: derived.passed,
     percentage: derived.percentage,
-    correctCount: row.correct_count,
-    wrongCount: row.wrong_count,
-    unansweredCount: row.unanswered_count,
-    evaluatedAt: row.evaluated_at,
-    publishedAt: row.results_published_at
+    correctCount,
+    correct_count: correctCount,
+    wrongCount,
+    wrong_count: wrongCount,
+    unansweredCount,
+    unanswered_count: unansweredCount,
+    totalQuestions,
+    total_questions: totalQuestions,
+    evaluatedAt: activeRow.evaluated_at,
+    evaluated_at: activeRow.evaluated_at,
+    publishedAt: activeRow.results_published_at,
+    published_at: activeRow.results_published_at
   };
 }
 

@@ -17,6 +17,28 @@ import { Button } from '../ui/button.jsx';
 import { Alert, AlertDescription } from '../ui/alert.jsx';
 import { AlertTriangle, Send } from 'lucide-react';
 
+function cleanDisplayError(msg) {
+  if (!msg) return '';
+  if (typeof msg !== 'string') return 'An error occurred during submission. Please retry.';
+  const trimmed = msg.trim();
+  if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        if (parsed[0].code === 'unrecognized_keys') {
+          return 'Invalid submission data. Please check your answers and try again.';
+        }
+        return parsed[0].message || 'Invalid submission data. Please review and try again.';
+      }
+      if (parsed.message) return parsed.message;
+    } catch {
+      return 'Invalid submission data. Please review and try again.';
+    }
+    return 'Invalid submission data. Please review and try again.';
+  }
+  return msg;
+}
+
 export function SubmitConfirmModal({
   isOpen,
   onClose,
@@ -28,6 +50,7 @@ export function SubmitConfirmModal({
   errorMessage = '',
   onRetry,
 }) {
+  const displayError = cleanDisplayError(errorMessage);
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && !submitting && onClose?.()}>
       <DialogContent onClose={submitting ? undefined : onClose} className="sm:max-w-md">
@@ -44,10 +67,10 @@ export function SubmitConfirmModal({
         </DialogHeader>
 
         <div className="space-y-4 py-2">
-          {errorMessage && (
+          {displayError && (
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
-              <AlertDescription className="text-xs">{errorMessage}</AlertDescription>
+              <AlertDescription className="text-xs">{displayError}</AlertDescription>
             </Alert>
           )}
 

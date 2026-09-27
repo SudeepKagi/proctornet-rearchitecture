@@ -33,7 +33,10 @@ function getExamState(session) {
   const start = session.scheduled_start_time ? new Date(session.scheduled_start_time) : null;
   const end = session.scheduled_end_time ? new Date(session.scheduled_end_time) : null;
 
-  if (session.status === 'COMPLETED') return 'completed';
+  const isCompletedAttempt = ['SUBMITTED', 'EXPIRED', 'COMPLETED'].includes(session.my_attempt_status) ||
+                             ['SUBMITTED', 'EXPIRED', 'COMPLETED'].includes(session.my_submission_status);
+
+  if (session.status === 'COMPLETED' || isCompletedAttempt) return 'completed';
   if (session.status === 'CANCELLED') return 'cancelled';
   if (session.status === 'ACTIVE') return 'active';
   // Scheduled but end time passed
@@ -158,6 +161,10 @@ export function CandidateExamsPage() {
   }
 
   async function handleViewResult(session) {
+    if (session.my_attempt_id) {
+      navigate(`/candidate/attempts/${session.my_attempt_id}/result`);
+      return;
+    }
     // Try to get attempt to navigate to result
     try {
       const attempt = await sessionsApi.getMyAttempt(session.session_id || session.id);

@@ -56,18 +56,24 @@ function useCountdown(targetDate) {
   return remaining;
 }
 
-function NextExamCard({ session, onEnter }) {
+function NextExamCard({ session, onEnter, onViewResult }) {
   const id = session.session_id || session.id;
-  const isActive = session.status === 'ACTIVE';
-  const countdown = useCountdown(isActive ? null : session.scheduled_start_time);
+  const isCompleted = ['SUBMITTED', 'EXPIRED', 'COMPLETED'].includes(session.my_attempt_status);
+  const isActive = session.status === 'ACTIVE' && !isCompleted;
+  const countdown = useCountdown(isActive || isCompleted ? null : session.scheduled_start_time);
 
   return (
-    <Card className={`border-2 ${isActive ? 'border-emerald-400 bg-emerald-50/60' : 'border-blue-200 bg-blue-50/40'} shadow-sm`}>
+    <Card className={`border-2 ${isCompleted ? 'border-slate-300 bg-white' : isActive ? 'border-emerald-400 bg-emerald-50/60' : 'border-blue-200 bg-blue-50/40'} shadow-sm`}>
       <CardContent className="p-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              {isActive ? (
+              {isCompleted ? (
+                <Badge variant="outline" className="gap-1 border-emerald-300 text-emerald-700">
+                  <CheckCircle2 size={12} />
+                  Completed
+                </Badge>
+              ) : isActive ? (
                 <Badge variant="success" className="gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                   Live Now
@@ -76,7 +82,11 @@ function NextExamCard({ session, onEnter }) {
                 <Badge variant="secondary">Upcoming</Badge>
               )}
               <span className="text-xs text-slate-500 font-medium">
-                {isActive ? `Closes at ${new Date(session.scheduled_end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : formatDateTime(session.scheduled_start_time)}
+                {isCompleted
+                  ? 'Exam submitted & evaluated'
+                  : isActive
+                  ? `Closes at ${new Date(session.scheduled_end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                  : formatDateTime(session.scheduled_start_time)}
               </span>
             </div>
             <h3 className="text-lg font-bold text-slate-900 leading-snug">
@@ -87,7 +97,7 @@ function NextExamCard({ session, onEnter }) {
                 <Timer size={12} className="text-slate-400" />
                 {session.exam_duration_minutes || 60} min duration
               </span>
-              {!isActive && (
+              {!isActive && !isCompleted && (
                 <span className="flex items-center gap-1.5 font-semibold text-blue-700">
                   <Clock size={12} />
                   Starts in {countdown}
@@ -95,16 +105,26 @@ function NextExamCard({ session, onEnter }) {
               )}
             </div>
           </div>
-          <Button
-            onClick={() => onEnter(id)}
-            className={`shrink-0 h-10 px-6 font-semibold text-sm ${isActive
-              ? 'bg-emerald-700 hover:bg-emerald-800 text-white'
-              : 'bg-blue-700 hover:bg-blue-800 text-white'
-            }`}
-          >
-            {isActive ? 'Enter Exam' : 'View Details'}
-            <ArrowRight size={15} />
-          </Button>
+          {isCompleted ? (
+            <Button
+              onClick={() => onViewResult?.(session)}
+              className="shrink-0 h-10 px-6 font-semibold text-sm bg-blue-600 hover:bg-blue-700 text-white gap-2"
+            >
+              <Award size={15} />
+              View Results
+            </Button>
+          ) : (
+            <Button
+              onClick={() => onEnter(id)}
+              className={`shrink-0 h-10 px-6 font-semibold text-sm ${isActive
+                ? 'bg-emerald-700 hover:bg-emerald-800 text-white'
+                : 'bg-blue-700 hover:bg-blue-800 text-white'
+              }`}
+            >
+              {isActive ? 'Enter Exam' : 'View Details'}
+              <ArrowRight size={15} />
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>
@@ -138,11 +158,19 @@ export function CandidateDashboardPage() {
 
   useEffect(() => { loadDashboard(); }, []);
 
-  const upcoming = sessions.filter(s => !['COMPLETED', 'CANCELLED'].includes(s.status));
-  const completed = sessions.filter(s => s.status === 'COMPLETED');
-  const active = sessions.filter(s => s.status === 'ACTIVE');
+  const completed = sessions.filter(s => s.status === 'COMPLETED' || ['SUBMITTED', 'EXPIRED', 'COMPLETED'].includes(s.my_attempt_status));
+  const upcoming = sessions.filter(s => !['COMPLETED', 'CANCELLED'].includes(s.status) && !['SUBMITTED', 'EXPIRED', 'COMPLETED'].includes(s.my_attempt_status));
+  const active = sessions.filter(s => s.status === 'ACTIVE' && !['SUBMITTED', 'EXPIRED', 'COMPLETED'].includes(s.my_attempt_status));
   const nextExam = active[0] || upcoming.sort((a, b) => new Date(a.scheduled_start_time) - new Date(b.scheduled_start_time))[0];
   const recentCompleted = [...completed].sort((a, b) => new Date(b.scheduled_end_time || b.updated_at) - new Date(a.scheduled_end_time || a.updated_at)).slice(0, 3);
+
+  function handleViewResult(session) {
+    if (session?.my_attempt_id) {
+      navigate(`/candidate/attempts/${session.my_attempt_id}/result`);
+      return;
+    }
+    navigate('/candidate/exams');
+  }
 
   const isEnrolled = Boolean(
     enrollment?.isEnrolled &&
@@ -215,7 +243,7 @@ export function CandidateDashboardPage() {
         {loading ? (
           <Card className="border-slate-200 animate-pulse"><CardContent className="p-6 h-24" /></Card>
         ) : nextExam ? (
-          <NextExamCard session={nextExam} onEnter={(id) => navigate(`/candidate/readiness/${id}`)} />
+          <NextExamCard session={nextExam} onEnter={(id) => navigate(`/candidate/readiness/${id}`)} onViewResult={handleViewResult} />
         ) : (
           <Card className="border-slate-200 bg-white">
             <CardContent className="p-8 text-center space-y-2">
@@ -270,7 +298,7 @@ export function CandidateDashboardPage() {
                         <Button
                           size="sm" variant="ghost"
                           className="h-7 text-xs text-blue-600 hover:text-blue-700 gap-1 px-2"
-                          onClick={() => navigate(`/candidate/exams`)}
+                          onClick={() => handleViewResult(s)}
                         >
                           Results <ChevronRight size={12} />
                         </Button>

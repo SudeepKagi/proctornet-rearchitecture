@@ -9,7 +9,7 @@ export async function getCandidateResult(attemptId) {
   const result = await apiClient(`/api/v1/attempts/${attemptId}/result`, {
     method: 'GET',
   });
-  return result.data?.result;
+  return result.data?.result || result.data;
 }
 
 export async function getExamResults(examId, params = {}) {

@@ -171,6 +171,14 @@ export async function listSessions(
 
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
+  let attemptSelect = '';
+  if (studentTarget?.studentId) {
+    const studentParamIdx = idx++;
+    values.push(studentTarget.studentId);
+    attemptSelect = `, (SELECT a.attempt_id FROM exam_attempts a WHERE a.session_id = s.session_id AND a.student_id = $${studentParamIdx} ORDER BY a.created_at DESC LIMIT 1) AS my_attempt_id,
+           (SELECT a.status FROM exam_attempts a WHERE a.session_id = s.session_id AND a.student_id = $${studentParamIdx} ORDER BY a.created_at DESC LIMIT 1) AS my_attempt_status`;
+  }
+
   const text = `
     SELECT s.session_id, s.exam_id, s.room_id, s.scheduled_start_time, s.scheduled_end_time,
            s.status, s.created_at, s.updated_at,
@@ -178,6 +186,7 @@ export async function listSessions(
            r.name AS room_name, r.capacity AS room_capacity, r.building AS room_building,
            (SELECT COUNT(*)::int FROM session_students WHERE session_id = s.session_id) AS student_count,
            (SELECT COUNT(*)::int FROM session_invigilators WHERE session_id = s.session_id) AS invigilator_count
+           ${attemptSelect}
     FROM exam_sessions s
     JOIN exams e ON s.exam_id = e.exam_id
     LEFT JOIN rooms r ON s.room_id = r.room_id

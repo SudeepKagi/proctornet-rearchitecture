@@ -29,6 +29,7 @@ import {
   FileEdit,
   ArrowRight,
   BookOpen,
+  Shield,
 } from 'lucide-react';
 
 function formatDateTime(val) {
@@ -222,6 +223,16 @@ export function FacultyExamsPage() {
                     </div>
 
                     <div className="flex items-center gap-2.5 self-end md:self-center shrink-0">
+                      {ex.session_id && (
+                        <Button
+                          size="sm"
+                          onClick={() => navigate(`/invigilator/sessions/${ex.session_id}`)}
+                          className="h-9 px-3.5 text-xs font-semibold gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
+                        >
+                          <Shield size={13} /> Invigilate Live
+                        </Button>
+                      )}
+
                       {ex.status !== 'CANCELLED' && (
                         <Button
                           variant="outline"

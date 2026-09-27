@@ -31,6 +31,7 @@ import {
   FileText,
   BarChart3,
   BookOpen,
+  Shield,
 } from 'lucide-react';
 
 function formatDateTime(val) {
@@ -380,6 +381,16 @@ export function FacultyDashboardPage() {
                   </div>
 
                   <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                    {ex.session_id && (
+                      <Button
+                        size="sm"
+                        onClick={() => navigate(`/invigilator/sessions/${ex.session_id}`)}
+                        className="h-8 text-xs gap-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-xs"
+                      >
+                        <Shield size={13} /> Invigilate
+                      </Button>
+                    )}
+
                     {['ENDED', 'EVALUATED', 'RESULT_PUBLISHED'].includes(ex.status) ||
                     (ex.scheduled_end_time && new Date(ex.scheduled_end_time) < new Date()) ? (
                       <Button

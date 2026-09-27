@@ -91,6 +91,15 @@ export function useAutosave({
           setSaveStatus('saved');
         }
       } catch (err) {
+        if (err.status === 422 || err.code === 'ATTEMPT_EXPIRED') {
+          dirtyQueueRef.current.delete(questionId);
+          persistDirtyQueue();
+          setSaveStatus('saved');
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('proctornet:attempt-expired', { detail: { attemptId } }));
+          }
+          return;
+        }
         if (err.status === 409) {
           // Stale revision: reconcile from server
           try {
@@ -121,7 +130,7 @@ export function useAutosave({
   // Set an answer locally with immediate visual feedback and 1,000ms debounce
   const setAnswer = useCallback(
     (questionId, answerValue) => {
-      const currentRev = answersRef.current[questionId]?.revision_id || 1;
+      const currentRev = answersRef.current[questionId]?.revision_id ?? 0;
 
       // Update in-memory state immediately (0ms visual latency)
       setAnswers((prev) => ({
@@ -182,8 +191,17 @@ export function useAutosave({
       dirtyQueueRef.current.clear();
       clearPersistedQueue();
       setSaveStatus('saved');
-    } catch {
-      setSaveStatus('offline');
+    } catch (err) {
+      if (err.status === 422 || err.code === 'ATTEMPT_EXPIRED') {
+        dirtyQueueRef.current.clear();
+        clearPersistedQueue();
+        setSaveStatus('saved');
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('proctornet:attempt-expired', { detail: { attemptId } }));
+        }
+      } else {
+        setSaveStatus('offline');
+      }
     }
 
     return payload;

@@ -43,7 +43,7 @@ export class InProcessEventTransport extends EventTransport {
    * @returns {Promise<void>}
    */
   async publish(event) {
-    if (event.event_type === 'ATTEMPT_SUBMITTED') {
+    if (event.event_type === 'ATTEMPT_SUBMITTED' || event.event_type === 'ATTEMPT_EXPIRED') {
       if (!this.evaluationWorker || typeof this.evaluationWorker.handle !== 'function') {
         throw new Error('InProcessEventTransport: evaluationWorker is not properly configured');
       }

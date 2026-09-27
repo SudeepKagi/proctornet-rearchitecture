@@ -21,7 +21,8 @@ import {
   NotFoundError,
   ForbiddenError,
   ConflictError,
-  BadRequestError
+  BadRequestError,
+  UnprocessableEntityError
 } from '../../utils/errors.js';
 import { logger } from '../../utils/logger.js';
 import { defaultBroadcaster } from '../../infrastructure/realtime/index.js';
@@ -78,9 +79,9 @@ export async function ingestCandidateEvents(attemptId, user, events) {
 
     // 3. Verify attempt is ACTIVE
     if (attempt.status !== 'ACTIVE') {
-      throw new ConflictError(
+      throw new UnprocessableEntityError(
         `Attempt is in status '${attempt.status}'. Telemetry is only accepted for ACTIVE attempts.`,
-        'ATTEMPT_NOT_ACTIVE'
+        'ATTEMPT_EXPIRED'
       );
     }
 

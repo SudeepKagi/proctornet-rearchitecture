@@ -18,6 +18,7 @@ import { AttemptStatus } from '../../domain/attempt/attemptStates.js';
 import { transitionAttemptState } from '../../domain/attempt/attemptStateMachine.js';
 import * as submissionsRepo from './submissions.repository.js';
 import { triggerOutboxDispatch } from '../outbox/outbox.service.js';
+import { evaluateAttempt } from '../evaluation/evaluation.service.js';
 
 /**
  * Computes a deterministic SHA-256 fingerprint for a submission request based solely on semantic submission data.
@@ -283,51 +284,33 @@ export async function submitAttempt(attemptId, idempotencyKey, body, user, reque
     }
 
     // 7. Check Attempt Status
-    if (attempt.status === AttemptStatus.SUBMITTED) {
+    if (attempt.status === AttemptStatus.SUBMITTED || attempt.status === AttemptStatus.COMPLETED) {
       await client.query('ROLLBACK');
-      throw new ConflictError(
-        'Exam attempt has already been submitted',
-        'ATTEMPT_ALREADY_SUBMITTED'
-      );
+      return {
+        attempt_id: attempt.attempt_id,
+        status: attempt.status,
+        submitted_at: attempt.submitted_at || new Date().toISOString(),
+        server_time: new Date().toISOString(),
+        message: 'Exam attempt has already been submitted.'
+      };
     }
 
-    if (attempt.status !== AttemptStatus.ACTIVE) {
+    if (attempt.status !== AttemptStatus.ACTIVE && attempt.status !== AttemptStatus.EXPIRED) {
       await client.query('ROLLBACK');
       throw new ConflictError(
-        `Cannot submit exam attempt: Attempt is in '${attempt.status}' state. Only ACTIVE attempts can be submitted.`,
+        `Cannot submit exam attempt: Attempt is in '${attempt.status}' state. Only active attempts can be submitted.`,
         'ATTEMPT_NOT_ACTIVE'
       );
     }
 
     // 8. Authoritative Server Deadline Check
-    const serverNow = new Date(attempt.server_now);
+    const serverNow = new Date(attempt.server_now || new Date());
     const expiresAt = new Date(attempt.expires_at);
-
-    if (serverNow >= expiresAt) {
-      await finalizeAttempt(
-        client,
-        attempt,
-        AttemptStatus.EXPIRED,
-        'Authoritative server deadline elapsed on submit request',
-        user.userId,
-        requestId,
-        {
-          serverTime: serverNow.toISOString(),
-          expiresAt: attempt.expires_at
-        }
-      );
-
-      await client.query('COMMIT');
-      logger.warn(
-        { attemptId, studentId: user.userId },
-        'Attempt transitioned to EXPIRED on submission attempt'
-      );
-
-      throw new ConflictError(
-        'Cannot submit exam: Your exam attempt deadline has expired',
-        'ATTEMPT_EXPIRED'
-      );
-    }
+    const isExpired = serverNow >= expiresAt || Boolean(body?.auto_expired);
+    const targetStatus = isExpired ? AttemptStatus.EXPIRED : AttemptStatus.SUBMITTED;
+    const finalizationReason = isExpired
+      ? 'Exam attempt finalized on deadline expiration'
+      : 'Candidate voluntarily submitted exam attempt';
 
     // 9. Process Optional Final Dirty Answers
     if (Array.isArray(body?.answers) && body.answers.length > 0) {
@@ -365,9 +348,9 @@ export async function submitAttempt(attemptId, idempotencyKey, body, user, reque
         const existingAnswer = await submissionsRepo.findAnswerByAttemptQuestionId(attempt_question_id, client);
 
         if (!existingAnswer) {
-          if (expected_revision !== 0) {
+          if (expected_revision !== 0 && expected_revision !== 1) {
             throw new ConflictError(
-              `Stale revision conflict: Question is currently unanswered (expected_revision MUST be 0, received ${expected_revision})`,
+              `Stale revision conflict: Question is currently unanswered (expected_revision must be 0 or 1, received ${expected_revision})`,
               'STALE_REVISION_CONFLICT'
             );
           }
@@ -395,12 +378,12 @@ export async function submitAttempt(attemptId, idempotencyKey, body, user, reque
       }
     }
 
-    // 10. Execute State Transition & Finalization (ACTIVE -> SUBMITTED)
+    // 10. Execute State Transition & Finalization
     const finalizedAttempt = await finalizeAttempt(
       client,
       attempt,
-      AttemptStatus.SUBMITTED,
-      'Candidate voluntarily submitted exam attempt',
+      targetStatus,
+      finalizationReason,
       user.userId,
       requestId,
       { traceparent }
@@ -409,10 +392,12 @@ export async function submitAttempt(attemptId, idempotencyKey, body, user, reque
     // 11. Build Response Payload
     const responsePayload = {
       attempt_id: attempt.attempt_id,
-      status: AttemptStatus.SUBMITTED,
+      status: targetStatus,
       submitted_at: finalizedAttempt.submitted_at ? new Date(finalizedAttempt.submitted_at).toISOString() : new Date().toISOString(),
       server_time: serverNow.toISOString(),
-      message: 'Exam attempt submitted successfully. Objective evaluation initiated.'
+      message: isExpired
+        ? 'Exam attempt finalized due to deadline expiration.'
+        : 'Exam attempt submitted successfully. Objective evaluation initiated.'
     };
 
     // 12. Persist Submission Idempotency Record
@@ -436,8 +421,11 @@ export async function submitAttempt(attemptId, idempotencyKey, body, user, reque
       'Exam attempt successfully submitted and finalized'
     );
 
-    // 14. Asynchronously Trigger Outbox Dispatcher (non-blocking)
+    // 14. Asynchronously Trigger Evaluation and Outbox Dispatcher (non-blocking)
     setImmediate(() => {
+      evaluateAttempt(attemptId).catch((err) => {
+        logger.warn({ err, attemptId }, 'Immediate evaluation trigger warning');
+      });
       triggerOutboxDispatch().catch((err) => {
         logger.error({ err, attemptId }, 'Background outbox dispatch trigger error');
       });

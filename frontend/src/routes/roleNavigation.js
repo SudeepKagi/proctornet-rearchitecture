@@ -22,7 +22,7 @@ export const ROUTE_ROLE_PERMISSIONS = {
   '/admin': ['ADMIN'],
   '/developer': ['DEVELOPER'],
   '/faculty': ['FACULTY', 'ADMIN'],
-  '/invigilator': ['INVIGILATOR', 'ADMIN'],
+  '/invigilator': ['INVIGILATOR', 'FACULTY', 'ADMIN'],
   '/candidate': ['STUDENT', 'ADMIN'],
   '/student': ['STUDENT', 'ADMIN'],
 };

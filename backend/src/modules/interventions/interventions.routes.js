@@ -25,64 +25,64 @@ export const interventionsRouter = Router();
 // Session interventions
 interventionsRouter.post(
   '/sessions/:sessionId/announcements',
-  requireRole('INVIGILATOR', 'ADMIN'),
+  requireRole('INVIGILATOR', 'FACULTY', 'ADMIN'),
   handleBroadcastAnnouncement
 );
 
 interventionsRouter.get(
   '/sessions/:sessionId/history',
-  requireRole('INVIGILATOR', 'ADMIN'),
+  requireRole('INVIGILATOR', 'FACULTY', 'ADMIN'),
   handleGetSessionInterventions
 );
 
 // Incident reporting
 interventionsRouter.post(
   '/sessions/:sessionId/incidents',
-  requireRole('INVIGILATOR', 'ADMIN'),
+  requireRole('INVIGILATOR', 'FACULTY', 'ADMIN'),
   handleReportIncident
 );
 
 interventionsRouter.get(
   '/sessions/:sessionId/incidents',
-  requireRole('INVIGILATOR', 'ADMIN'),
+  requireRole('INVIGILATOR', 'FACULTY', 'ADMIN'),
   handleGetSessionIncidents
 );
 
 // Session Sign-off & Closure
 interventionsRouter.post(
   '/sessions/:sessionId/sign-off',
-  requireRole('INVIGILATOR', 'ADMIN'),
+  requireRole('INVIGILATOR', 'FACULTY', 'ADMIN'),
   handleSignOffSession
 );
 
 interventionsRouter.get(
   '/sessions/:sessionId/sign-off',
-  requireRole('INVIGILATOR', 'ADMIN'),
+  requireRole('INVIGILATOR', 'FACULTY', 'ADMIN'),
   handleGetSessionSignOffStatus
 );
 
 // Individual candidate interventions
 interventionsRouter.post(
   '/attempts/:attemptId/message',
-  requireRole('INVIGILATOR', 'ADMIN'),
+  requireRole('INVIGILATOR', 'FACULTY', 'ADMIN'),
   handleSendCandidateMessage
 );
 
 interventionsRouter.post(
   '/attempts/:attemptId/pause',
-  requireRole('INVIGILATOR', 'ADMIN'),
+  requireRole('INVIGILATOR', 'FACULTY', 'ADMIN'),
   handlePauseAttempt
 );
 
 interventionsRouter.post(
   '/attempts/:attemptId/resume',
-  requireRole('INVIGILATOR', 'ADMIN'),
+  requireRole('INVIGILATOR', 'FACULTY', 'ADMIN'),
   handleResumeAttempt
 );
 
 interventionsRouter.post(
   '/attempts/:attemptId/terminate',
-  requireRole('INVIGILATOR', 'ADMIN'),
+  requireRole('INVIGILATOR', 'FACULTY', 'ADMIN'),
   handleTerminateAttempt
 );
 

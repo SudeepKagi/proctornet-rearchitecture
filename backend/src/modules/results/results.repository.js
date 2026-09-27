@@ -38,7 +38,8 @@ export async function getCandidateResultByAttemptId(attemptId, client = null) {
       r.evaluated_at,
       CASE
         WHEN e.status = 'RESULT_PUBLISHED' OR e.results_published_at IS NOT NULL THEN TRUE
-        WHEN e.status IN ('ENDED', 'EVALUATED') AND e.results_release_policy = 'IMMEDIATE' THEN TRUE
+        WHEN a.status IN ('SUBMITTED', 'EXPIRED', 'COMPLETED') THEN TRUE
+        WHEN e.results_release_policy = 'IMMEDIATE' THEN TRUE
         WHEN e.status IN ('ENDED', 'EVALUATED') AND e.results_release_policy = 'SCHEDULED'
              AND e.results_release_at IS NOT NULL AND transaction_timestamp() >= e.results_release_at THEN TRUE
         ELSE FALSE
@@ -301,7 +302,8 @@ export async function hasCandidateVisibleResults(examId, client = null) {
         AND (
           e.status = 'RESULT_PUBLISHED'
           OR e.results_published_at IS NOT NULL
-          OR (e.status IN ('ENDED', 'EVALUATED') AND e.results_release_policy = 'IMMEDIATE')
+          OR a.status IN ('SUBMITTED', 'EXPIRED', 'COMPLETED')
+          OR e.results_release_policy = 'IMMEDIATE'
           OR (e.status IN ('ENDED', 'EVALUATED') AND e.results_release_policy = 'SCHEDULED'
               AND e.results_release_at IS NOT NULL AND transaction_timestamp() >= e.results_release_at)
         )
@@ -322,8 +324,10 @@ export async function hasCandidateVisibleResults(examId, client = null) {
 export async function isInvigilatorAssignedToSession(sessionId, userId, client = null) {
   const sql = `
     SELECT EXISTS (
-      SELECT 1 FROM session_invigilators
-      WHERE session_id = $1 AND user_id = $2
+      SELECT 1 FROM exam_sessions es
+      LEFT JOIN exams e ON es.exam_id = e.exam_id
+      LEFT JOIN session_invigilators si ON es.session_id = si.session_id AND si.user_id = $2
+      WHERE es.session_id = $1 AND (si.user_id IS NOT NULL OR e.created_by = $2)
     ) AS is_assigned;
   `;
   const result = client ? await client.query(sql, [sessionId, userId]) : await query(sql, [sessionId, userId]);

@@ -197,18 +197,7 @@ export function ExamTakingPage() {
     };
   }, [subscribe, attemptId, attempt?.session_id, attempt?.candidate_id]);
 
-  // Client-Side Screen AI & Proctoring Telemetry
-  useScreenAI({
-    attemptId,
-    enabled: Boolean(attempt && attemptStatus === 'ACTIVE' && !isExpired),
-  });
-
-  useProctoringEvents({
-    attemptId,
-    enabled: Boolean(attempt && attemptStatus === 'ACTIVE' && !isExpired),
-  });
-
-  // Mediasoup SFU WebRTC Producer
+  // Mediasoup SFU WebRTC Producer & Media Capture
   const { stream: mediaStream, isCapturing } = useMediaCapture({
     video: true,
     audio: true,
@@ -217,6 +206,17 @@ export function ExamTakingPage() {
 
   const [mediaPublishing, setMediaPublishing] = useState(false);
   const mediaVideoRef = useRef(null);
+
+  // Client-Side Screen AI & Proctoring Telemetry
+  useScreenAI({
+    screenTrack: mediaStream?.getVideoTracks()?.[0],
+    isActive: Boolean(attempt && attemptStatus === 'ACTIVE' && !isExpired && !isSubmitting),
+  });
+
+  useProctoringEvents({
+    attemptId,
+    isActive: Boolean(attempt && attemptStatus === 'ACTIVE' && !isExpired && !isSubmitting),
+  });
 
   useEffect(() => {
     if (mediaVideoRef.current && mediaStream) {
@@ -245,7 +245,7 @@ export function ExamTakingPage() {
   }, [mediaStream, attemptId, mediaPublishing]);
 
   // Submission handler
-  const executeSubmission = async ({ autoExpired = false } = {}) => {
+  const executeSubmission = useCallback(async ({ autoExpired = false } = {}) => {
     if (isSubmitting) return;
 
     if (isOffline) {
@@ -267,24 +267,47 @@ export function ExamTakingPage() {
     const submissionKey = logicalSubmissionKeyRef.current;
 
     try {
-      await flushDirtyAnswers();
+      await flushDirtyAnswers().catch(() => {});
 
       const finalDirtyAnswers = getDirtyAnswersArray();
       const payload = {
         answers: finalDirtyAnswers,
-        auto_expired: autoExpired,
+        auto_expired: Boolean(autoExpired),
       };
 
       await attemptsApi.submitAttempt(attemptId, payload, submissionKey);
       navigate(`/candidate/attempts/${attemptId}/result`, { replace: true });
     } catch (err) {
-      setSubmissionError(err.message || 'Submission failed. Please verify your connection and retry.');
+      // If attempt is already submitted or completed, redirect directly to results
+      if (
+        (err.status === 409 && (err.code === 'ATTEMPT_ALREADY_SUBMITTED' || err.data?.message?.includes('already been submitted'))) ||
+        (err.status === 422 && err.code === 'ATTEMPT_EXPIRED')
+      ) {
+        navigate(`/candidate/attempts/${attemptId}/result`, { replace: true });
+        return;
+      }
+      const rawMsg = err.message || 'Submission failed. Please verify your connection and retry.';
+      const cleanMsg = (typeof rawMsg === 'string' && (rawMsg.startsWith('[') || rawMsg.startsWith('{')))
+        ? 'Invalid submission data. Please check your answers and try again.'
+        : rawMsg;
+      setSubmissionError(cleanMsg);
       setIsSubmitModalOpen(true);
     } finally {
       setIsSubmitting(false);
       setAutoSubmittingBanner(false);
     }
-  };
+  }, [isSubmitting, isOffline, flushDirtyAnswers, getDirtyAnswersArray, attemptId, navigate]);
+
+  // Listen for global attempt expiration dispatched by API client or telemetry
+  useEffect(() => {
+    const handleAttemptExpired = () => {
+      executeSubmission({ autoExpired: true });
+    };
+    window.addEventListener('proctornet:attempt-expired', handleAttemptExpired);
+    return () => {
+      window.removeEventListener('proctornet:attempt-expired', handleAttemptExpired);
+    };
+  }, [executeSubmission]);
 
   if (loading) {
     return (

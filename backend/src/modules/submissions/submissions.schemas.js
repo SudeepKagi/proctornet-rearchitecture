@@ -34,7 +34,7 @@ export const submitAnswerItemSchema = z
       .int('expected_revision must be an integer')
       .min(0, 'expected_revision must be non-negative')
   })
-  .strict();
+  .strip();
 
 /**
  * Body schema for POST /attempts/:attemptId/submit
@@ -53,6 +53,8 @@ export const submitAttemptBodySchema = z
         {
           message: 'Submission answers array contains duplicate attempt_question_id entries'
         }
-      )
+      ),
+    auto_expired: z.boolean().optional(),
+    submission_reason: z.string().optional()
   })
-  .strict();
+  .strip();

@@ -18,10 +18,12 @@ const MAX_RESTART_ATTEMPTS = 3;
 export function useScreenAI({
   screenTrack,
   isActive = true,
+  enabled,
   samplingIntervalMs = DEFAULT_SAMPLING_INTERVAL_MS,
   onClassification,
   onTechnicalEvent
 }) {
+  const effectiveActive = enabled !== undefined ? Boolean(enabled) : Boolean(isActive);
   const [isReady, setIsReady] = useState(false);
   const [isDegraded, setIsDegraded] = useState(false);
   const [degradedReason, setDegradedReason] = useState(null);
@@ -189,7 +191,7 @@ export function useScreenAI({
 
   // Lifecycle
   useEffect(() => {
-    if (!isActive) return;
+    if (!effectiveActive) return;
 
     initWorker();
 
@@ -206,11 +208,11 @@ export function useScreenAI({
         videoElementRef.current = null;
       }
     };
-  }, [isActive, initWorker]);
+  }, [effectiveActive, initWorker]);
 
   // Periodic frame inference loop
   useEffect(() => {
-    if (!isActive || !isReady || isDegraded || !screenTrack) {
+    if (!effectiveActive || !isReady || isDegraded || !screenTrack) {
       if (intervalTimerRef.current) {
         clearInterval(intervalTimerRef.current);
         intervalTimerRef.current = null;

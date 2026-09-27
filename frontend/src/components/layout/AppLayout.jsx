@@ -39,6 +39,7 @@ const WORKSPACES = {
       { to: '/faculty', label: 'Dashboard', icon: LayoutDashboard },
       { to: '/faculty/exams', label: 'Exams & Schedules', icon: Calendar },
       { to: '/faculty/question-pools', label: 'Question Pools (AI)', icon: Sparkles },
+      { to: '/invigilator', label: 'Live Invigilation', icon: Shield },
     ],
   },
   invigilator: {
