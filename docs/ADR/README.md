@@ -76,3 +76,4 @@ How will this decision be enforced and validated in testing/CI?
 - [ADR-0012: Client-Side Web Worker Screen AI Inference and Server-Authoritative Telemetry Ingestion Architecture](0012-client-side-web-worker-screen-ai-inference-and-server-authoritative-telemetry-ingestion-architecture.md) — *Accepted*
 - [ADR-0013: Public Website Information Architecture, Educational Identity Presentation, and Static Asset Delivery](0013-public-website-information-architecture-and-educational-identity.md) — *Accepted*
 - [ADR-0014: Privacy-Preserving Client-Side Telemetry, First-Party Event Logging, and Consent-Gated Analytics](0014-privacy-preserving-telemetry-and-consent-management.md) — *Accepted*
+- [ADR-0015: Dual Invigilation Operational Model (Dedicated Staff and Faculty Self-Invigilation)](0015-dual-invigilation-model.md) — *Accepted*

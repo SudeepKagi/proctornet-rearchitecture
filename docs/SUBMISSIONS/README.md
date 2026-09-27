@@ -1,4 +1,4 @@
-# Phase 8 — Submission, Outbox & Evaluation
+# ProctorNet — Submission, Outbox & Evaluation Architecture
 
 ## 1. Overview
 
@@ -26,9 +26,9 @@ The **Submissions, Outbox & Evaluation** subsystem (`backend/src/modules/submiss
   2. `ATTEMPT_EXPIRED` event is inserted into `outbox_events`.
   3. Transaction commits and returns `409 Conflict` (`ATTEMPT_EXPIRED`).
 
-### 2.3 Final Dirty Answer Persistence (Phase 7 OCC Compatibility)
+### 2.3 Final Dirty Answer Persistence (OCC Compatibility)
 - `POST /api/v1/attempts/:attemptId/submit` accepts an optional `answers` array in the request body.
-- Processed inside the submission transaction under Phase 7 OCC rules:
+- Processed inside the submission transaction under OCC rules:
   - Unanswered question: requires `expected_revision = 0`, inserts answer with `revision = 1`.
   - Answered question: requires `expected_revision = K`, updates answer and increments `revision = K + 1`.
   - If any single answer fails semantic validation or encounters an OCC version conflict (`STALE_REVISION_CONFLICT`), the entire transaction aborts (`ROLLBACK`). The attempt remains `ACTIVE`.
@@ -37,7 +37,7 @@ The **Submissions, Outbox & Evaluation** subsystem (`backend/src/modules/submiss
 - **Atomicity**: Outbox events (`outbox_events` table) are committed in the exact same database transaction as the business state transition.
 - **Worker Claiming**: `OutboxDispatcher` claims pending events using PostgreSQL `FOR UPDATE SKIP LOCKED`, preventing multiple worker instances from claiming the same event.
 - **Lock Isolation**: Events are marked `PROCESSING` and committed immediately to release table locks before handing off to the transport layer.
-- **In-Process Reliable Transport**: In Phase 8, `InProcessEventTransport` awaits subscriber completion (`await handler(event)`) before marking outbox events `PUBLISHED`.
+- **Reliable Transport**: The event transport coordinates subscriber execution and outbox event state transitions (`PUBLISHED`).
 - **Exponential Retry Backoff**: On transport or worker failure:
   - Increments `retry_count`.
   - Computes `next_retry_at = NOW() + (2^(retry_count) * 2s)` (2s, 4s, 8s, 16s...).

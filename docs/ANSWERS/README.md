@@ -1,4 +1,4 @@
-# Phase 7 — Answers, Autosave & Concurrency
+# ProctorNet — Answers, Autosave & Concurrency Architecture
 
 ## 1. Overview
 
@@ -28,7 +28,7 @@ Answer persistence uses the existing `answers` table (`attempt_question_id`, `an
 - If `expected_revision < K` arrives with a *different* payload, the server rejects it with `409 Conflict` (`STALE_REVISION_CONFLICT`).
 
 > [!NOTE]
-> Phase 7 implements revision-aware payload-based retry handling. Strong request-identity idempotency using persisted idempotency keys is not required by the current schema/architecture.
+> Answer saving implements revision-aware payload-based retry handling. Strong request-identity idempotency using persisted idempotency keys is enforced at the submission boundary.
 
 ### 2.3 Clear-Answer Semantics with OCC
 - An answer is cleared via `DELETE /api/v1/attempts/:attemptId/answers/:attemptQuestionId` with `{ "expected_revision": K }`.

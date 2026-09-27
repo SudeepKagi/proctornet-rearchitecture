@@ -1,8 +1,8 @@
-# ProctorNet — Attempts & Question Mapping (Phase 6)
+# ProctorNet — Attempts & Question Mapping Architecture
 
 ## 1. Overview
 
-Phase 6 implements the authoritative candidate exam attempt model, deterministic question mapping, authoritative server timing, and student attempt lifecycle for ProctorNet.
+The **Attempts & Question Mapping** subsystem implements the authoritative candidate exam attempt model, deterministic question mapping, authoritative server timing, and student attempt lifecycle for ProctorNet.
 
 ---
 
@@ -12,9 +12,9 @@ Phase 6 implements the authoritative candidate exam attempt model, deterministic
 The attempt lifecycle is governed by the pure domain state machine in [`backend/src/domain/attempt/`](../../backend/src/domain/attempt/):
 
 ```
-                     +---> [SUBMITTED]    (Phase 8)
+                     +---> [SUBMITTED]    (Candidate submission)
                      |
-[READY] ---> [ACTIVE] +---> [TERMINATED]   (Phase 15 proctor override)
+[READY] ---> [ACTIVE] +---> [TERMINATED]   (Proctor intervention override)
                      |
                      +---> [EXPIRED]      (Authoritative server deadline)
 ```

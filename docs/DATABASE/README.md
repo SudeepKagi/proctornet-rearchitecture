@@ -1,22 +1,24 @@
 # ProctorNet Database & Migration Architecture
 
-> **Authoritative Baseline Reference**: Derived directly from `13.5 Final Database Architecture — ProctorNet`.  
-> PostgreSQL is the single authoritative source of truth for all business-critical state.
+> **Authoritative Baseline Reference**: Derived from ProctorNet Institutional Re-Architecture.  
+> PostgreSQL is the single authoritative source of truth for all business-critical state, transactions, and audit records.
 
 ---
 
 ## 1. Database Conventions & Standards
 
 - **Naming Strategy**:
-  - Tables: `snake_case`, pluralized (e.g., `users`, `exam_attempts`, `violation_events`).
-  - Columns: `snake_case`, with semantic foreign keys ending in `_id` (e.g., `user_id`, `session_id`, `attempt_id`).
+  - Tables: `snake_case`, pluralized (e.g., `users`, `exam_attempts`, `violation_events`, `departments`).
+  - Columns: `snake_case`, with semantic foreign keys ending in `_id` (e.g., `user_id`, `session_id`, `attempt_id`, `department_id`).
   - Primary Keys: Non-sequential UUIDs (`gen_random_uuid()` / `UUIDv4`) for all major business entities.
 - **Timestamps**:
   - Authoritative timestamps are stored with timezone (`TIMESTAMPTZ`) in UTC.
   - Standard entity audit timestamps: `created_at`, `updated_at`.
-- **Soft Deletion & Integrity**:
+- **Soft Deletion & Lifecycle Management**:
   - Hard deletion of user accounts or exam attempts is prohibited. Status columns (`ACTIVE`, `LOCKED`, `DISABLED`, `TERMINATED`) govern lifecycle visibility.
   - Restrictive foreign key deletion (`ON DELETE RESTRICT`) is enforced on historical/audit-critical relationships.
+- **Transactional Durability**:
+  - Business actions commit to PostgreSQL before returning an HTTP `200 OK` response to the client.
 
 ---
 
@@ -27,88 +29,110 @@ ProctorNet uses `node-pg-migrate` executed through native Node.js ES Modules.
 ### Migration Commands
 ```bash
 # Run all pending migrations forward
-npm run db:migrate
+npm --prefix backend run db:migrate
 
 # Roll back the most recent migration batch
-npm run db:rollback
+npm --prefix backend run db:rollback
 
 # Create a new migration file
-npm run db:create <migration-name>
+npm --prefix backend run db:create <migration-name>
 ```
 
-### Programmatic Runner
-The migration runner is configured in [src/infrastructure/postgres/migrate.js](../../backend/src/infrastructure/postgres/migrate.js), which integrates directly with the validated environment configuration (`DATABASE_URL` or `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`).
+### Migration History
+The database schema is evolved via 25 sequential migrations:
+- `001_core_initial_schema.js`: Base users, subjects, topics, questions, exams, sessions, attempts, answers, results, and audit logs.
+- `002` through `020`: Realtime signaling, outbox events, student documents, face embeddings, manual grading queues, and session incidents.
+- `021_examination_and_invigilation_extensions.js`: Multi-stream SFU tracking, live intervention logging, and evaluation pipeline extensions.
+- `022_add_developer_role.js`: Authoritative `DEVELOPER` role added to role enum constraints.
+- `023_candidate_face_enrollment_schema.js`: Biometric face embedding vector and identity card metadata storage.
+- `024_drop_orphaned_legacy_tables.js`: Purge of obsolete tables (`question_generation_jobs`, `source_documents`, `exam_topic_rules`).
+- `025_canonical_departments.js`: Canonical `departments` master catalog (17 disciplines) with foreign key linking to `exams(department_id)`.
 
 ---
 
-## 3. Schema Overview (All 22 Tables)
+## 3. Schema Architecture & Entity Model
 
 ```
 +---------------------------------------------------------------------------------------------------+
 |                                      ProctorNet Entity Map                                        |
 +---------------------------------------------------------------------------------------------------+
-|  [Users & Identity]       [Exam Content]            [Scheduling]           [Attempts & Answers]   |
-|  - users                  - subjects                - rooms                - exam_attempts        |
-|  - user_roles             - topics                  - exam_sessions        - attempt_questions    |
-|  - student_profiles       - questions               - session_students     - answers              |
-|  - faculty_profiles       - question_options        - session_invigilators                        |
-|                           - source_documents                               [Proctoring & Audit]   |
-|                           - question_gen_jobs       [Exams]                - violation_events     |
-|                                                     - exams                - results              |
-|                                                     - exam_topic_rules     - audit_logs           |
+|  [Users & Identity]       [Academic & Questions]    [Scheduling]           [Attempts & Answers]   |
+|  - users                  - departments             - rooms                - exam_attempts        |
+|  - user_roles             - subjects                - exam_sessions        - attempt_questions    |
+|  - student_profiles       - topics                  - session_students     - answers              |
+|  - faculty_profiles       - questions               - session_invigilators                        |
+|  - student_documents      - question_options                               [Evaluation]           |
+|  - student_face_embeddings- exams                   [Proctoring & Audit]   - results              |
+|                           - exam_questions          - violation_events     - manual_grading_queue |
+|                                                     - proctoring_flags     - manual_grades        |
+|                                                     - session_incidents                           |
+|                                                     - candidate_interventions                     |
+|                                                     - outbox_events                               |
+|                                                     - audit_logs                                  |
 +---------------------------------------------------------------------------------------------------+
 ```
 
-### Table Specifications
+### Active Entity Groups
 
-#### Group A: Users & Access
+#### Group A: Users, Roles & Academic Identity
 1. **`users`**: Base identity store. Columns: `user_id` (UUID PK), `name`, `email` (UNIQUE), `phone`, `password_hash`, `status` (`ACTIVE`, `LOCKED`, `DISABLED`), `created_at`, `updated_at`.
-2. **`user_roles`**: Multi-role assignment (e.g., faculty can also be invigilator). Columns: `user_id` (FK), `role` (`STUDENT`, `FACULTY`, `INVIGILATOR`, `ADMIN`), `created_at`. PK: `(user_id, role)`.
-3. **`student_profiles`**: Academic student metadata. Columns: `user_id` (UUID PK/FK), `enrollment_number` (UNIQUE), `department`, `semester`, `metadata` (JSONB), `created_at`, `updated_at`.
+2. **`user_roles`**: Role assignment mapping users to one or more of the 5 institutional roles: `ADMIN`, `DEVELOPER`, `FACULTY`, `INVIGILATOR`, `STUDENT`. PK: `(user_id, role)`.
+3. **`student_profiles`**: Academic student metadata. Columns: `user_id` (UUID PK/FK), `enrollment_number` (UNIQUE USN), `department`, `semester`, `metadata` (JSONB), `created_at`, `updated_at`.
 4. **`faculty_profiles`**: Academic staff metadata. Columns: `user_id` (UUID PK/FK), `employee_id` (UNIQUE), `department`, `designation`, `metadata` (JSONB), `created_at`, `updated_at`.
+5. **`student_documents`**: Verification documents (ID cards, marksheets) uploaded during onboarding for administrative verification.
+6. **`student_face_embeddings`**: 128-dimensional biometric face embeddings for pre-exam facial recognition and identity verification.
 
-#### Group B: Exam Content & Question Bank
-5. **`subjects`**: Course/subject catalog. Columns: `subject_id` (UUID PK), `code` (UNIQUE), `name`, `description`, `created_at`, `updated_at`.
-6. **`topics`**: Granular topics within subjects. Columns: `topic_id` (UUID PK), `subject_id` (FK), `name`, `description`, `created_at`, `updated_at`. Unique: `(subject_id, name)`.
-7. **`questions`**: Reusable question repository. Columns: `question_id` (UUID PK), `topic_id` (FK), `question_type` (`MCQ`, `TRUE_FALSE`, `NUMERIC`), `prompt_text`, `default_points`, `correct_numeric_value`, `metadata` (JSONB), `created_at`, `updated_at`.
-8. **`question_options`**: Options for MCQ / TRUE_FALSE questions. Columns: `option_id` (UUID PK), `question_id` (FK), `option_text`, `is_correct` (BOOLEAN), `display_order` (INT), `created_at`. Unique: `(question_id, display_order)`.
-9. **`source_documents`**: Reference content / syllabus files for generation workflows. Columns: `document_id` (UUID PK), `title`, `source_type`, `file_object_key`, `metadata` (JSONB), `created_at`, `updated_at`.
-10. **`question_generation_jobs`**: Asynchronous question authoring tasks. Columns: `job_id` (UUID PK), `document_id` (FK nullable), `topic_id` (FK nullable), `status` (`PENDING`, `PROCESSING`, `COMPLETED`, `FAILED`), `metadata` (JSONB), `created_at`, `updated_at`.
+#### Group B: Curriculum, Questions & Examinations
+7. **`departments`**: Canonical institutional disciplines (e.g., `CSE`, `ECE`, `MECH`, `CIVIL`, `AIML`, `ISE`). Columns: `department_id` (UUID PK), `code` (VARCHAR UNIQUE), `name` (VARCHAR), `created_at`, `updated_at`.
+8. **`subjects`**: Course catalog. Columns: `subject_id` (UUID PK), `code` (UNIQUE), `name`, `description`, `created_at`, `updated_at`.
+9. **`topics`**: Topic taxonomy within subjects. Columns: `topic_id` (UUID PK), `subject_id` (FK), `name`, `description`, `created_at`, `updated_at`.
+10. **`questions`**: Reusable question repository. Columns: `question_id` (UUID PK), `topic_id` (FK), `question_type` (`MCQ`, `TRUE_FALSE`, `NUMERIC`, `SHORT_ANSWER`, `CODING`), `prompt_text`, `default_points`, `correct_numeric_value`, `metadata` (JSONB), `created_at`, `updated_at`.
+11. **`question_options`**: Options for MCQ / TRUE_FALSE questions with display order.
+12. **`exams`**: Exam template definition. Columns: `exam_id` (UUID PK), `title`, `description`, `department_id` (FK nullable to `departments`), `duration_minutes`, `total_marks`, `passing_marks`, `status` (`DRAFT`, `PUBLISHED`, `SCHEDULED`, `LIVE`, `ENDED`, `EVALUATED`, `RESULT_PUBLISHED`), `created_at`, `updated_at`.
+13. **`exam_questions`**: Direct question-to-exam blueprint composition with points allocation and ordering.
 
-#### Group C: Exams & Scheduling
-11. **`exams`**: Exam template definition. Columns: `exam_id` (UUID PK), `title`, `description`, `duration_minutes`, `total_marks`, `passing_marks`, `status` (`DRAFT`, `PUBLISHED`, `SCHEDULED`, `LIVE`, `ENDED`, `EVALUATED`, `RESULT_PUBLISHED`), `created_at`, `updated_at`.
-12. **`exam_topic_rules`**: Blueprint rules mapping questions from topics to exams. Columns: `rule_id` (UUID PK), `exam_id` (FK), `topic_id` (FK), `question_count`, `points_per_question`, `created_at`. Unique: `(exam_id, topic_id)`.
-13. **`rooms`**: Physical exam halls / capacity boundaries. Columns: `room_id` (UUID PK), `name` (UNIQUE), `capacity` (INT), `building`, `metadata` (JSONB), `created_at`, `updated_at`.
-14. **`exam_sessions`**: Scheduled physical/virtual exam event. Columns: `session_id` (UUID PK), `exam_id` (FK), `room_id` (FK nullable), `scheduled_start_time`, `scheduled_end_time`, `status` (`SCHEDULED`, `ACTIVE`, `CONCLUDED`, `CANCELLED`), `created_at`, `updated_at`. Check: `scheduled_end_time > scheduled_start_time`.
-15. **`session_students`**: Candidate roster assigned to an exam session. Columns: `session_id` (FK), `student_id` (FK), `status` (`ASSIGNED`, `PRESENT`, `ABSENT`, `DISQUALIFIED`), `created_at`. PK / Unique: `(session_id, student_id)`.
-16. **`session_invigilators`**: Assigned proctor / invigilator roster. Columns: `session_id` (FK), `user_id` (FK), `role` (`PRIMARY`, `SECONDARY`), `created_at`. PK / Unique: `(session_id, user_id)`.
+#### Group C: Scheduling & Proctoring Assignments
+14. **`rooms`**: Physical exam halls / capacity boundaries. Columns: `room_id` (UUID PK), `name` (UNIQUE), `capacity` (INT), `building`, `metadata` (JSONB), `created_at`, `updated_at`.
+15. **`exam_sessions`**: Scheduled physical/virtual exam event. Columns: `session_id` (UUID PK), `exam_id` (FK), `room_id` (FK nullable), `scheduled_start_time`, `scheduled_end_time`, `status` (`SCHEDULED`, `ACTIVE`, `CONCLUDED`, `CANCELLED`), `created_at`, `updated_at`.
+16. **`session_students`**: Candidate roster assigned to an exam session. Columns: `session_id` (FK), `student_id` (FK), `status` (`ASSIGNED`, `PRESENT`, `ABSENT`, `DISQUALIFIED`), `created_at`.
+17. **`session_invigilators`**: Dual invigilation roster assigning either dedicated staff (`INVIGILATOR`) or course faculty (`FACULTY`) to supervise a session.
 
 #### Group D: Attempts & Answers (High-Concurrency Critical Path)
-17. **`exam_attempts`**: Individual student test attempt instance. Columns: `attempt_id` (UUID PK), `session_id` (FK), `student_id` (FK), `status` (`READY`, `ACTIVE`, `SUBMITTED`, `TERMINATED`, `EXPIRED`), `started_at`, `expires_at` (NOT NULL), `submitted_at`, `created_at`, `updated_at`. Mandatory Unique: `(session_id, student_id)`.
-18. **`attempt_questions`**: Persisted, deterministic student question mapping and randomized order. Columns: `attempt_question_id` (UUID PK), `attempt_id` (FK), `question_id` (FK), `display_order` (INT), `created_at`. Mandatory Unique: `(attempt_id, display_order)` and `(attempt_id, question_id)`.
-19. **`answers`**: Student submitted answer state with revision sequence. Columns: `answer_id` (UUID PK), `attempt_question_id` (FK), `answer_value` (JSONB), `revision` (INT, default 1), `saved_at`, `created_at`, `updated_at`. Mandatory Unique: `(attempt_question_id)`. Unanswered questions are represented by the absence of a row.
+18. **`exam_attempts`**: Individual student exam attempt instance. Columns: `attempt_id` (UUID PK), `session_id` (FK), `student_id` (FK), `status` (`READY`, `ACTIVE`, `SUBMITTED`, `TERMINATED`, `EXPIRED`), `started_at`, `expires_at` (NOT NULL), `submitted_at`, `created_at`, `updated_at`. Unique: `(session_id, student_id)`.
+19. **`attempt_questions`**: Deterministic student question mapping and randomized order. Columns: `attempt_question_id` (UUID PK), `attempt_id` (FK), `question_id` (FK), `display_order` (INT), `created_at`. Unique: `(attempt_id, display_order)` and `(attempt_id, question_id)`.
+20. **`answers`**: Student submitted answer state with monotonic revision sequence. Columns: `answer_id` (UUID PK), `attempt_question_id` (FK), `answer_value` (JSONB), `revision` (INT, default 1), `saved_at`, `created_at`, `updated_at`. Unique: `(attempt_question_id)`.
 
-#### Group E: Proctoring, Results & Audit
-20. **`violation_events`**: Immutable candidate violation telemetry logs. Columns: `violation_id` (UUID PK), `attempt_id` (FK), `event_type` (VARCHAR), `severity` (`LOW`, `MEDIUM`, `HIGH`, `CRITICAL`), `server_timestamp`, `evidence_object_key` (TEXT nullable), `metadata` (JSONB), `created_at`.
-21. **`results`**: Evaluated attempt scores and summary metrics. Columns: `result_id` (UUID PK), `attempt_id` (FK), `score`, `correct_count`, `wrong_count`, `unanswered_count`, `evaluated_at`, `created_at`. Mandatory Unique: `(attempt_id)`.
-22. **`audit_logs`**: Tamper-evident administrative action log. Columns: `audit_id` (UUID PK), `actor_user_id` (FK nullable), `action`, `resource_type`, `resource_id`, `attempt_id` (FK nullable), `timestamp`, `request_id`, `metadata` (JSONB), `created_at`.
+#### Group E: Evaluation & Manual Grading
+21. **`results`**: Evaluated attempt scores and summary metrics. Columns: `result_id` (UUID PK), `attempt_id` (FK), `score`, `correct_count`, `wrong_count`, `unanswered_count`, `evaluated_at`, `published_at`, `created_at`. Unique: `(attempt_id)`.
+22. **`manual_grading_queue`**: Subjective questions awaiting faculty evaluation.
+23. **`manual_grades`**: Assigned points and instructor feedback for manual assessments.
+
+#### Group F: Proctoring Telemetry, Interventions & Audit
+24. **`violation_events`**: Immutable candidate violation telemetry logs (tab switch, multi-face detection, window blur).
+25. **`proctoring_flags`**: Server-authoritative anomaly flags with risk weighting.
+26. **`session_incidents`**: Invigilator incident logs recorded during active proctoring sessions.
+27. **`candidate_interventions`**: Realtime intervention actions executed by proctors (warning, pause, resume, termination).
+28. **`outbox_events`**: Transactional outbox table ensuring reliable, at-least-once message dispatch to RabbitMQ.
+29. **`audit_logs`**: Tamper-evident administrative action log protected by the `prevent_audit_log_mutation()` PostgreSQL trigger.
 
 ---
 
-## 4. Constraint Strategy
+## 4. Key Relational Constraints & Invariants
 
 | Constraint Type | Tables Enforced | Invariant Protected |
 | :--- | :--- | :--- |
-| **Primary Key (UUID)** | All 22 tables | Unique non-sequential entity identification |
-| **Unique Constraint** | `users(email)` | Single account per email address |
+| **Primary Key (UUID)** | All tables | Non-sequential unique entity identification |
+| **Unique Constraint** | `users(email)` | Exactly one account per institutional email address |
+| **Unique Constraint** | `departments(code)` | Canonical discipline code uniqueness |
 | **Unique Constraint** | `session_students(session_id, student_id)` | Prevents duplicate student scheduling in a session |
-| **Unique Constraint** | `exam_attempts(session_id, student_id)` | Prevents multiple attempts for same candidate in a session |
-| **Unique Constraint** | `attempt_questions(attempt_id, display_order)` | Guarantees deterministic, collision-free question sequence |
-| **Unique Constraint** | `attempt_questions(attempt_id, question_id)` | Prevents duplicate question assignment in single attempt |
-| **Unique Constraint** | `answers(attempt_question_id)` | Exactly one current answer state per attempt question |
+| **Unique Constraint** | `exam_attempts(session_id, student_id)` | Strictly one attempt per candidate per exam session |
+| **Unique Constraint** | `attempt_questions(attempt_id, display_order)` | Guarantees collision-free question sequence order |
+| **Unique Constraint** | `attempt_questions(attempt_id, question_id)` | Prevents duplicate question presentation in an attempt |
+| **Unique Constraint** | `answers(attempt_question_id)` | Exactly one current answer state per question with monotonic OCC revision tracking |
 | **Unique Constraint** | `results(attempt_id)` | Exactly one final result record per attempt |
-| **Check Constraints** | `status`, `role`, `question_type`, `severity` | Strictly restricts domain values to approved finite-state sets |
-| **Check Constraints** | `session_times` | `scheduled_end_time > scheduled_start_time` |
+| **Trigger Constraint** | `audit_logs` | `prevent_audit_log_mutation()` raises SQLSTATE 20000 on `UPDATE` or `DELETE` |
+| **Check Constraint** | `session_times` | `scheduled_end_time > scheduled_start_time` |
+| **Foreign Key (RESTRICT)**| `exams(department_id)` | Prevents accidental deletion of active academic departments |
 
 ---
 
@@ -118,17 +142,13 @@ The migration runner is configured in [src/infrastructure/postgres/migrate.js](.
 -- User Lookups
 CREATE INDEX idx_users_email ON users(email);
 
+-- Canonical Department Filter
+CREATE INDEX idx_exams_department_id ON exams(department_id);
+
 -- Session Rosters
 CREATE INDEX idx_session_students_session_student ON session_students(session_id, student_id);
 CREATE INDEX idx_session_students_student_session ON session_students(student_id, session_id);
 CREATE INDEX idx_session_invigilators_session_user ON session_invigilators(session_id, user_id);
-
--- Operational Lookups
-CREATE INDEX idx_topics_subject_id ON topics(subject_id);
-CREATE INDEX idx_questions_topic_id ON questions(topic_id);
-CREATE INDEX idx_question_options_question_id ON question_options(question_id);
-CREATE INDEX idx_exam_sessions_exam_id ON exam_sessions(exam_id);
-CREATE INDEX idx_exam_sessions_schedule ON exam_sessions(scheduled_start_time, scheduled_end_time);
 
 -- High-Concurrency Attempts & Autosave Critical Path
 CREATE INDEX idx_exam_attempts_session_student ON exam_attempts(session_id, student_id);
@@ -137,11 +157,12 @@ CREATE INDEX idx_attempt_questions_attempt_order ON attempt_questions(attempt_id
 CREATE INDEX idx_attempt_questions_question_id ON attempt_questions(question_id);
 CREATE INDEX idx_answers_attempt_question_id ON answers(attempt_question_id);
 
--- Proctoring Violation Timeline
+-- Proctoring Violation Timeline & Anomaly Flags
 CREATE INDEX idx_violation_events_attempt_timestamp ON violation_events(attempt_id, server_timestamp);
+CREATE INDEX idx_proctoring_flags_attempt_id ON proctoring_flags(attempt_id);
 
--- Results Lookup
-CREATE INDEX idx_results_attempt_id ON results(attempt_id);
+-- Transactional Outbox Relay Poller
+CREATE INDEX idx_outbox_events_status_created ON outbox_events(status, created_at) WHERE status = 'PENDING';
 
 -- Audit Trails
 CREATE INDEX idx_audit_logs_actor_timestamp ON audit_logs(actor_user_id, timestamp);

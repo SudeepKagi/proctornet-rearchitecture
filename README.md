@@ -32,7 +32,7 @@ ProctorNet is **strictly an academic software engineering demonstration**:
 
 ### 2. Multi-Modal Proctoring & Telemetry
 - **Dual-Plane Separation**: Application control signals (HTTPS/REST and WebSockets) are strictly decoupled from the high-throughput WebRTC video/audio media plane.
-- **Selective Forwarding Unit (SFU)**: Built on `mediasoup` v3 running host-networked UDP (`40000–49999/udp`), enabling multi-candidate camera feeds to be routed to faculty invigilator dashboards with minimal latency.
+- **Selective Forwarding Unit (SFU)**: Built on `mediasoup` v3 running host-networked UDP (`40000–49999/udp`), enabling multi-candidate camera feeds to be routed to invigilator dashboards with minimal latency.
 - **Client-Side Screen AI Worker**: An in-browser Web Worker evaluates screen capture heuristics (DOM changes, developer tool detection, tab blur, rapid window resizing) and calculates localized anomaly scores ($0–100$) without transmitting sensitive desktop screen feeds to the backend.
 - **Direct S3 Evidence Uploads**: Periodic webcam snapshots and flag evidence are uploaded directly to private object storage via short-lived AWS S3 pre-signed URLs, preventing application server memory exhaustion.
 
@@ -50,7 +50,7 @@ ProctorNet employs a **Modular Monolith** architecture to achieve high throughpu
 ```
 +-----------------------------------------------------------------------------------------+
 |                                    Client Layer                                         |
-|  [Student Portal]           [Faculty Console]         [Invigilator Matrix]  [Admin Ops] |
+|  [Student Portal]  [Faculty Console]  [Invigilator Matrix]  [Admin Ops]  [Developer Hub]|
 +--------------------------------------------+--------------------------------------------+
                                              |
                    HTTPS (TLS 1.3) / WebSocket Control Plane
@@ -61,12 +61,12 @@ ProctorNet employs a **Modular Monolith** architecture to achieve high throughpu
 |                 - Static asset caching & rate-limited reverse proxy                     |
 +--------------------------------------------+--------------------------------------------+
                                              |
-                         Internal Docker Host Gateway (Port 4000)
+                         Internal Docker Host Gateway (Port 3000)
                                              |
 +--------------------------------------------v--------------------------------------------+
 |                          ProctorNet Core Modular Monolith                               |
 |  +-----------------------------------------------------------------------------------+  |
-|  | Domain Modules: Auth | Exams | Attempts | Answers | Submissions | Proctoring     |  |
+|  | Domain Modules: Auth | Users | Exams | Attempts | Answers | Proctoring | Audit     |  |
 |  +-----------------------------------------------------------------------------------+  |
 |  | Engines: State Machine Engine | Transactional Outbox | Anti-Tamper Verification   |  |
 |  +-----------------------------------------------------------------------------------+  |
@@ -108,6 +108,7 @@ ProctorNet employs a **Modular Monolith** architecture to achieve high throughpu
 | **Object Storage** | AWS S3 / LocalStack | Encrypted evidence snapshots, audio snippets, and export storage. |
 | **Network Boundary** | WireGuard VPN | Secure network segmentation (`10.100.0.0/24`) for internal developer telemetry portals. |
 | **Containerization** | Docker, Docker Compose | Multi-stage production container builds and local development orchestration. |
+| **Test Runners** | Vitest 5 | High-speed test suites across backend domain logic and frontend component/hook lifecycles. |
 
 ---
 
@@ -154,9 +155,9 @@ npm run db:migrate
 npm run dev
 ```
 
-The backend API initializes on `http://localhost:4000` (or `PORT` specified in `.env`).
-- Health endpoint: `http://localhost:4000/health`
-- Readiness check: `http://localhost:4000/ready`
+The backend API initializes on `http://localhost:3000` (or `PORT` specified in `.env`).
+- Health endpoint: `http://localhost:3000/health`
+- Readiness check: `http://localhost:3000/ready`
 
 ### 5. Launch Frontend Application
 In a separate terminal:
@@ -168,7 +169,7 @@ npm run dev
 The React development server launches on `http://localhost:5173`.
 
 ### 6. Default Evaluation & Development Credentials
-To seed pre-configured evaluation accounts across all 4 primary roles:
+To seed pre-configured evaluation accounts across all 5 institutional roles:
 ```bash
 # In backend directory
 npm run seed:users
@@ -176,10 +177,11 @@ npm run seed:users
 
 | Role | Email | Password | Accessible Portals |
 | :--- | :--- | :--- | :--- |
-| **`ADMIN`** | `admin@proctornet.edu` | `AdminPassword#123!` | `/admin/users`, `/admin/verification`, `/admin/settings` |
-| **`DEVELOPER`** | `developer@proctornet.edu` | `DevPassword#123!` | `/developer/telemetry`, `/developer/incidents`, `/developer/logs` |
-| **`FACULTY`** | `faculty@proctornet.edu` | `FacultyPassword#123!` | `/faculty/exams`, `/faculty/questions`, `/faculty/grading` |
-| **`STUDENT`** | `student@proctornet.edu` | `StudentPassword#123!` | `/candidate/dashboard`, `/candidate/exams` |
+| **`ADMIN`** | `admin@proctornet.edu` | `AdminPassword#123!` | `/admin/overview`, `/admin/users`, `/admin/verification`, `/admin/audit` |
+| **`DEVELOPER`** | `developer@proctornet.edu` | `DevPassword#123!` | `/developer/overview`, `/developer/health`, `/developer/logs`, `/developer/topology` |
+| **`FACULTY`** | `faculty@proctornet.edu` | `FacultyPassword#123!` | `/faculty/dashboard`, `/faculty/exams`, `/faculty/sessions`, `/faculty/grading` |
+| **`INVIGILATOR`** | `invigilator@proctornet.edu` | `InvigilatorPassword#123!` | `/invigilator`, `/invigilator/sessions/:sessionId` |
+| **`STUDENT`** | `student@proctornet.edu` | `StudentPassword#123!` | `/candidate/dashboard`, `/candidate/exams`, `/candidate/profile` |
 
 ---
 
@@ -190,17 +192,14 @@ ProctorNet enforces a comprehensive testing pyramid across all layers:
 ### Frontend Tests (Vitest & React Testing Library)
 ```bash
 cd frontend
-# Run all frontend tests (components, hooks, pages, SEO, accessibility)
+# Run all frontend tests (components, hooks, state boundaries, autosave OCC)
 npm test
-
-# Run Phase 30 public website & SEO test suite
-npx vitest run tests/phase30
 ```
 
-### Backend Tests (Node.js Native Test Runner)
+### Backend Tests (Vitest)
 ```bash
 cd backend
-# Run backend test suite (unit tests, token signing, schemas, API contracts)
+# Run backend test suite (state machines, OCC autosave, RBAC, results release)
 npm test
 ```
 
@@ -209,8 +208,8 @@ npm test
 # Execute candidate autosave & submission concurrency benchmark
 npm run bench:run
 
-# Execute chaos engineering fault-injection suite
-node scripts/chaos/run-chaos-suite.js
+# Execute resilience & chaos engineering test suite
+node scripts/chaos/run-resilience-suite.js
 ```
 
 ---
@@ -221,7 +220,7 @@ ProctorNet is packaged for single-host AWS EC2 delivery using Docker Compose wit
 
 - **Nginx Ingress**: Binds host ports `80` and `443`, terminating TLS and routing `/api/` traffic to the backend host-gateway.
 - **Backend Host Networking**: Binds to `network_mode: "host"` to enable zero-copy UDP WebRTC throughput for `mediasoup-worker` without Docker bridge NAT overhead.
-- **Security Group Isolation**: Backend port `4000` is strictly internal—inbound traffic from `0.0.0.0/0` on port 4000 is dropped at the firewall.
+- **Security Group Isolation**: Backend port `3000` is strictly internal—inbound traffic from `0.0.0.0/0` on port 3000 is dropped at the firewall.
 - **Deployment Script**: Zero-downtime container replacement with automated health verification:
   ```bash
   cd infrastructure
@@ -239,7 +238,7 @@ The `docs/` directory contains complete technical documentation describing the i
 | Document / Directory | Focus Area |
 | :--- | :--- |
 | **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** | Master architecture specification, modular monolith boundaries, and state consistency rules. |
-| **[docs/ADR/](docs/ADR/)** | Index of 14 Architectural Decision Records covering caching, brokers, SFU, WireGuard, and telemetry. |
+| **[docs/ADR/](docs/ADR/)** | Index of 15 Architectural Decision Records covering caching, brokers, SFU, WireGuard, and dual invigilation. |
 | **[docs/DEVELOPMENT_RULES.md](docs/DEVELOPMENT_RULES.md)** | Engineering standards, branch workflows, Conventional Commits, and security governance. |
 | **[docs/api/openapi.json](docs/api/openapi.json)** | Complete OpenAPI 3.0 specification for all REST API endpoints. |
 | **[docs/runbooks/](docs/runbooks/)** | Operational runbooks for disaster recovery, database failover, broker outages, and security triage. |
@@ -257,5 +256,5 @@ The `docs/` directory contains complete technical documentation describing the i
 
 ## License & Attribution
 
-This project is licensed under the terms of the [MIT License](LICENSE).
+This project is licensed under the terms of the [MIT License](LICENSE).  
 Developed as an open-source academic demonstration by the ProctorNet Project Team.

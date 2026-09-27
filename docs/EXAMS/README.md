@@ -2,15 +2,15 @@
 
 ## 1. Overview & Architectural Hierarchy
 
-Phase 5 of ProctorNet establishes the authoritative domain workflow for **Exam Authoring, Blueprint Rules, Publishing, Session Scheduling, Candidate Rostering, and Invigilator Assignments**.
+The **Exams, Sessions & Assignments** subsystem establishes the authoritative domain workflow for **Exam Authoring, Question Blueprints, Publishing, Session Scheduling, Candidate Rostering, and Invigilator Assignments**.
 
-The core architectural hierarchy follows the Master Development Plan:
+The core architectural hierarchy follows the domain model:
 
 $$\text{Exam} \longrightarrow \text{Session} \longrightarrow \text{Attempt}$$
 
 - **Exam (`exams`)**: The academic definition, blueprint, subject binding, marks structure, and frozen question distribution rules.
 - **Session (`exam_sessions`)**: An authoritative, time-bounded scheduling window within a physical or virtual room (`rooms`), binding enrolled candidates (`session_students`) and proctors (`session_invigilators`).
-- **Attempt (`exam_attempts`)**: Individual candidate test executions during an active session (handled in Phase 6).
+- **Attempt (`exam_attempts`)**: Individual candidate test executions during an active session.
 
 ---
 
@@ -18,7 +18,7 @@ $$\text{Exam} \longrightarrow \text{Session} \longrightarrow \text{Attempt}$$
 
 ### 2.1 State Progression & Deterministic State Machine
 
-Exams strictly follow the Phase 3 domain state machine:
+Exams strictly follow the server-authoritative domain state machine:
 
 ```
 [ DRAFT ] ──> [ PUBLISHED ] ──> [ SCHEDULED ] ──> [ LIVE ] ──> [ ENDED ] ──> [ EVALUATED ] ──> [ RESULT_PUBLISHED ]

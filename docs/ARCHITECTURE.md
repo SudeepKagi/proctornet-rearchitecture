@@ -1,9 +1,7 @@
 # ProctorNet Re-Architecture — Architecture Specification
 
 > **Notice & Authority Statement**  
-> This architecture specification is derived directly from the finalized design specification:  
-> **"13 Final Re-Architecture — ProctorNet Implementation Master"** (Sections 13.1 through 13.17).  
-> It represents the single architectural source of truth for the rebuild of ProctorNet.  
+> This architecture specification represents the single architectural source of truth for the ProctorNet Examination Platform.  
 > No architectural changes, shortcuts, or alternative designs may be introduced without an explicit Architectural Decision Record (ADR) and review.
 
 ---
@@ -17,6 +15,7 @@ The platform supports:
 - Authoritative server-side timing and state transitions.
 - Multi-modal remote proctoring (event logging, automated evidence capture, and live WebRTC-based video/audio monitoring).
 - Idempotent and transactional exam submission and automated/manual evaluation workflows.
+- Five distinct institutional roles: Student, Faculty, Invigilator, Administrator, and Developer.
 
 ---
 
@@ -24,15 +23,16 @@ The platform supports:
 
 | Layer | Technology | Primary Role / Justification |
 | :--- | :--- | :--- |
-| **Frontend** | React (SPA) | Modern, responsive, component-driven examination and proctoring interface. |
+| **Frontend** | React 19 (SPA) + Vite 6 | Modern, responsive, component-driven examination and proctoring interface. |
 | **Backend** | Node.js 24 LTS + Express (JavaScript, ES Modules) | Fast, asynchronous, modular monolith API service handling exam lifecycle and business rules. |
-| **Authoritative DB** | PostgreSQL | Sole authoritative source of business-critical state with strict ACID guarantees and transactional outbox. |
-| **Cache & State Sync** | Redis | Ephemeral session caching, rate-limiting tokens, and WebSocket pub/sub synchronization (non-authoritative). |
-| **Message Broker** | RabbitMQ | Reliable asynchronous message queuing for decoupled worker processing (evaluation, notifications, media transcoding). |
+| **Authoritative DB** | PostgreSQL 16 | Sole authoritative source of business-critical state with strict ACID guarantees and transactional outbox. |
+| **Cache & State Sync** | Redis 7 | Ephemeral session caching, rate-limiting tokens, and WebSocket pub/sub synchronization (non-authoritative). |
+| **Message Broker** | RabbitMQ 3.13 | Reliable asynchronous message queuing for decoupled worker processing (evaluation, notifications, outbox relay). |
 | **Object Storage** | AWS S3 (or S3-compatible) | Secure, tamper-evident storage for proctoring evidence snapshots, screen captures, audio, and audit archives. |
 | **Control Signaling** | WebSocket | Low-latency bidirectional control plane for proctoring events, student heartbeats, and room alerts. |
-| **Media Relays** | WebRTC + SFU (Selective Forwarding Unit) | Scalable video/audio multi-party media routing separated cleanly from HTTP API traffic. |
+| **Media Relays** | WebRTC + SFU (`mediasoup` v3) | Scalable video/audio multi-party media routing separated cleanly from HTTP API traffic. |
 | **Infrastructure & CI** | Docker, Terraform, GitHub Actions, AWS | Containerized reproducible environments, declarative Infrastructure as Code, and automated CI/CD pipelines. |
+| **Test Runners** | Vitest | Lightning-fast test runner for both backend domain logic and frontend component/hook lifecycles. |
 
 ---
 
@@ -43,7 +43,7 @@ ProctorNet adopts a **Modular Monolith** architecture for its core application b
 ```
 +-----------------------------------------------------------------------------------+
 |                                ProctorNet Frontend                                |
-|             (Candidate Exam UI / Proctor Dashboard / Admin Management)            |
+|   [Student Portal]  [Faculty Console]  [Invigilator Matrix]  [Admin]  [Developer] |
 +------------------------------------+-----------------------------+----------------+
                                      |                             |
                                  HTTP REST                     WebSocket
@@ -51,7 +51,7 @@ ProctorNet adopts a **Modular Monolith** architecture for its core application b
 +------------------------------------v-----------------------------v----------------+
 |                         ProctorNet Core Modular Monolith                          |
 |  +-----------------------------------------------------------------------------+  |
-|  | Modules: Auth | Exams | Attempts | Answers | Submission | Proctoring | Audit  |  |
+|  | Modules: Auth | Users | Exams | Attempts | Answers | Proctoring | Audit     |  |
 |  +-----------------------------------------------------------------------------+  |
 |  | Transactional Outbox Engine | Event Dispatcher | Authority Enforcement Engine|  |
 +-------------------+--------------------+------------------------+-----------------+
@@ -71,16 +71,16 @@ ProctorNet adopts a **Modular Monolith** architecture for its core application b
 
 +-----------------------------------------------------------------------------------+
 |                         Separate Media Plane (WebRTC + SFU)                       |
-|           Candidate Media Stream  ------>  SFU Media Relay  ------>  Proctors     |
+|           Candidate Media Stream  ------>  SFU Media Relay  ------>  Invigilators |
 +-----------------------------------------------------------------------------------+
 ```
 
 ### Key Modular Monolith Boundaries:
-1. **Domain Encapsulation**: Domain modules (Authentication, Exams, Attempts, Answers, Proctoring, Evaluation, Audit) communicate internally through clearly defined domain services and interfaces rather than tight circular couplings.
+1. **Domain Encapsulation**: Domain modules communicate internally through clearly defined domain services and interfaces rather than tight circular couplings.
 2. **Independent Workload Boundaries**:
    - **HTTP API Monolith**: Handles CRUD, authentication, exam delivery, and atomic answer autosaves.
    - **WebSocket Signaling Gateway**: Manages persistent socket connections, room multiplexing, and proctoring control signals.
-   - **Asynchronous Background Workers**: Consume tasks from RabbitMQ to execute evaluations, audit aggregation, and evidence post-processing.
+   - **Asynchronous Background Workers**: Consume tasks from RabbitMQ to execute evaluations, outbox relaying, and evidence post-processing.
    - **SFU Media Gateway**: Dedicated Selective Forwarding Unit instances handling audio/video WebRTC streams completely isolated from business API workloads.
 
 ---
@@ -108,7 +108,7 @@ ProctorNet adopts a **Modular Monolith** architecture for its core application b
 ### 4.4 RabbitMQ & Transactional Outbox
 - RabbitMQ handles asynchronous downstream workloads (e.g., automated code evaluation, notification delivery, evidence transcoding, external webhooks).
 - **Transactional Outbox Pattern**: Business transactions in PostgreSQL write domain events to an `outbox_events` table within the *same* database transaction as the business entity changes. A reliable outbox relay reads and publishes these events to RabbitMQ with at-least-once delivery guarantees.
-- **Idempotent Consumers**: All worker consumers must maintain idempotency keys to safely process duplicate messages.
+- **Idempotent Consumers**: All worker consumers maintain idempotency keys to safely process duplicate messages.
 
 ---
 
@@ -135,31 +135,48 @@ Proctoring is partitioned into three distinct planes:
    - Visual/audio evidence (periodic webcam snapshots, screen captures, audio snippets) are uploaded directly to AWS S3 using short-lived pre-signed URLs generated by the API.
    - Metadata references (S3 bucket, object key, SHA-256 hash, timestamp, student ID) are recorded in PostgreSQL.
 3. **Live Media Stream (Realtime Media Plane)**:
-   - Realtime multi-proctor candidate video feeds are handled by dedicated WebRTC SFU servers.
+   - Realtime multi-proctor candidate video feeds are handled by dedicated WebRTC SFU servers (`mediasoup` v3).
    - SFU traffic is completely decoupled from the core application HTTP/WebSocket infrastructure.
 
 ---
 
-## 7. Security Boundaries & Authorization
+## 7. Institutional Role Architecture & Dual Invigilation
 
-- **Authentication**: Secure JWT/session tokens with strict expiry and cryptographic signing.
-- **Authorization**: Mandatory Resource-Level Access Control (RBAC/ABAC). Every attempt, answer, and proctoring event query verifies student ownership or proctor assignment.
-- **Data Protection**: Sensitive candidate data encrypted at rest and in transit (TLS 1.3). Tamper-evident evidence hashing (SHA-256) on S3 uploads.
-- **Secrets Management**: No credentials or private keys in source code; configuration is injected via environment variables and secret stores.
+ProctorNet implements an explicit 5-role Role-Based Access Control (RBAC) model:
+
+| Role | Primary Responsibility | Primary Portal Routes |
+| :--- | :--- | :--- |
+| **`STUDENT`** | Candidate exam delivery, onboarding verification, result access | `/candidate/dashboard`, `/candidate/exams`, `/exam/:attemptId` |
+| **`FACULTY`** | Exam blueprint creation, session scheduling, evaluation, self-invigilation | `/faculty/exams`, `/faculty/sessions`, `/faculty/grading` |
+| **`INVIGILATOR`** | Real-time proctoring supervision, anomaly triage, active session sign-off | `/invigilator`, `/invigilator/sessions/:sessionId` |
+| **`ADMIN`** | Institution setup, user provisioning, onboarding approval, immutable audit logs | `/admin/overview`, `/admin/users`, `/admin/verification`, `/admin/audit` |
+| **`DEVELOPER`** | System operations, telemetry matrix, log buffer inspection, incident triage | `/developer/overview`, `/developer/health`, `/developer/logs`, `/developer/topology` |
+
+### Dual Invigilation Model (ADR-0015)
+To accommodate diverse institutional practices without architectural bifurcation:
+- **Dedicated Staff Model**: Professional proctoring staff holding the `INVIGILATOR` role monitor multi-candidate SFU feeds, log session incidents, issue real-time candidate interventions (warning, pause, resume, termination), and submit official session sign-offs.
+- **Faculty Self-Invigilation Model**: Teaching staff holding the `FACULTY` role can directly supervise live sessions for their own scheduled exams (`SessionMonitorPage.jsx`) without requiring cross-role elevation or administrator intervention.
 
 ---
 
-## 8. Scalability & Operational Boundaries
+## 8. Scalability, Department Management & Testing
 
-- **Database Connection Pooling**: Centralized connection management (e.g., PgBouncer / pool managers) to sustain high-concurrency connection spikes during exam starts.
-- **Stateless API Layer**: Monolith instances are horizontally scalable behind an Application Load Balancer.
-- **Separation of Concerns**: Resource-intensive tasks (e.g., code execution, media conversion) are offloaded to dedicated asynchronous worker clusters.
+### 8.1 Canonical Department Model & Batched Enrollment
+- Academic disciplines are standardized in the `departments` table (e.g., `CSE`, `ECE`, `MECH`, `CIVIL`, `AIML`, `ISE`).
+- Exam definitions enforce referential integrity with foreign key linking to `departments.department_id`.
+- Student session enrollment executes in a single batched `INSERT ... SELECT` query, scaling to thousands of examinees without $O(N)$ network roundtrips.
+
+### 8.2 Automated Quality Assurance (Vitest)
+Both backend and frontend leverage Vitest test runners:
+- **Backend Tests**: Verify domain state machines (`attemptStateMachine`, `examStateMachine`, `userStateMachine`), RBAC authorization middleware, OCC autosave race protection, scheduling validation, and results release policies.
+- **Frontend Tests**: Verify client-side autosave hooks (`useAutosave`) under network partition, OCC 409 conflict resolution, localStorage crash recovery, and standardized UI state boundaries (`StateBoundary`).
+- **Continuous Integration**: GitHub Actions workflow (`.github/workflows/ci.yml`) validates database migrations, runs backend and frontend test suites, and verifies production bundle compilation on every pull request.
 
 ---
 
 ## 9. Explicit Non-Goals (What We Are NOT Building)
 
-To prevent premature complexity and architectural drift, the following are strictly out of scope:
+To prevent premature complexity and architectural drift:
 - **No Premature Microservices**: Avoid distributed inter-service RPC overhead; modular monolith provides clean boundaries.
 - **No Database Sharding**: PostgreSQL single-cluster with read-replicas provides sufficient headroom for target scale.
 - **No Multi-Region Active-Active**: Single primary region deployment.
@@ -171,4 +188,4 @@ To prevent premature complexity and architectural drift, the following are stric
 
 ## 10. Compliance and Deviations
 
-Every developer and AI assistant working on ProctorNet must adhere to this architecture. If a practical implementation challenge necessitates a deviation, an **Architectural Decision Record (ADR)** must be drafted in `docs/ADR/` and approved before code implementation begins.
+Every contributor to ProctorNet must adhere to this architecture. If an implementation requirement necessitates a deviation, an **Architectural Decision Record (ADR)** must be drafted in `docs/ADR/` and approved before implementation begins.

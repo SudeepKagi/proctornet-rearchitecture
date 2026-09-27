@@ -92,9 +92,9 @@ The project testing pyramid encompasses ten distinct categories:
 
 ---
 
-## Phase 21 Load & Concurrency Benchmarks
+## Load & Concurrency Benchmarks
 
-The Phase 21 benchmarking framework validates system throughput, latency, and data integrity under high-concurrency candidate workloads.
+The benchmarking framework validates system throughput, latency, and data integrity under high-concurrency candidate workloads.
 
 ### Test Suites (`scripts/load/`)
 - **Deterministic Fixture Seeder (`scripts/load/seed-benchmark-data.js`):** Creates isolated `bench_*` examinees, attempts, and questions with pre-computed HMAC signing keys.
@@ -119,11 +119,11 @@ Detailed runbooks and reports:
 
 ---
 
-## Tooling Roadmap
+## Active & Planned Test Tooling
 
-- **Unit & Integration Testing:** Vitest / Jest, Supertest.
-- **Database Testing:** Testcontainers / localized PostgreSQL docker instances with transaction rollback per test.
-- **Load Testing:** k6 / Artillery (Phase 21).
+- **Unit & Integration Testing:** Vitest (Active across backend domain state machines, RBAC, OCC autosave, and frontend hooks/components).
+- **Database Testing:** Localized PostgreSQL instances with transaction rollback.
+- **Load Testing:** k6 concurrency harnesses.
 - **Frontend E2E Testing:** Playwright.
 - **Static Analysis & Security:** ESLint, Checkov/tfsec.
 
