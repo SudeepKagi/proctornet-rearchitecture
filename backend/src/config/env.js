@@ -314,9 +314,11 @@ const envSchema = z.object({
     .default('49999'),
   MEDIASOUP_NUM_WORKERS: z
     .string()
-    .regex(/^\d+$/)
-    .transform(Number)
-    .optional(),
+    .optional()
+    .transform((val) => (val && val.trim() !== '' ? Number(val) : undefined))
+    .refine((val) => val === undefined || (!isNaN(val) && val > 0), {
+      message: 'MEDIASOUP_NUM_WORKERS must be a positive integer if provided'
+    }),
   STUN_SERVER_URL: z.string().default('stun:stun.l.google.com:19302'),
   TURN_SERVER_URL: z
     .string()

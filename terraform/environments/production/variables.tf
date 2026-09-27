@@ -48,19 +48,19 @@ variable "admin_cidr" {
 
 variable "enable_rds" {
   type        = bool
-  description = "Feature toggle for Amazon RDS PostgreSQL 16 (default false in Phase 20; containerized DB active)"
+  description = "Feature toggle for Amazon RDS PostgreSQL 16 (default false in baseline; containerized DB active)"
   default     = false
 }
 
 variable "enable_elasticache" {
   type        = bool
-  description = "Feature toggle for Amazon ElastiCache Redis 7 (default false in Phase 20; containerized Redis active)"
+  description = "Feature toggle for Amazon ElastiCache Redis 7 (default false in baseline; containerized Redis active)"
   default     = false
 }
 
 variable "enable_alb" {
   type        = bool
-  description = "Feature toggle for Application Load Balancer (default false in Phase 20; deferred to Phase 21+)"
+  description = "Feature toggle for Application Load Balancer (default false in baseline; enabled when multi-AZ horizontal scaling is active)"
   default     = false
 }
 
@@ -80,4 +80,16 @@ variable "backup_retention_days" {
   type        = number
   description = "Days before database backup archives in S3 expire"
   default     = 90
+}
+
+variable "db_pool_min" {
+  type        = number
+  description = "Minimum persistent PostgreSQL connections in Node.js pg-pool for production API workers"
+  default     = 10
+}
+
+variable "db_pool_max" {
+  type        = number
+  description = "Maximum concurrent PostgreSQL connections in Node.js pg-pool sized for c6i.xlarge production compute (prevents FIFO queue starvation under concurrent student load)"
+  default     = 50
 }

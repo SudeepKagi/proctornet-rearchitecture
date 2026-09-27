@@ -16,7 +16,6 @@ provider "aws" {
       Project     = "ProctorNet"
       Environment = var.environment
       ManagedBy   = "Terraform"
-      Phase       = "20"
       Repository  = "SudeepKagi/proctornet-rearchitecture"
     }
   }
@@ -76,6 +75,8 @@ module "ec2" {
   domain_name           = var.domain_name
   admin_email           = var.admin_email
   aws_region            = var.aws_region
+  db_pool_min           = var.db_pool_min
+  db_pool_max           = var.db_pool_max
 }
 
 # 6. CloudWatch Host Telemetry & Alarms

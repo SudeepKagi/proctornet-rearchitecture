@@ -65,3 +65,15 @@ variable "aws_region" {
   description = "AWS region"
   default     = "ap-south-1"
 }
+
+variable "db_pool_min" {
+  type        = number
+  description = "Minimum persistent PostgreSQL connections in Node.js pg-pool for production API workers"
+  default     = 10
+}
+
+variable "db_pool_max" {
+  type        = number
+  description = "Maximum concurrent PostgreSQL connections in Node.js pg-pool sized for production compute"
+  default     = 50
+}

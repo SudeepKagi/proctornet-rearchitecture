@@ -45,7 +45,6 @@ resource "aws_instance" "this" {
       Environment = var.environment
       Project     = "ProctorNet"
       ManagedBy   = "Terraform"
-      Phase       = "20"
     }
   }
 
@@ -63,6 +62,8 @@ resource "aws_instance" "this" {
     domain_name        = var.domain_name
     admin_email        = var.admin_email
     backup_bucket_name = "${var.project_name}-backups-${var.environment}"
+    db_pool_min        = var.db_pool_min
+    db_pool_max        = var.db_pool_max
   })
 
   tags = {
@@ -70,7 +71,6 @@ resource "aws_instance" "this" {
     Environment = var.environment
     Project     = "ProctorNet"
     ManagedBy   = "Terraform"
-    Phase       = "20"
     Role        = "ModularMonolithHost"
   }
 }

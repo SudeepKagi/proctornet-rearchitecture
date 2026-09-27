@@ -101,8 +101,8 @@ Chosen option: **mediasoup v3 Selective Forwarding Unit (SFU)** integrated direc
 - **Simulcast Complexity**: Client devices must support WebRTC simulcast encoding profiles and handle layer switching.
 
 ## Compliance & Validation
-- **Automated Schemas & Sizing Tests**: Verified with Vitest/Jest covering 16 KB vs 64 KB limits, root-level `rtpCapabilities`, and 1..36 producer limits.
-- **Authorization Tests**: Validated that students cannot consume, unauthorized users cannot access session media, and BOLA checks query PostgreSQL.
-- **SFU Worker & Crash Tests**: Validated deterministic pinning, isolated worker death, generation incrementing, and recovery.
-- **Disconnect & Batching Tests**: Verified idempotent cleanup and non-rollback partial-success semantics.
-- **Regression Suite**: Must maintain 100% passing status across all existing backend and frontend test suites.
+- **Automated Schemas & Sizing Tests**: Verified via backend Vitest suite (`tests/infrastructure/sfuSchemas.test.js`) covering payload validation, direction constraints, root-level `rtpCapabilities`, and 1..36 producer batch limits.
+- **Participant Authorization Invariants**: Enforced in `mediaSignaling.js` via database-authoritative BOLA queries ensuring candidates cannot consume, unauthorized users are blocked, and audit events are emitted.
+- **Worker Isolation & Crash Recovery**: Implemented in `sfuManager.js` via deterministic hashing (`min(cpu, 4)` pool), generation fencing, and isolated worker lifecycles.
+- **Media Plane Load Profiling**: Evaluated via dedicated WebRTC load harness (`scripts/load/sfu-webrtc-load-harness.js`) measuring signaling latency and worker overhead across multi-candidate sessions.
+- **Regression Suite**: Must maintain 100% passing status across backend and frontend Vitest suites.

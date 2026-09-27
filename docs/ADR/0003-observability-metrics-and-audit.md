@@ -7,7 +7,7 @@ Accepted (Phase 13)
 2026-09-08
 
 ## Context & Problem Statement
-The ProctorNet examination platform orchestrates high-stakes, concurrent engineering college examinations. Operating at scale with up to 10,000 concurrent students requires real-time operational visibility into HTTP traffic, PostgreSQL connection pool saturation, answer autosave latencies, transactional outbox dispatch backlogs, RabbitMQ worker throughput, and Redis cache performance.
+The ProctorNet examination platform orchestrates high-stakes, concurrent engineering college examinations. While the master multi-AZ target architecture is designed for institutional cohorts of up to 10,000 concurrent students across horizontally scaled replicas, the current single-host delivery baseline is empirically benchmarked at 150 concurrent VUs on REST APIs (local saturation threshold; see CAPACITY_AND_SCALING_REPORT.md) and 36 concurrent video streams per mediasoup SFU worker (see SFU_LOAD_TEST_REPORT.md). Operating under these conditions requires real-time operational visibility into HTTP traffic, PostgreSQL connection pool saturation, answer autosave latencies, transactional outbox dispatch backlogs, RabbitMQ worker throughput, and Redis cache performance.
 
 Simultaneously, high-stakes academic examinations require:
 1. **End-to-End Trace Correlation:** The ability to trace a candidate's request across the HTTP ingress boundary, PostgreSQL transaction boundary, transactional outbox event storage, RabbitMQ message transport, and asynchronous worker evaluation consumers.

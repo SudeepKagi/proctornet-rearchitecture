@@ -77,3 +77,4 @@ How will this decision be enforced and validated in testing/CI?
 - [ADR-0013: Public Website Information Architecture, Educational Identity Presentation, and Static Asset Delivery](0013-public-website-information-architecture-and-educational-identity.md) — *Accepted*
 - [ADR-0014: Privacy-Preserving Client-Side Telemetry, First-Party Event Logging, and Consent-Gated Analytics](0014-privacy-preserving-telemetry-and-consent-management.md) — *Accepted*
 - [ADR-0015: Dual Invigilation Operational Model (Dedicated Staff and Faculty Self-Invigilation)](0015-dual-invigilation-model.md) — *Accepted*
+- [ADR-0016: Biometric Verification Fail-Closed Architecture and Provider Authority](0016-biometric-verification-fail-closed-and-provider-authority.md) — *Accepted*

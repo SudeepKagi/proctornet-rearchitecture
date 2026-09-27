@@ -90,10 +90,18 @@ export const HeartbeatCommandSchema = z
     payload: data.payload || {}
   }));
 
+export const MediaCommandSchema = z
+  .object({
+    type: z.string().startsWith('media:'),
+    payload: z.record(z.any()).optional().default({})
+  })
+  .passthrough();
+
 export const ClientCommandSchema = z.union([
   SubscribeCommandSchema,
   UnsubscribeCommandSchema,
-  HeartbeatCommandSchema
+  HeartbeatCommandSchema,
+  MediaCommandSchema
 ]);
 
 /**

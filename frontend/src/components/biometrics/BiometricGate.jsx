@@ -215,11 +215,15 @@ export default function BiometricGate({
 
       setAttemptNumber(result.attemptNumber || 1);
       setRemainingAttempts(result.remainingAttempts ?? 0);
-      setSimilarityScore(result.similarityScore || 0.95);
+      setSimilarityScore(result.similarityScore ?? 0);
 
       if (result.finalStatus === 'VERIFIED' || result.verified) {
         setStage('success');
-        setGuideMessage('Identity verified successfully! You may now proceed.');
+        setGuideMessage(
+          result.isHeuristic
+            ? 'Identity validated via local developmental heuristic. You may now proceed.'
+            : 'Identity verified successfully with biometric facial match! You may now proceed.'
+        );
         setGuideStatus('success');
         if (onVerified) {
           onVerified(result);

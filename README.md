@@ -239,7 +239,7 @@ The `docs/` directory contains complete technical documentation describing the i
 | Document / Directory | Focus Area |
 | :--- | :--- |
 | **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** | Master architecture specification, modular monolith boundaries, and state consistency rules. |
-| **[docs/ADR/](docs/ADR/)** | Index of 15 Architectural Decision Records covering caching, brokers, SFU, WireGuard, and dual invigilation. |
+| **[docs/ADR/](docs/ADR/)** | Index of 16 Architectural Decision Records covering caching, brokers, SFU, WireGuard, dual invigilation, and biometric integrity. |
 | **[docs/DEVELOPMENT_RULES.md](docs/DEVELOPMENT_RULES.md)** | Engineering standards, branch workflows, Conventional Commits, and security governance. |
 | **[docs/api/openapi.json](docs/api/openapi.json)** | Complete OpenAPI 3.0 specification for all REST API endpoints. |
 | **[docs/runbooks/](docs/runbooks/)** | Operational runbooks for disaster recovery, database failover, broker outages, and security triage. |

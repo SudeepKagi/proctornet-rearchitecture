@@ -168,9 +168,19 @@ To accommodate diverse institutional practices without architectural bifurcation
 
 ### 8.2 Automated Quality Assurance (Vitest)
 Both backend and frontend leverage Vitest test runners:
-- **Backend Tests**: Verify domain state machines (`attemptStateMachine`, `examStateMachine`, `userStateMachine`), RBAC authorization middleware, OCC autosave race protection, scheduling validation, and results release policies.
+- **Backend Tests**: Verify domain state machines (`attemptStateMachine`, `examStateMachine`, `userStateMachine`), RBAC authorization middleware, OCC autosave race protection, scheduling validation, biometric fail-closed gate, SFU media schemas, and results release policies.
 - **Frontend Tests**: Verify client-side autosave hooks (`useAutosave`) under network partition, OCC 409 conflict resolution, localStorage crash recovery, and standardized UI state boundaries (`StateBoundary`).
 - **Continuous Integration**: GitHub Actions workflow (`.github/workflows/ci.yml`) validates database migrations, runs backend and frontend test suites, and verifies production bundle compilation on every pull request.
+
+### 8.3 Concurrency Boundaries: Architectural Target vs. Empirical Baseline
+To maintain strict engineering honesty and avoid unvalidated capacity overclaims:
+- **Target Scale Specification**: The long-term master architectural design envisions supporting up to 10,000 concurrent students during synchronized university-wide examination sessions. This target requires the full multi-AZ enterprise topology (Application Load Balancer, horizontal stateless API replicas, AWS RDS PostgreSQL Multi-AZ, and AWS ElastiCache Redis cluster) specified in the system design notes.
+- **Current Deployed Topology (ADR-0010)**: The operational baseline is packaged on a single AWS EC2 `c6i.xlarge` host running Docker Compose with host-networked mediasoup SFU worker processes (`40000–49999/udp`). Managed cloud services (RDS, ElastiCache, ALB) are pre-authored behind Terraform feature flags (`enable_rds`, `enable_elasticache`, `enable_alb`) to avoid premature infrastructure cost prior to verified multi-host staging validation.
+- **Empirical Measured Results**:
+  1. *REST API & Autosave Contention*: Validated up to **150 concurrent Virtual Users (VUs)** locally on development hardware ($230\text{ req/s}$, $0.00\%$ error rate across candidate lifecycle; see [CAPACITY_AND_SCALING_REPORT.md](benchmarks/CAPACITY_AND_SCALING_REPORT.md)).
+  2. *WebRTC SFU Media Plane*: Validated up to **36 concurrent candidate video publishers** and **108 active consumer pipelines** on a single mediasoup C++ worker process with sub-$20\text{ms}$ batch acquisition latency (see [SFU_LOAD_TEST_REPORT.md](benchmarks/SFU_LOAD_TEST_REPORT.md)).
+  3. *Database Connection Pool Sizing*: Sized at `DB_POOL_MIN=10` and `DB_POOL_MAX=50` in production Terraform configuration to resolve FIFO queue contention identified during local saturation testing.
+
 
 ---
 

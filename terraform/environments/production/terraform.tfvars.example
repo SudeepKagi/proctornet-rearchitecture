@@ -14,7 +14,7 @@ instance_type = "c6i.xlarge"
 # Port 22 is NEVER open to 0.0.0.0/0. AWS SSM Session Manager is primary management.
 admin_cidr = ""
 
-# Scale-Ready Managed Services: Keep false in Phase 20 (PostgreSQL and Redis remain containerized on EC2)
+# Scale-Ready Managed Services: Keep false for baseline (PostgreSQL and Redis remain containerized on EC2)
 enable_rds         = false
 enable_elasticache = false
 enable_alb         = false
@@ -25,3 +25,7 @@ evidence_noncurrent_version_expiration_days = null
 
 # Backup Retention: Daily database backups expire after 90 days in S3
 backup_retention_days = 90
+
+# PostgreSQL Connection Pool Sizing for Production c6i.xlarge
+db_pool_min = 10
+db_pool_max = 50
