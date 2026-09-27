@@ -12,6 +12,7 @@ import { Button } from '../../components/ui/button.jsx';
 import { Input } from '../../components/ui/input.jsx';
 import { Badge } from '../../components/ui/badge.jsx';
 import { Alert, AlertDescription } from '../../components/ui/alert.jsx';
+import { StateBoundary } from '../../components/common/StateBoundary.jsx';
 import {
   Dialog,
   DialogContent,
@@ -315,17 +316,15 @@ export function FacultyQuestionPoolsPage() {
             <span className="text-[11px] text-slate-400">Select to inspect</span>
           </div>
 
-          {loading ? (
-            <div className="p-8 text-center text-xs text-slate-400">Loading topic pools...</div>
-          ) : pools.length === 0 ? (
-            <Card className="border-dashed p-8 text-center space-y-3">
-              <Layers className="mx-auto h-8 w-8 text-slate-300" />
-              <p className="text-sm font-semibold text-slate-700">No Topic Pools Yet</p>
-              <p className="text-xs text-slate-500">
-                Click "AI PDF Question Generator" to generate questions from your syllabus material.
-              </p>
-            </Card>
-          ) : (
+          <StateBoundary
+            isLoading={loading}
+            error={error}
+            isEmpty={pools.length === 0}
+            loadingMessage="Loading question pools..."
+            emptyTitle="No Topic Pools Yet"
+            emptyDescription="Click 'AI PDF Question Generator' or 'New Topic Pool' to organize your questions into pools."
+            onRetry={loadPools}
+          >
             <div className="space-y-2.5 max-h-[calc(100vh-280px)] overflow-y-auto pr-1">
               {pools.map((p) => {
                 const isSelected = selectedPool?.topic_id === p.topic_id;
@@ -364,7 +363,7 @@ export function FacultyQuestionPoolsPage() {
                 );
               })}
             </div>
-          )}
+          </StateBoundary>
         </div>
 
         {/* Right Col: Questions inside selected Topic Pool */}
@@ -404,19 +403,14 @@ export function FacultyQuestionPoolsPage() {
               </CardHeader>
 
               <CardContent className="p-4 sm:p-6">
-                {loadingQuestions ? (
-                  <div className="py-12 text-center text-xs text-slate-400">
-                    Loading questions for this pool...
-                  </div>
-                ) : poolQuestions.length === 0 ? (
-                  <div className="py-10 text-center space-y-2">
-                    <BookOpen className="mx-auto h-8 w-8 text-slate-300" />
-                    <p className="text-sm font-semibold text-slate-700">No Questions in this Pool Yet</p>
-                    <p className="text-xs text-slate-400">
-                      Upload a PDF document to generate questions for this topic.
-                    </p>
-                  </div>
-                ) : (
+                <StateBoundary
+                  isLoading={loadingQuestions}
+                  isEmpty={poolQuestions.length === 0}
+                  loadingMessage="Loading questions for this pool..."
+                  emptyTitle="No Questions in this Pool Yet"
+                  emptyDescription="Upload a PDF document to generate questions for this topic."
+                  onRetry={() => selectedPool && handleInspectPool(selectedPool)}
+                >
                   <div className="space-y-4">
                     {poolQuestions.map((q, idx) => (
                       <div
@@ -464,7 +458,7 @@ export function FacultyQuestionPoolsPage() {
                       </div>
                     ))}
                   </div>
-                )}
+                </StateBoundary>
               </CardContent>
             </Card>
           ) : (

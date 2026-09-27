@@ -27,6 +27,7 @@ import { Button } from '../../components/ui/button.jsx';
 import { Badge } from '../../components/ui/badge.jsx';
 import { Input } from '../../components/ui/input.jsx';
 import { Select } from '../../components/ui/select.jsx';
+import { StateBoundary } from '../../components/common/StateBoundary.jsx';
 import {
   Dialog,
   DialogContent,
@@ -394,26 +395,15 @@ export function QuestionBankPage() {
       </Card>
 
       {/* Questions List */}
-      {loading ? (
-        <div className="py-20 text-center space-y-3">
-          <RefreshCw size={28} className="animate-spin mx-auto text-slate-400" />
-          <p className="text-sm font-medium text-slate-500">Loading curriculum items...</p>
-        </div>
-      ) : questions.length === 0 ? (
-        <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-center py-16 px-4">
-          <CardContent className="space-y-3 max-w-md mx-auto">
-            <BookOpen size={28} className="mx-auto text-slate-400 dark:text-slate-600 stroke-1" />
-            <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">No Questions Found</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              No questions match your current bank and filter criteria. Author new questions to build your pool.
-            </p>
-            <Button size="sm" onClick={handleOpenCreateQuestion} className="gap-1.5 text-xs">
-              <Plus size={13} />
-              Author First Question
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
+      <StateBoundary
+        isLoading={loading}
+        error={error}
+        isEmpty={questions.length === 0}
+        loadingMessage="Loading curriculum questions..."
+        emptyTitle="No Questions Found"
+        emptyDescription="No questions match your current bank and filter criteria. Author new questions to build your pool."
+        onRetry={loadQuestions}
+      >
         <div className="space-y-3">
           {questions.map((q) => (
             <Card
@@ -503,7 +493,7 @@ export function QuestionBankPage() {
             </Card>
           ))}
         </div>
-      )}
+      </StateBoundary>
 
       {/* Create Question Bank Dialog */}
       <Dialog open={isBankModalOpen} onOpenChange={setIsBankModalOpen}>

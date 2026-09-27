@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { StateBoundary } from '@/components/common/StateBoundary.jsx';
 import {
   Network,
   RefreshCw,
@@ -48,11 +49,18 @@ export function DeveloperTopologyPage() {
     loadTopology();
   }, []);
 
-  if (loading && !topology) {
+  if (!topology) {
     return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <Spinner size="lg" className="text-primary" />
-        <span className="ml-3 text-sm text-muted-foreground">Mapping infrastructure service mesh...</span>
+      <div className="container mx-auto px-4 py-16 max-w-2xl">
+        <StateBoundary
+          isLoading={loading}
+          error={error}
+          isEmpty={!topology}
+          loadingMessage="Mapping infrastructure service mesh..."
+          emptyTitle="Infrastructure Topology Unavailable"
+          emptyDescription="Unable to retrieve infrastructure service mesh components."
+          onRetry={loadTopology}
+        />
       </div>
     );
   }

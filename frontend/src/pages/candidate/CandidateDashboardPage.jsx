@@ -21,6 +21,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/ca
 import { Button } from '../../components/ui/button.jsx';
 import { Badge } from '../../components/ui/badge.jsx';
 import { Alert, AlertDescription } from '../../components/ui/alert.jsx';
+import { StateBoundary } from '../../components/common/StateBoundary.jsx';
 
 function formatDateTime(val) {
   if (!val) return 'TBA';
@@ -275,15 +276,15 @@ export function CandidateDashboardPage() {
             </Button>
           </CardHeader>
           <CardContent className="pt-0">
-            {loading ? (
-              <div className="space-y-3 animate-pulse">
-                {[1,2].map(i => <div key={i} className="h-12 rounded-lg bg-slate-100" />)}
-              </div>
-            ) : recentCompleted.length === 0 ? (
-              <div className="text-center py-8 text-xs text-slate-400">
-                No completed exams yet. Your results will appear here after submission.
-              </div>
-            ) : (
+            <StateBoundary
+              isLoading={loading}
+              error={error}
+              isEmpty={recentCompleted.length === 0}
+              loadingMessage="Loading recent completed exams..."
+              emptyTitle="No Completed Exams Yet"
+              emptyDescription="Your completed exams and published scorecards will appear here after submission."
+              onRetry={loadDashboard}
+            >
               <div className="divide-y divide-slate-100">
                 {recentCompleted.map(s => {
                   const id = s.session_id || s.id;
@@ -307,7 +308,7 @@ export function CandidateDashboardPage() {
                   );
                 })}
               </div>
-            )}
+            </StateBoundary>
           </CardContent>
         </Card>
 

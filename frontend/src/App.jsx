@@ -478,7 +478,7 @@ export function App() {
             }
           />
 
-          {/* Developer Operations Routes (Phase 27) */}
+          {/* Developer Operations Routes */}
           <Route
             path="/developer"
             element={

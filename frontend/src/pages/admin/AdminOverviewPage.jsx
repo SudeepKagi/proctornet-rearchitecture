@@ -11,6 +11,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
+import { StateBoundary } from '@/components/common/StateBoundary.jsx';
 import {
   Table,
   TableHeader,
@@ -72,9 +73,11 @@ export function AdminOverviewPage() {
 
   if (loading) {
     return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <Spinner size="lg" className="text-primary" />
-        <span className="ml-3 text-sm text-muted-foreground">Loading system-wide metrics...</span>
+      <div className="container mx-auto px-4 py-20 max-w-7xl">
+        <StateBoundary
+          isLoading={true}
+          loadingMessage="Loading system-wide administrative metrics..."
+        />
       </div>
     );
   }
@@ -184,12 +187,11 @@ export function AdminOverviewPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
-          {sessions.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <Layers className="h-10 w-10 mx-auto text-muted-foreground/40 mb-2" />
-              <p className="text-sm font-medium">No sessions currently active in the system.</p>
-            </div>
-          ) : (
+          <StateBoundary
+            isEmpty={sessions.length === 0}
+            emptyTitle="No Sessions Active"
+            emptyDescription="There are no examination sessions currently registered or running in the system."
+          >
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
@@ -223,7 +225,7 @@ export function AdminOverviewPage() {
                 </TableBody>
               </Table>
             </div>
-          )}
+          </StateBoundary>
         </CardContent>
       </Card>
     </div>

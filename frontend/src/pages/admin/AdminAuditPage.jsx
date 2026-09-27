@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { StateBoundary } from '@/components/common/StateBoundary.jsx';
 import {
   Table,
   TableHeader,
@@ -91,13 +92,7 @@ export function AdminAuditPage() {
         </p>
       </div>
 
-      {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Audit Trail Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
+
 
       {/* Filter Bar */}
       <Card className="shadow-xs border-border/80">
@@ -153,19 +148,18 @@ export function AdminAuditPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {loading ? (
+              {loading || error || logs.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
-                    <div className="inline-flex items-center gap-2">
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                      <span>Loading audit trail...</span>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ) : logs.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
-                    No audit records match query criteria.
+                  <TableCell colSpan={6} className="p-0">
+                    <StateBoundary
+                      isLoading={loading}
+                      error={error}
+                      isEmpty={logs.length === 0}
+                      loadingMessage="Loading audit trail records..."
+                      emptyTitle="No Audit Records Found"
+                      emptyDescription="No audit records match the selected query criteria."
+                      onRetry={() => loadLogs(pagination.page)}
+                    />
                   </TableCell>
                 </TableRow>
               ) : (

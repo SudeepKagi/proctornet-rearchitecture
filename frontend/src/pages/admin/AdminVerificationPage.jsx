@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { StateBoundary } from '@/components/common/StateBoundary.jsx';
 import {
   Table,
   TableHeader,
@@ -224,19 +225,18 @@ export function AdminVerificationPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {loading ? (
+              {loading || error || users.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
-                    <div className="inline-flex items-center gap-2">
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                      <span>Loading verification queue...</span>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ) : users.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
-                    No users pending verification in this category.
+                  <TableCell colSpan={6} className="p-0">
+                    <StateBoundary
+                      isLoading={loading}
+                      error={error}
+                      isEmpty={users.length === 0}
+                      loadingMessage="Loading institutional verification queue..."
+                      emptyTitle="No Verifications Pending"
+                      emptyDescription="There are no users currently awaiting administrative review in this category."
+                      onRetry={() => loadQueue(pagination.page)}
+                    />
                   </TableCell>
                 </TableRow>
               ) : (

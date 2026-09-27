@@ -35,6 +35,7 @@ import { Badge } from '../../components/ui/badge.jsx';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs.jsx';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table.jsx';
 import { Alert, AlertDescription, AlertTitle } from '../../components/ui/alert.jsx';
+import { StateBoundary } from '../../components/common/StateBoundary.jsx';
 import { useRealtime } from '../../hooks/useRealtime.js';
 import { CandidateMediaGrid } from '../../components/media/CandidateMediaGrid.jsx';
 import CandidateDetailDrawer from '../../components/invigilator/CandidateDetailDrawer.jsx';
@@ -264,11 +265,27 @@ export function SessionMonitorPage() {
     };
   }, [selectedCandidateId, students, candidateProctorMap]);
 
-  if (loading) {
+  if (loading || error || !session) {
     return (
-      <div className="w-full max-w-5xl mx-auto py-20 text-center space-y-3">
-        <RefreshCw size={28} className="animate-spin mx-auto text-slate-400" />
-        <p className="text-sm font-medium text-slate-500">Connecting to session monitor & telemetry pipeline...</p>
+      <div className="w-full max-w-5xl mx-auto py-12 px-4 space-y-4">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => navigate('/invigilator')}
+          className="text-xs h-8 gap-1.5 text-slate-700 dark:text-slate-300"
+        >
+          <ArrowLeft size={13} />
+          <span>Back to Dashboard</span>
+        </Button>
+        <StateBoundary
+          isLoading={loading}
+          error={error}
+          isEmpty={!session}
+          loadingMessage="Connecting to session monitor & telemetry pipeline..."
+          emptyTitle="Proctoring Session Not Found"
+          emptyDescription="The requested invigilation session does not exist or you do not have permission to view it."
+          onRetry={() => loadData(false)}
+        />
       </div>
     );
   }
@@ -462,12 +479,11 @@ export function SessionMonitorPage() {
             </CardHeader>
 
             <CardContent className="p-0">
-              {students.length === 0 ? (
-                <div className="p-12 text-center text-xs text-slate-500 space-y-1">
-                  <p className="font-semibold text-slate-800 dark:text-slate-200">No candidates enrolled</p>
-                  <p>Assign candidate roster from the faculty session management portal.</p>
-                </div>
-              ) : (
+              <StateBoundary
+                isEmpty={students.length === 0}
+                emptyTitle="No Candidates Enrolled"
+                emptyDescription="Assign candidate roster from the faculty session management portal."
+              >
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
@@ -551,7 +567,7 @@ export function SessionMonitorPage() {
                     </TableBody>
                   </Table>
                 </div>
-              )}
+              </StateBoundary>
             </CardContent>
           </Card>
         </TabsContent>

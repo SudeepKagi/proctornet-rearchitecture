@@ -32,6 +32,7 @@ import {
 import { Input } from '../../components/ui/input.jsx';
 import { Alert, AlertDescription, AlertTitle } from '../../components/ui/alert.jsx';
 import { Separator } from '../../components/ui/separator.jsx';
+import { StateBoundary } from '../../components/common/StateBoundary.jsx';
 import * as mgApi from '../../api/manualGradingApi.js';
 
 export function ManualGradingPage() {
@@ -180,11 +181,18 @@ export function ManualGradingPage() {
     }
   };
 
-  if (loading) {
+  if (loading || error || !evaluation) {
     return (
-      <div className="w-full max-w-5xl mx-auto py-20 text-center space-y-3">
-        <RefreshCw size={28} className="animate-spin mx-auto text-slate-400" />
-        <p className="text-sm font-medium text-slate-500">Loading subjective evaluation workspace...</p>
+      <div className="w-full max-w-5xl mx-auto py-16">
+        <StateBoundary
+          isLoading={loading}
+          error={error}
+          isEmpty={!evaluation}
+          loadingMessage="Loading subjective evaluation workspace and rubric breakdown..."
+          emptyTitle="Evaluation Data Not Found"
+          emptyDescription="The evaluation breakdown for this submission could not be found."
+          onRetry={loadEvaluation}
+        />
       </div>
     );
   }

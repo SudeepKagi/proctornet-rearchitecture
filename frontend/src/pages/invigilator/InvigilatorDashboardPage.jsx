@@ -14,9 +14,9 @@ import {
   RefreshCw,
   Eye,
   ArrowRight,
-  Video,
 } from 'lucide-react';
 import * as sessionsApi from '../../api/sessionsApi.js';
+import { StateBoundary } from '../../components/common/StateBoundary.jsx';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card.jsx';
 import { Button } from '../../components/ui/button.jsx';
 import { Badge } from '../../components/ui/badge.jsx';
@@ -96,30 +96,15 @@ export function InvigilatorDashboardPage() {
         </div>
       </div>
 
-      {error && (
-        <Alert variant="destructive">
-          <AlertCircle size={16} />
-          <AlertTitle>Proctoring Sessions Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      {loading ? (
-        <div className="py-20 text-center space-y-3">
-          <RefreshCw size={28} className="animate-spin mx-auto text-slate-400" />
-          <p className="text-sm font-medium text-slate-500">Loading invigilation assignments...</p>
-        </div>
-      ) : sessions.length === 0 ? (
-        <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-center py-16 px-4">
-          <CardContent className="space-y-3 max-w-md mx-auto">
-            <Shield size={32} className="mx-auto text-slate-400 dark:text-slate-600 stroke-1" />
-            <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">No Assigned Invigilation Sessions</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              You do not currently have any proctoring duties assigned to your account. You will be alerted when new sessions are rostered.
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
+      <StateBoundary
+        isLoading={loading}
+        error={error}
+        isEmpty={sessions.length === 0}
+        loadingMessage="Loading invigilation assignments..."
+        emptyTitle="No Assigned Invigilation Sessions"
+        emptyDescription="You do not currently have any proctoring duties assigned to your account. You will be alerted when new sessions are rostered."
+        onRetry={loadSessions}
+      >
         <div className="grid gap-4">
           {sessions.map((sess) => {
             const sid = sess.session_id || sess.id || '';
@@ -182,7 +167,7 @@ export function InvigilatorDashboardPage() {
             );
           })}
         </div>
-      )}
+      </StateBoundary>
     </div>
   );
 }

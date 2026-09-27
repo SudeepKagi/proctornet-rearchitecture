@@ -27,6 +27,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../..
 import { Button } from '../../components/ui/button.jsx';
 import { Badge } from '../../components/ui/badge.jsx';
 import { Select } from '../../components/ui/select.jsx';
+import { StateBoundary } from '../../components/common/StateBoundary.jsx';
 import {
   Dialog,
   DialogContent,
@@ -221,30 +222,15 @@ export function SessionManagerPage() {
         </Alert>
       )}
 
-      {loading ? (
-        <div className="py-20 text-center space-y-3">
-          <RefreshCw size={28} className="animate-spin mx-auto text-slate-400" />
-          <p className="text-sm font-medium text-slate-500">Loading examination sessions...</p>
-        </div>
-      ) : sessions.length === 0 ? (
-        <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-center py-16 px-4">
-          <CardContent className="space-y-4 max-w-md mx-auto">
-            <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 mx-auto flex items-center justify-center">
-              <Calendar size={24} />
-            </div>
-            <div className="space-y-1">
-              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">No Scheduled Sessions</h3>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                Create a session to allocate an exam blueprint to physical or virtual rooms with assigned candidates.
-              </p>
-            </div>
-            <Button onClick={() => setIsScheduleOpen(true)} className="gap-2">
-              <Plus size={15} />
-              Schedule First Session
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
+      <StateBoundary
+        isLoading={loading}
+        error={error}
+        isEmpty={sessions.length === 0}
+        loadingMessage="Loading examination sessions..."
+        emptyTitle="No Scheduled Sessions"
+        emptyDescription="Create a session to allocate an exam blueprint to physical or virtual rooms with assigned candidates."
+        onRetry={loadData}
+      >
         <div className="grid gap-4">
           {sessions.map((sess) => {
             const sid = sess.session_id || sess.id || '';
@@ -317,7 +303,7 @@ export function SessionManagerPage() {
             );
           })}
         </div>
-      )}
+      </StateBoundary>
 
       {/* Schedule Session Dialog */}
       <Dialog open={isScheduleOpen} onOpenChange={setIsScheduleOpen}>

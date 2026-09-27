@@ -14,6 +14,7 @@ import { Button } from '../../components/ui/button.jsx';
 import { Badge } from '../../components/ui/badge.jsx';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/tabs.jsx';
 import { Alert, AlertDescription } from '../../components/ui/alert.jsx';
+import { StateBoundary } from '../../components/common/StateBoundary.jsx';
 import {
   Calendar,
   Clock,
@@ -169,24 +170,15 @@ export function FacultyExamsPage() {
 
         {/* Tab 1: Upcoming Exams */}
         <TabsContent value="upcoming" className="m-0 space-y-3">
-          {loading ? (
-            <div className="p-12 text-center text-xs text-slate-400">Loading upcoming exams...</div>
-          ) : exams.length === 0 ? (
-            <Card className="border-dashed p-10 text-center space-y-3">
-              <Calendar className="mx-auto h-10 w-10 text-slate-300" />
-              <h4 className="text-sm font-bold text-slate-800">No Upcoming Exams Scheduled</h4>
-              <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                Schedule a new examination targeting a semester cohort using questions from your topic pools.
-              </p>
-              <Button
-                size="sm"
-                onClick={() => setIsScheduleOpen(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white text-xs h-8 font-semibold"
-              >
-                Schedule New Exam
-              </Button>
-            </Card>
-          ) : (
+          <StateBoundary
+            isLoading={loading}
+            error={error}
+            isEmpty={exams.length === 0}
+            loadingMessage="Loading upcoming examinations..."
+            emptyTitle="No Upcoming Exams Scheduled"
+            emptyDescription="Schedule a new examination targeting a semester cohort using questions from your topic pools."
+            onRetry={() => loadExams(activeTab)}
+          >
             <div className="grid grid-cols-1 gap-3.5">
               {exams.map((ex) => (
                 <Card
@@ -257,22 +249,20 @@ export function FacultyExamsPage() {
                 </Card>
               ))}
             </div>
-          )}
+          </StateBoundary>
         </TabsContent>
 
         {/* Tab 2: Past Exams */}
         <TabsContent value="past" className="m-0 space-y-3">
-          {loading ? (
-            <div className="p-12 text-center text-xs text-slate-400">Loading past exams...</div>
-          ) : exams.length === 0 ? (
-            <Card className="border-dashed p-10 text-center space-y-3">
-              <CheckCircle2 className="mx-auto h-10 w-10 text-slate-300" />
-              <h4 className="text-sm font-bold text-slate-800">No Concluded Examinations Found</h4>
-              <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                Completed tests and student performance analytics will be archived here automatically once exam windows close.
-              </p>
-            </Card>
-          ) : (
+          <StateBoundary
+            isLoading={loading}
+            error={error}
+            isEmpty={exams.length === 0}
+            loadingMessage="Loading concluded examinations..."
+            emptyTitle="No Concluded Examinations Found"
+            emptyDescription="Completed tests and student performance analytics will be archived here automatically once exam windows close."
+            onRetry={() => loadExams(activeTab)}
+          >
             <div className="grid grid-cols-1 gap-3.5">
               {exams.map((ex) => (
                 <Card
@@ -326,7 +316,7 @@ export function FacultyExamsPage() {
                 </Card>
               ))}
             </div>
-          )}
+          </StateBoundary>
         </TabsContent>
       </Tabs>
 

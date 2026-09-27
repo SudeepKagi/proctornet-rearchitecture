@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Spinner } from '@/components/ui/spinner';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { StateBoundary } from '@/components/common/StateBoundary.jsx';
 import {
   Activity,
   AlertTriangle,
@@ -57,27 +58,18 @@ export function DeveloperOverviewPage() {
     return () => clearInterval(interval);
   }, [autoRefresh]);
 
-  if (loading && !data) {
+  if (!data) {
     return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <Spinner size="lg" className="text-primary" />
-        <span className="ml-3 text-sm text-muted-foreground">Loading system operations telemetry...</span>
-      </div>
-    );
-  }
-
-  if (error && !data) {
-    return (
-      <div className="container mx-auto px-4 py-8 max-w-xl space-y-4">
-        <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Telemetry Failure</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-        <Button variant="outline" onClick={loadOverview}>
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Retry Telemetry Ingestion
-        </Button>
+      <div className="container mx-auto px-4 py-16 max-w-2xl">
+        <StateBoundary
+          isLoading={loading}
+          error={error}
+          isEmpty={!data}
+          loadingMessage="Loading system operations telemetry..."
+          emptyTitle="No Telemetry Available"
+          emptyDescription="Developer telemetry pipeline has not returned system metrics yet."
+          onRetry={loadOverview}
+        />
       </div>
     );
   }

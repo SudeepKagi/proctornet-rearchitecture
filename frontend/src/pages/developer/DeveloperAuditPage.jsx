@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { StateBoundary } from '@/components/common/StateBoundary.jsx';
 import {
   ScrollText,
   Lock,
@@ -116,22 +117,15 @@ export function DeveloperAuditPage() {
       {/* Audit Log Table */}
       <Card className="shadow-xs border-border/80 overflow-hidden">
         <CardContent className="p-4">
-          {loading ? (
-            <div className="flex h-[240px] items-center justify-center">
-              <Spinner size="md" className="text-primary" />
-              <span className="ml-3 text-sm text-muted-foreground">Loading audit records...</span>
-            </div>
-          ) : error ? (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Audit Ingestion Error</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          ) : logs.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground text-sm">
-              No technical audit events found matching query.
-            </div>
-          ) : (
+          <StateBoundary
+            isLoading={loading}
+            error={error}
+            isEmpty={logs.length === 0}
+            loadingMessage="Loading audit records..."
+            emptyTitle="No Audit Events Found"
+            emptyDescription="No technical audit events found matching query."
+            onRetry={() => loadAudit(pagination.page)}
+          >
             <div className="space-y-1.5 font-mono text-xs">
               {logs.map((log) => {
                 const isExpanded = expandedLogId === log.audit_id;
@@ -178,7 +172,7 @@ export function DeveloperAuditPage() {
                 );
               })}
             </div>
-          )}
+          </StateBoundary>
 
           {/* Pagination */}
           {pagination.totalPages > 1 && (

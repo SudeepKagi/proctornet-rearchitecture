@@ -19,6 +19,7 @@ import { Button } from '../../components/ui/button.jsx';
 import { Badge } from '../../components/ui/badge.jsx';
 import { Alert, AlertDescription } from '../../components/ui/alert.jsx';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs.jsx';
+import { StateBoundary } from '../../components/common/StateBoundary.jsx';
 
 function formatDateTime(val) {
   if (!val) return 'TBA';
@@ -240,22 +241,25 @@ export function CandidateExamsPage() {
 
         {tabs.map(t => (
           <TabsContent key={t.key} value={t.key}>
-            {loading ? (
-              <div className="space-y-3 animate-pulse">
-                {[1,2,3].map(i => <div key={i} className="h-24 rounded-xl bg-slate-100" />)}
-              </div>
-            ) : t.items.length === 0 ? (
-              <Card className="border-slate-200 bg-white">
-                {t.key === 'all'
-                  ? <EmptyState icon={BookOpen} title="No exams assigned yet" desc="Your assigned examination sessions will appear here once scheduled by your faculty." />
-                  : t.key === 'completed'
-                  ? <EmptyState icon={CheckCircle2} title="No completed exams yet" desc="Exams you submit will show here, along with your results once published." />
-                  : t.key === 'active'
-                  ? <EmptyState icon={Clock} title="No live exams right now" desc="You'll see an exam here when your session window opens." />
-                  : <EmptyState icon={CalendarClock} title="No upcoming exams" desc="No scheduled exams coming up. Check back later." />
-                }
-              </Card>
-            ) : (
+            <StateBoundary
+              isLoading={loading}
+              error={error}
+              isEmpty={t.items.length === 0}
+              loadingMessage="Loading assigned examinations..."
+              emptyTitle={
+                t.key === 'all' ? 'No exams assigned yet'
+                : t.key === 'completed' ? 'No completed exams yet'
+                : t.key === 'active' ? 'No live exams right now'
+                : 'No upcoming exams'
+              }
+              emptyDescription={
+                t.key === 'all' ? 'Your assigned examination sessions will appear here once scheduled by your faculty.'
+                : t.key === 'completed' ? 'Exams you submit will show here, along with your results once published.'
+                : t.key === 'active' ? "You'll see an exam here when your session window opens."
+                : 'No scheduled exams coming up. Check back later.'
+              }
+              onRetry={load}
+            >
               <div className="space-y-3">
                 {t.items.map(s => (
                   <ExamCard
@@ -266,7 +270,7 @@ export function CandidateExamsPage() {
                   />
                 ))}
               </div>
-            )}
+            </StateBoundary>
           </TabsContent>
         ))}
       </Tabs>

@@ -16,6 +16,7 @@ import { Badge } from '../../components/ui/badge.jsx';
 import { Input } from '../../components/ui/input.jsx';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table.jsx';
 import { Alert, AlertDescription } from '../../components/ui/alert.jsx';
+import { StateBoundary } from '../../components/common/StateBoundary.jsx';
 import {
   ArrowLeft,
   Award,
@@ -150,12 +151,18 @@ export function FacultyResultsPage() {
   const failCount = summary?.fail_count || 0;
   const passPercentage = summary?.pass_percentage ?? (evaluated > 0 ? Math.round((passCount / evaluated) * 100) : 0);
 
-  if (loading) {
+  if (loading || error || !data) {
     return (
-      <div className="w-full max-w-6xl mx-auto py-24 text-center space-y-3">
-        <RefreshCw size={28} className="animate-spin mx-auto text-blue-600" />
-        <p className="text-sm font-semibold text-slate-700">Loading Examination Analytics...</p>
-        <p className="text-xs text-slate-400">Aggregating student score rosters and psychometric metrics</p>
+      <div className="max-w-7xl mx-auto py-12">
+        <StateBoundary
+          isLoading={loading}
+          error={error}
+          isEmpty={!data}
+          loadingMessage="Loading examination analytics and student score rosters..."
+          emptyTitle="Examination Analytics Unavailable"
+          emptyDescription="The requested examination analytics could not be retrieved. Please check the exam ID or retry."
+          onRetry={loadAnalytics}
+        />
       </div>
     );
   }

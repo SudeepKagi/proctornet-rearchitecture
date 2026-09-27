@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { StateBoundary } from '@/components/common/StateBoundary.jsx';
 import {
   Dialog,
   DialogContent,
@@ -168,29 +169,20 @@ export function DeveloperIncidentsPage() {
         </CardContent>
       </Card>
 
-      {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Incident Ingestion Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
+
 
       {/* Incidents List */}
       <Card className="shadow-xs border-border/80 overflow-hidden">
         <CardContent className="p-4">
-          {loading ? (
-            <div className="flex h-[240px] items-center justify-center">
-              <Spinner size="md" className="text-primary" />
-              <span className="ml-3 text-sm text-muted-foreground">Loading active operational incidents...</span>
-            </div>
-          ) : incidents.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground text-sm space-y-1">
-              <CheckCircle2 className="h-8 w-8 text-emerald-500 mx-auto mb-2 opacity-80" />
-              <p className="font-medium text-foreground">All systems operational.</p>
-              <p className="text-xs text-muted-foreground">No operational incidents matching the selected status.</p>
-            </div>
-          ) : (
+          <StateBoundary
+            isLoading={loading}
+            error={error}
+            isEmpty={incidents.length === 0}
+            loadingMessage="Loading active operational incidents..."
+            emptyTitle="All Systems Operational"
+            emptyDescription="No operational incidents matching the selected status."
+            onRetry={loadIncidents}
+          >
             <div className="space-y-3">
               {incidents.map((inc) => (
                 <div
@@ -290,7 +282,7 @@ export function DeveloperIncidentsPage() {
                 </div>
               ))}
             </div>
-          )}
+          </StateBoundary>
         </CardContent>
       </Card>
 

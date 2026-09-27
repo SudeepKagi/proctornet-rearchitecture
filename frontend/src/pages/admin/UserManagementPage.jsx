@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { StateBoundary } from '@/components/common/StateBoundary.jsx';
 import {
   Table,
   TableHeader,
@@ -439,19 +440,18 @@ export function UserManagementPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {loading ? (
+              {loading || error || users.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
-                    <div className="inline-flex items-center gap-2">
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                      <span>Loading user directory...</span>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ) : users.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
-                    No users matching criteria.
+                  <TableCell colSpan={7} className="p-0">
+                    <StateBoundary
+                      isLoading={loading}
+                      error={error}
+                      isEmpty={users.length === 0}
+                      loadingMessage="Loading institutional user directory..."
+                      emptyTitle="No Users Found"
+                      emptyDescription="No institutional accounts match the specified filter criteria."
+                      onRetry={() => loadUsers(pagination.page)}
+                    />
                   </TableCell>
                 </TableRow>
               ) : (

@@ -13,6 +13,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../..
 import { Button } from '../../components/ui/button.jsx';
 import { Badge } from '../../components/ui/badge.jsx';
 import { Alert, AlertDescription } from '../../components/ui/alert.jsx';
+import { StateBoundary } from '../../components/common/StateBoundary.jsx';
 import {
   Calendar,
   CheckCircle2,
@@ -339,26 +340,17 @@ export function FacultyDashboardPage() {
         </CardHeader>
 
         <CardContent className="p-0">
-          {loading ? (
-            <div className="p-8 text-center text-xs text-slate-400">Loading examinations...</div>
-          ) : !stats?.recentExams || stats.recentExams.length === 0 ? (
-            <div className="p-12 text-center space-y-3">
-              <BookOpen className="mx-auto h-9 w-9 text-slate-300" />
-              <p className="text-sm font-semibold text-slate-700">No Examinations Authored Yet</p>
-              <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                Schedule your first examination to distribute questions from your Topic Pools to student cohorts.
-              </p>
-              <Button
-                size="sm"
-                onClick={() => setIsScheduleOpen(true)}
-                className="h-8 text-xs bg-blue-600 text-white font-medium gap-1"
-              >
-                <Plus size={13} /> Schedule New Exam
-              </Button>
-            </div>
-          ) : (
+          <StateBoundary
+            isLoading={loading}
+            error={error}
+            isEmpty={!stats?.recentExams || stats.recentExams.length === 0}
+            loadingMessage="Loading recent examinations..."
+            emptyTitle="No Examinations Authored Yet"
+            emptyDescription="Schedule your first examination to distribute questions from your Topic Pools to student cohorts."
+            onRetry={loadStats}
+          >
             <div className="divide-y divide-slate-100">
-              {stats.recentExams.map((ex) => (
+              {stats?.recentExams?.map((ex) => (
                 <div
                   key={ex.exam_id}
                   className="p-4 sm:px-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50/60 transition-colors"
@@ -415,7 +407,7 @@ export function FacultyDashboardPage() {
                 </div>
               ))}
             </div>
-          )}
+          </StateBoundary>
         </CardContent>
       </Card>
 

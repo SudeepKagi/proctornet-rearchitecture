@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Spinner } from '@/components/ui/spinner';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { StateBoundary } from '@/components/common/StateBoundary.jsx';
 import {
   Activity,
   RefreshCw,
@@ -74,11 +75,18 @@ export function DeveloperHealthPage() {
     return () => clearInterval(interval);
   }, [autoRefresh]);
 
-  if (loading && !health) {
+  if (!health) {
     return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <Spinner size="lg" className="text-primary" />
-        <span className="ml-3 text-sm text-muted-foreground">Probing subsystem health matrix...</span>
+      <div className="container mx-auto px-4 py-16 max-w-2xl">
+        <StateBoundary
+          isLoading={loading}
+          error={error}
+          isEmpty={!health}
+          loadingMessage="Probing subsystem health matrix..."
+          emptyTitle="Subsystem Matrix Unavailable"
+          emptyDescription="Unable to probe subsystem health metrics."
+          onRetry={() => loadHealth(true)}
+        />
       </div>
     );
   }

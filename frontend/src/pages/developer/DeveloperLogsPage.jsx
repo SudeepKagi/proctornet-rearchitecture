@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Spinner } from '@/components/ui/spinner';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { StateBoundary } from '@/components/common/StateBoundary.jsx';
 import {
   Terminal,
   Search,
@@ -96,13 +97,7 @@ export function DeveloperLogsPage() {
         </p>
       </div>
 
-      {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Log Buffer Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
+
 
       {/* Search & Filter Toolbar */}
       <Card className="shadow-xs border-border/80">
@@ -185,16 +180,15 @@ export function DeveloperLogsPage() {
         </CardHeader>
 
         <CardContent className="p-4">
-          {loading && logs.length === 0 ? (
-            <div className="flex h-[240px] items-center justify-center">
-              <Spinner size="md" className="text-primary" />
-              <span className="ml-3 text-sm text-muted-foreground">Streaming circular buffer logs...</span>
-            </div>
-          ) : logs.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground text-sm">
-              No logs matching current criteria in the circular buffer.
-            </div>
-          ) : (
+          <StateBoundary
+            isLoading={loading && logs.length === 0}
+            error={error}
+            isEmpty={logs.length === 0}
+            loadingMessage="Streaming circular buffer logs..."
+            emptyTitle="No Matching Logs"
+            emptyDescription="No logs matching current criteria in the circular buffer."
+            onRetry={loadLogs}
+          >
             <div className="space-y-1.5 font-mono text-xs">
               {logs.map((log) => {
                 const isExpanded = expandedLogId === log.id;
@@ -255,7 +249,7 @@ export function DeveloperLogsPage() {
                 );
               })}
             </div>
-          )}
+          </StateBoundary>
         </CardContent>
       </Card>
     </div>

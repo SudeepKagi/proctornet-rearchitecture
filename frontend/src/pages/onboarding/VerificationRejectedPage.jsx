@@ -12,7 +12,7 @@ import { AlertTriangle, LogOut, ArrowRight, UploadCloud } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../../components/ui/card.jsx';
 import { Button } from '../../components/ui/button.jsx';
 import { Alert, AlertDescription } from '../../components/ui/alert.jsx';
-import { Spinner } from '../../components/ui/spinner.jsx';
+import { StateBoundary } from '../../components/common/StateBoundary.jsx';
 
 export function VerificationRejectedPage() {
   const navigate = useNavigate();
@@ -53,8 +53,11 @@ export function VerificationRejectedPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
-        <Spinner size="lg" />
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-4">
+        <StateBoundary
+          isLoading={loading}
+          loadingMessage="Checking verification status..."
+        />
       </div>
     );
   }

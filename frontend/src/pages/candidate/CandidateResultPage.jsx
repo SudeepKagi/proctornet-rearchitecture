@@ -1,6 +1,6 @@
 /**
  * @file CandidateResultPage.jsx
- * @description Candidate assessment scorecard view handling all Phase 9 visibility matrix states.
+ * @description Candidate assessment scorecard view handling all result visibility matrix states.
  */
 
 import React, { useEffect, useState, useCallback } from 'react';
@@ -26,6 +26,7 @@ import { Badge } from '../../components/ui/badge.jsx';
 import { Alert, AlertDescription, AlertTitle } from '../../components/ui/alert.jsx';
 import { Separator } from '../../components/ui/separator.jsx';
 import { Progress } from '../../components/ui/progress.jsx';
+import { StateBoundary } from '../../components/common/StateBoundary.jsx';
 
 export function CandidateResultPage() {
   const { attemptId } = useParams();
@@ -80,9 +81,11 @@ export function CandidateResultPage() {
 
   if (loading) {
     return (
-      <div className="w-full max-w-2xl mx-auto py-16 text-center space-y-3">
-        <RefreshCw size={28} className="animate-spin mx-auto text-slate-400" />
-        <p className="text-sm font-medium text-slate-600">Retrieving official assessment evaluation...</p>
+      <div className="w-full max-w-2xl mx-auto py-16">
+        <StateBoundary
+          isLoading={true}
+          loadingMessage="Retrieving official assessment evaluation and scorecard..."
+        />
       </div>
     );
   }
@@ -316,18 +319,11 @@ export function CandidateResultPage() {
 
       {/* Fallback Error */}
       {statusState === 'ERROR' && (
-        <Card className="border-slate-200 bg-white text-center p-8 space-y-4">
-          <AlertCircle size={32} className="mx-auto text-red-600" />
-          <div className="space-y-1">
-            <h2 className="text-lg font-bold text-slate-900">Unable to Retrieve Scorecard</h2>
-            <p className="text-sm text-slate-600">{errorMessage}</p>
-          </div>
-          <div className="pt-2">
-            <Button variant="outline" onClick={() => fetchResult(true)}>
-              Try Again
-            </Button>
-          </div>
-        </Card>
+        <StateBoundary
+          error={errorMessage}
+          emptyTitle="Unable to Retrieve Scorecard"
+          onRetry={() => fetchResult(true)}
+        />
       )}
     </div>
   );
