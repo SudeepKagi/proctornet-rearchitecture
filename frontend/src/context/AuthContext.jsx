@@ -76,10 +76,6 @@ export function AuthProvider({ children }) {
     return data;
   }, []);
 
-  const handleRegister = useCallback(async (userData) => {
-    return await authApi.register(userData);
-  }, []);
-
   const hasRole = useCallback(
     (roles) => {
       if (!user || !Array.isArray(user.roles)) return false;
@@ -96,7 +92,6 @@ export function AuthProvider({ children }) {
     loading,
     isAuthenticated: !!user,
     login: handleLogin,
-    register: handleRegister,
     logout: handleLogout,
     hasRole,
   };

@@ -22,44 +22,6 @@ import { recordAuditEvent } from '../audit/audit.service.js';
 const INVALID_CREDENTIALS_MSG = 'Invalid email or password';
 
 /**
- * Registers a new user for internal test fixture setup.
- * Public HTTP registration is blocked at the router/controller level.
- * @param {object} payload
- * @returns {Promise<object>} Created user summary
- */
-export async function register(payload) {
-  const existing = await authRepo.findUserByEmail(payload.email);
-  if (existing) {
-    throw new ConflictError('A user with this email address already exists');
-  }
-
-  const passwordHash = await hashPassword(payload.password);
-  const assignedRole = 'STUDENT';
-
-  const user = await authRepo.createUser({
-    name: payload.name,
-    email: payload.email,
-    phone: payload.phone,
-    passwordHash,
-    role: assignedRole,
-    studentProfile: payload.student_profile,
-    facultyProfile: null
-  });
-
-  logger.info({ userId: user.user_id, role: assignedRole }, 'User registered via internal/fixture setup');
-
-  return {
-    userId: user.user_id,
-    name: user.name,
-    email: user.email,
-    phone: user.phone,
-    status: user.status,
-    roles: user.roles,
-    createdAt: user.created_at
-  };
-}
-
-/**
  * Authenticates a user with email/password, enforces account lockout, and creates a session.
  * @param {object} params
  * @param {string} params.email

@@ -16,14 +16,6 @@ export async function login(credentials) {
   return result.data;
 }
 
-export async function register(userData) {
-  const result = await apiClient('/api/v1/auth/register', {
-    method: 'POST',
-    body: userData,
-  });
-  return result.data;
-}
-
 export async function refresh() {
   return await refreshAuthToken();
 }

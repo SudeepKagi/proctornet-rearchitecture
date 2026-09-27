@@ -43,6 +43,7 @@ COPY --chown=node:node package*.json ./
 COPY --from=builder --chown=node:node /usr/src/app/node_modules ./node_modules
 COPY --chown=node:node src ./src
 COPY --chown=node:node migrations ./migrations
+COPY --chown=node:node assets ./assets
 
 # Enforce non-root execution
 USER node

@@ -35,44 +35,42 @@ v1Router.get('/', (_req, res) => {
 // Authentication & Session endpoints
 v1Router.use('/auth', authRouter);
 
-// Phase 23: User Administration & Institutional Configuration
+// User Administration & Institutional Configuration
 v1Router.use('/admin', adminRouter);
 v1Router.use('/users/me', userSelfRouter);
 
-// Phase 24: Candidate Identity Onboarding & Document Verification
+// Candidate Identity Onboarding & Document Verification
 v1Router.use('/candidate', candidateRouter);
 
-// Phase 25: Biometric Identity — Face Enrollment, Verification & Anti-Spoofing
+// Biometric Identity — Face Enrollment, Verification & Anti-Spoofing
 v1Router.use('/candidate/biometrics', candidateBiometricsRouter);
 v1Router.use('/admin/biometrics', adminBiometricsRouter);
 
-
-// Phase 26: Question Bank & Question Authoring (Gated for verified active faculty/admins)
+// Question Bank & Question Authoring (Gated for verified active faculty/admins)
 v1Router.use('/faculty/question-bank', authenticate, requireVerifiedActiveUser, questionBankRouter);
 
 // Faculty Portal Module (Dashboard stats, Exams, Question Pools, Scheduling, Analytics)
 v1Router.use('/faculty', facultyRouter);
 
-// Phase 5: Exam Authoring, Topic Rules & Publishing (Gated for verified active users)
+// Exam Authoring, Question Assignments & Publishing (Gated for verified active users)
 v1Router.use('/exams', authenticate, requireVerifiedActiveUser, examsRouter);
 
-// Phase 5: Sessions, Scheduling, Rosters & Invigilation (Gated for verified active users)
+// Examination Sessions, Scheduling, Rosters & Invigilation (Gated for verified active users)
 v1Router.use('/sessions', authenticate, requireVerifiedActiveUser, sessionsRouter);
-v1Router.use('/session', authenticate, requireVerifiedActiveUser, sessionsRouter);
 
-// Phase 6: Attempts, Question Mapping & Resumption (Gated for verified active users)
+// Examination Attempts, Question Mapping & Resumption (Gated for verified active users)
 v1Router.use('/attempts', authenticate, requireVerifiedActiveUser, attemptsRouter);
 
-// Phase 26: Manual Grading Workspace & Subjective Evaluation
+// Manual Grading Workspace & Subjective Evaluation
 v1Router.use('/results', authenticate, requireVerifiedActiveUser, manualGradingRouter);
 
-// Phase 26: Live Invigilator Realtime Interventions
+// Live Invigilator Realtime Interventions
 v1Router.use('/interventions', authenticate, requireVerifiedActiveUser, interventionsRouter);
 
-// Phase 13: Centralized Audit Logs
+// Centralized Audit Logs
 v1Router.use('/audit-logs', auditRouter);
 
-// Phase 27: Developer Operations & Telemetry Control Plane
+// Developer Operations & Telemetry Control Plane
 v1Router.use('/developer', developerRouter);
 
 // Mount /api/v1

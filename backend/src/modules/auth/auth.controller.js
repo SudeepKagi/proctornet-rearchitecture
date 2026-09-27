@@ -7,7 +7,7 @@
 import { config } from '../../config/env.js';
 import { BadRequestError, UnauthorizedError, ForbiddenError } from '../../utils/errors.js';
 import { logger } from '../../utils/logger.js';
-import { loginSchema, registerSchema } from './auth.schemas.js';
+import { loginSchema } from './auth.schemas.js';
 import * as authService from './auth.service.js';
 
 const COOKIE_NAME = 'refreshToken';
@@ -20,18 +20,15 @@ const REFRESH_COOKIE_OPTIONS = {
 };
 
 /**
- * Handles user registration.
- * Public self-registration is strictly disabled in Phase 23.
+ * Handles user registration endpoint stub.
+ * Public self-registration is permanently disabled; accounts must be provisioned via admin workflows.
  */
-export async function handleRegister(req, res, next) {
-  try {
-    throw new ForbiddenError(
-      'Public self-registration is disabled. Student and Faculty accounts must be provisioned by an administrator.',
-      'SELF_REGISTRATION_DISABLED'
-    );
-  } catch (err) {
-    next(err);
-  }
+export async function handleRegister(_req, res) {
+  return res.status(410).json({
+    success: false,
+    code: 'SELF_REGISTRATION_DISABLED',
+    message: 'Public self-registration is disabled. Student and Faculty accounts must be provisioned by an institution administrator.'
+  });
 }
 
 /**
