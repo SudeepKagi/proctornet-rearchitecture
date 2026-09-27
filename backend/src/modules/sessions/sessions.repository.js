@@ -100,6 +100,18 @@ export async function updateSession(sessionId, updates, client = null) {
     fields.push(`status = $${idx++}`);
     values.push(updates.status);
   }
+  if (updates.target_semester !== undefined) {
+    fields.push(`target_semester = $${idx++}`);
+    values.push(updates.target_semester);
+  }
+  if (updates.target_department !== undefined) {
+    fields.push(`target_department = $${idx++}`);
+    values.push(updates.target_department);
+  }
+  if (updates.department_id !== undefined) {
+    fields.push(`department_id = $${idx++}`);
+    values.push(updates.department_id);
+  }
 
   fields.push(`updated_at = CURRENT_TIMESTAMP`);
 
@@ -107,7 +119,7 @@ export async function updateSession(sessionId, updates, client = null) {
     UPDATE exam_sessions
     SET ${fields.join(', ')}
     WHERE session_id = $1
-    RETURNING session_id, exam_id, room_id, scheduled_start_time, scheduled_end_time, status, created_at, updated_at;
+    RETURNING session_id, exam_id, room_id, target_semester, target_department, department_id, scheduled_start_time, scheduled_end_time, status, created_at, updated_at;
   `;
 
   const res = client ? await client.query(text, values) : await query(text, values);

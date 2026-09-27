@@ -455,10 +455,12 @@ export async function scheduleExam(
     // 1b. Resolve canonical department from departments table
     const deptRes = await client.query(
       `SELECT department_id, name FROM departments 
-       WHERE LOWER(name) = LOWER($1) 
+       WHERE LOWER(REPLACE(name, '&', 'and')) = LOWER(REPLACE($1, '&', 'and'))
+          OR LOWER(name) = LOWER($1)
           OR LOWER(code) = LOWER($1)
-          OR name ILIKE '%' || $1 || '%'
-          OR $1 ILIKE '%' || code || '%'
+          OR LOWER(REPLACE(name, '&', 'and')) ILIKE '%' || LOWER(REPLACE($1, '&', 'and')) || '%'
+          OR LOWER(REPLACE($1, '&', 'and')) ILIKE '%' || LOWER(REPLACE(name, '&', 'and')) || '%'
+          OR name ILIKE '%' || split_part($1, ' ', 1) || '%'
        LIMIT 1`,
       [targetDepartment.trim()]
     );
@@ -561,6 +563,148 @@ export async function scheduleExam(
       exam,
       session,
       assignedStudentsCount: assignedCount
+    };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+/**
+ * Updates a scheduled exam's parameters (e.g. title, timing, target department/semester)
+ * and automatically re-syncs the student roster if target department or semester changed.
+ * @param {string} examId
+ * @param {object} updates
+ * @param {string} facultyUserId
+ * @returns {Promise<object>}
+ */
+export async function updateFacultyExam(examId, updates, facultyUserId) {
+  const pool = getPool();
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const examRes = await client.query(
+      'SELECT * FROM exams WHERE exam_id = $1 FOR UPDATE',
+      [examId]
+    );
+    if (examRes.rows.length === 0) {
+      throw new NotFoundError(`Exam with ID '${examId}' not found`);
+    }
+    const exam = examRes.rows[0];
+
+    // Determine target department and department_id
+    let deptId = updates.department_id;
+    let deptName = updates.target_department || updates.targetDepartment;
+    if (deptName && deptId === undefined) {
+      const deptRes = await client.query(
+        `SELECT department_id, name FROM departments WHERE LOWER(name) = LOWER($1) OR code = UPPER($1) LIMIT 1`,
+        [deptName.trim()]
+      );
+      if (deptRes.rows.length > 0) {
+        deptId = deptRes.rows[0].department_id;
+        deptName = deptRes.rows[0].name;
+      }
+    }
+
+    const finalTitle = updates.title?.trim() || exam.title;
+    const finalDescription = updates.description !== undefined ? updates.description?.trim() : exam.description;
+    const finalDuration = updates.duration_minutes || updates.durationMinutes || exam.duration_minutes;
+    const finalSemester = (updates.target_semester || updates.targetSemester) ? Number(updates.target_semester || updates.targetSemester) : exam.target_semester;
+    const finalDept = deptName !== undefined ? deptName : exam.target_department;
+    const finalDeptId = deptId !== undefined ? deptId : exam.department_id;
+    const finalStart = updates.scheduled_start_time || updates.scheduledStartTime || exam.scheduled_start_time;
+    const finalEnd = updates.scheduled_end_time || updates.scheduledEndTime || exam.scheduled_end_time;
+
+    // 1. Update exams row
+    const updatedExamRes = await client.query(
+      `UPDATE exams
+       SET title = $1, description = $2, duration_minutes = $3,
+           target_semester = $4, target_department = $5, department_id = $6,
+           scheduled_start_time = $7, scheduled_end_time = $8, updated_at = NOW()
+       WHERE exam_id = $9
+       RETURNING *`,
+      [
+        finalTitle,
+        finalDescription,
+        finalDuration,
+        finalSemester,
+        finalDept,
+        finalDeptId,
+        finalStart ? new Date(finalStart).toISOString() : null,
+        finalEnd ? new Date(finalEnd).toISOString() : null,
+        examId
+      ]
+    );
+    const updatedExam = updatedExamRes.rows[0];
+
+    // 2. Find associated exam session
+    const sessionRes = await client.query(
+      `SELECT session_id, target_semester, target_department FROM exam_sessions WHERE exam_id = $1 LIMIT 1`,
+      [examId]
+    );
+
+    let assignedCount = 0;
+    if (sessionRes.rows.length > 0) {
+      const session = sessionRes.rows[0];
+      const sessionId = session.session_id;
+
+      await client.query(
+        `UPDATE exam_sessions
+         SET target_semester = $1, target_department = $2, department_id = $3,
+             scheduled_start_time = $4, scheduled_end_time = $5, updated_at = NOW()
+         WHERE session_id = $6`,
+        [
+          finalSemester,
+          finalDept,
+          finalDeptId,
+          finalStart ? new Date(finalStart).toISOString() : null,
+          finalEnd ? new Date(finalEnd).toISOString() : null,
+          sessionId
+        ]
+      );
+
+      // Check if target semester or department changed
+      const semChanged = updates.target_semester !== undefined || updates.targetSemester !== undefined;
+      const deptChanged = updates.target_department !== undefined || updates.targetDepartment !== undefined;
+
+      if (semChanged || deptChanged) {
+        // Remove unstarted students
+        await client.query(
+          `DELETE FROM session_students WHERE session_id = $1 AND status = 'ASSIGNED'`,
+          [sessionId]
+        );
+
+        // Re-insert eligible active students
+        if (finalSemester && (finalDept || finalDeptId)) {
+          const assignRes = await client.query(
+            `INSERT INTO session_students (session_id, student_id, status)
+             SELECT $1, sp.user_id, 'ASSIGNED'
+             FROM student_profiles sp
+             JOIN users u ON sp.user_id = u.user_id
+             WHERE sp.semester = $2
+               AND (
+                 ($3::uuid IS NOT NULL AND sp.department_id = $3)
+                 OR LOWER(sp.department) = LOWER($4)
+                 OR sp.department ILIKE '%' || $4 || '%'
+               )
+               AND u.status = 'ACTIVE'
+             ON CONFLICT (session_id, student_id) DO NOTHING
+             RETURNING student_id`,
+            [sessionId, finalSemester, finalDeptId || null, finalDept || '']
+          );
+          assignedCount = assignRes.rowCount;
+        }
+      }
+    }
+
+    await client.query('COMMIT');
+    return {
+      exam: updatedExam,
+      assignedCount
     };
   } catch (err) {
     await client.query('ROLLBACK');

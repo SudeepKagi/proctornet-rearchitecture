@@ -4,9 +4,10 @@
  * extra time multiplier, break allowances, assistive technology flags, and proctoring strictness.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import * as adminUsersApi from '../../api/adminUsersApi.js';
+import { StateBoundary } from '@/components/common/StateBoundary.jsx';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,6 +33,7 @@ export function StudentConfigurationPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  const [saveError, setSaveError] = useState(null);
   const [success, setSuccess] = useState(null);
 
   const [studentInfo, setStudentInfo] = useState(null);
@@ -44,41 +46,41 @@ export function StudentConfigurationPage() {
   const [proctoringStrictness, setProctoringStrictness] = useState('STANDARD');
   const [updatedAt, setUpdatedAt] = useState(null);
 
-  useEffect(() => {
-    async function loadData() {
-      setLoading(true);
-      setError(null);
-      try {
-        const [dossier, config] = await Promise.all([
-          adminUsersApi.fetchStudentVerificationDossier(studentId).catch(() => null),
-          adminUsersApi.fetchStudentConfiguration(studentId).catch(() => null),
-        ]);
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [dossier, config] = await Promise.all([
+        adminUsersApi.fetchStudentVerificationDossier(studentId).catch(() => null),
+        adminUsersApi.fetchStudentConfiguration(studentId).catch(() => null),
+      ]);
 
-        if (dossier?.user) {
-          setStudentInfo(dossier.user);
-        }
-
-        if (config) {
-          setExtraTimeMultiplier(String(config.extraTimeMultiplier || '1.00'));
-          setBreakAllowanceMinutes(config.breakAllowanceMinutes || 0);
-          setMaxBreaksAllowed(config.maxBreaksAllowed || 0);
-          setProctoringStrictness(config.proctoringStrictness || 'STANDARD');
-          setUpdatedAt(config.updatedAt);
-
-          const at = config.assistiveTechnology || {};
-          setScreenReader(Boolean(at.screenReader));
-          setSpeechToText(Boolean(at.speechToText));
-          setKeyboardOnly(Boolean(at.keyboardOnly));
-        }
-      } catch (err) {
-        setError(err?.message || 'Failed to load student configuration');
-      } finally {
-        setLoading(false);
+      if (dossier?.user) {
+        setStudentInfo(dossier.user);
       }
-    }
 
-    loadData();
+      if (config) {
+        setExtraTimeMultiplier(String(config.extraTimeMultiplier || '1.00'));
+        setBreakAllowanceMinutes(config.breakAllowanceMinutes || 0);
+        setMaxBreaksAllowed(config.maxBreaksAllowed || 0);
+        setProctoringStrictness(config.proctoringStrictness || 'STANDARD');
+        setUpdatedAt(config.updatedAt);
+
+        const at = config.assistiveTechnology || {};
+        setScreenReader(Boolean(at.screenReader));
+        setSpeechToText(Boolean(at.speechToText));
+        setKeyboardOnly(Boolean(at.keyboardOnly));
+      }
+    } catch (err) {
+      setError(err?.data || err);
+    } finally {
+      setLoading(false);
+    }
   }, [studentId]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -120,20 +122,11 @@ export function StudentConfigurationPage() {
       setSuccess('Accommodations and proctoring strictness updated successfully!');
       setUpdatedAt(res.updatedAt || new Date().toISOString());
     } catch (err) {
-      setError(err?.message || 'Failed to save accommodations');
+      setSaveError(err?.message || 'Failed to save accommodations');
     } finally {
       setSaving(false);
     }
   };
-
-  if (loading) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-        <span className="ml-3 text-sm text-muted-foreground">Loading student accommodations profile...</span>
-      </div>
-    );
-  }
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-3xl space-y-6">
@@ -157,23 +150,31 @@ export function StudentConfigurationPage() {
         </p>
       </div>
 
-      {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
+      <StateBoundary
+        isLoading={loading}
+        error={error}
+        isEmpty={!studentInfo}
+        emptyTitle="Student Profile Not Found"
+        emptyDescription="Unable to retrieve the accommodations profile for this student."
+        onRetry={loadData}
+      >
+        {saveError && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Save Error</AlertTitle>
+            <AlertDescription>{saveError}</AlertDescription>
+          </Alert>
+        )}
 
-      {success && (
-        <Alert className="border-emerald-500 text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/30">
-          <CheckCircle2 className="h-4 w-4" />
-          <AlertTitle>Saved</AlertTitle>
-          <AlertDescription>{success}</AlertDescription>
-        </Alert>
-      )}
+        {success && (
+          <Alert className="mb-4 border-emerald-500 text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/30">
+            <CheckCircle2 className="h-4 w-4" />
+            <AlertTitle>Saved</AlertTitle>
+            <AlertDescription>{success}</AlertDescription>
+          </Alert>
+        )}
 
-      <form onSubmit={handleSave} className="space-y-6">
+        <form onSubmit={handleSave} className="space-y-6">
         {/* Time Multiplier & Breaks */}
         <Card className="shadow-xs border-border/80">
           <CardHeader>
@@ -372,6 +373,7 @@ export function StudentConfigurationPage() {
           </CardFooter>
         </Card>
       </form>
+      </StateBoundary>
     </div>
   );
 }

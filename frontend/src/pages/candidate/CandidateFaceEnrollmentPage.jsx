@@ -14,6 +14,7 @@ import { Button } from '../../components/ui/button.jsx';
 import { Badge } from '../../components/ui/badge.jsx';
 import { Alert, AlertDescription, AlertTitle } from '../../components/ui/alert.jsx';
 import { Separator } from '../../components/ui/separator.jsx';
+import { StateBoundary } from '../../components/common/StateBoundary.jsx';
 
 /**
  * @component CandidateFaceEnrollmentPage
@@ -23,6 +24,7 @@ export default function CandidateFaceEnrollmentPage() {
   const navigate = useNavigate();
   const [enrollment, setEnrollment] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [capturing, setCapturing] = useState(false);
   const [capturedBlob, setCapturedBlob] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
@@ -32,21 +34,22 @@ export default function CandidateFaceEnrollmentPage() {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
 
-  const fetchStatus = async () => {
+  const fetchStatus = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
       const res = await getEnrollmentStatus();
       setEnrollment(res);
     } catch (err) {
-      console.error('Failed to fetch biometric status:', err);
+      setError(err?.data || err);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchStatus();
-  }, []);
+  }, [fetchStatus]);
 
   const attachVideoRef = useCallback((node) => {
     videoRef.current = node;
@@ -229,8 +232,16 @@ export default function CandidateFaceEnrollmentPage() {
       )}
 
       {/* Enrollment Status Card */}
-      <Card className="border-slate-200 bg-white shadow-xs">
-        <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <StateBoundary
+        isLoading={loading}
+        error={error}
+        isEmpty={!enrollment}
+        emptyTitle="Biometric Status Unavailable"
+        emptyDescription="Unable to retrieve candidate enrollment details from the biometric engine."
+        onRetry={fetchStatus}
+      >
+        <Card className="border-slate-200 bg-white shadow-xs">
+          <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
             <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
               Current Enrollment Status
@@ -358,6 +369,7 @@ export default function CandidateFaceEnrollmentPage() {
           </CardContent>
         </Card>
       )}
+      </StateBoundary>
 
       {/* Institutional Privacy & Governance Standards */}
       <Card className="border-slate-200 bg-slate-50/70">

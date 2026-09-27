@@ -47,7 +47,9 @@ export const updateSessionSchema = z
       .optional(),
     status: z
       .enum(['SCHEDULED', 'ACTIVE', 'CONCLUDED', 'CANCELLED'])
-      .optional()
+      .optional(),
+    target_semester: z.number().int().min(1).max(12).optional(),
+    target_department: z.string().trim().min(1).optional()
   })
   .refine(
     (data) => {

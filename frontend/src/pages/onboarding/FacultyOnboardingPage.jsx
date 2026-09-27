@@ -3,7 +3,7 @@
  * @description Faculty onboarding form built with shadcn/ui.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth.js';
 import * as onboardingApi from '../../api/onboardingApi.js';
@@ -13,7 +13,7 @@ import { Button } from '../../components/ui/button.jsx';
 import { Input } from '../../components/ui/input.jsx';
 import { Select, SelectOption } from '../../components/ui/select.jsx';
 import { Alert, AlertDescription } from '../../components/ui/alert.jsx';
-import { Spinner } from '../../components/ui/spinner.jsx';
+import { StateBoundary } from '../../components/common/StateBoundary.jsx';
 import { ACADEMIC_DEPARTMENTS, resolveDepartment } from '../../constants/departments.js';
 
 export function FacultyOnboardingPage() {
@@ -29,31 +29,34 @@ export function FacultyOnboardingPage() {
   const [designation, setDesignation] = useState('');
   const [phone, setPhone] = useState('');
 
-  useEffect(() => {
-    async function loadStatus() {
-      try {
-        const data = await onboardingApi.getOnboardingStatus();
-        if (data.department) {
-          const { selectedOption, customValue } = resolveDepartment(data.department);
-          setSelectedDept(selectedOption);
-          setCustomDept(customValue);
-        }
-        if (data.designation) setDesignation(data.designation);
-        if (data.phone) setPhone(data.phone);
-
-        if (data.verificationStatus === 'PENDING') {
-          navigate('/onboarding/pending', { replace: true });
-        } else if (data.verificationStatus === 'VERIFIED') {
-          navigate('/faculty', { replace: true });
-        }
-      } catch (err) {
-        setError(err?.message || 'Failed to load onboarding status');
-      } finally {
-        setLoading(false);
+  const loadStatus = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await onboardingApi.getOnboardingStatus();
+      if (data.department) {
+        const { selectedOption, customValue } = resolveDepartment(data.department);
+        setSelectedDept(selectedOption);
+        setCustomDept(customValue);
       }
+      if (data.designation) setDesignation(data.designation);
+      if (data.phone) setPhone(data.phone);
+
+      if (data.verificationStatus === 'PENDING') {
+        navigate('/onboarding/pending', { replace: true });
+      } else if (data.verificationStatus === 'VERIFIED') {
+        navigate('/faculty', { replace: true });
+      }
+    } catch (err) {
+      setError(err?.data || err?.message || 'Failed to load onboarding status');
+    } finally {
+      setLoading(false);
     }
-    loadStatus();
   }, [navigate]);
+
+  useEffect(() => {
+    loadStatus();
+  }, [loadStatus]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -80,128 +83,120 @@ export function FacultyOnboardingPage() {
       });
       navigate('/onboarding/pending', { replace: true });
     } catch (err) {
-      setError(err?.message || 'Failed to submit profile details');
+      setError(err?.data || err?.message || 'Failed to submit profile details');
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
-        <Spinner size="lg" />
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen flex flex-col justify-center items-center bg-slate-50 dark:bg-slate-950 p-4 sm:p-6 transition-colors">
       <div className="w-full max-w-md space-y-4">
-        <Card className="shadow-lg border-slate-200/90 dark:border-slate-800 dark:bg-slate-900">
-          <CardHeader className="text-center space-y-2 pb-4">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600 text-white shadow-md">
-              <Briefcase className="h-6 w-6" />
-            </div>
-            <CardTitle className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
-              Faculty Profile Verification
-            </CardTitle>
-            <CardDescription className="text-xs text-slate-500 dark:text-slate-400">
-              Provide your academic credentials and departmental appointment for examination administrative permissions.
-            </CardDescription>
-          </CardHeader>
+        <StateBoundary
+          loading={loading}
+          error={error}
+          onRetry={loadStatus}
+          loadingMessage="Loading faculty profile details..."
+        >
+          <Card className="shadow-lg border-slate-200/90 dark:border-slate-800 dark:bg-slate-900">
+            <CardHeader className="text-center space-y-2 pb-4">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600 text-white shadow-md">
+                <Briefcase className="h-6 w-6" />
+              </div>
+              <CardTitle className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+                Faculty Profile Verification
+              </CardTitle>
+              <CardDescription className="text-xs text-slate-500 dark:text-slate-400">
+                Provide your academic credentials and departmental appointment for examination administrative permissions.
+              </CardDescription>
+            </CardHeader>
 
-          <CardContent className="space-y-4">
-            {error && (
-              <Alert variant="destructive" className="py-2.5">
-                <ShieldAlert className="h-4 w-4" />
-                <AlertDescription className="text-xs">{error}</AlertDescription>
-              </Alert>
-            )}
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-1 text-left">
-                <label htmlFor="faculty-department" className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                  Academic Department <span className="text-rose-500">*</span>
-                </label>
-                <Select
-                  id="faculty-department"
-                  value={selectedDept}
-                  onChange={(e) => {
-                    setSelectedDept(e.target.value);
-                    if (e.target.value !== 'Other') {
-                      setCustomDept('');
-                    }
-                  }}
-                  required
-                >
-                  <SelectOption value="" disabled>
-                    Select your academic department
-                  </SelectOption>
-                  {ACADEMIC_DEPARTMENTS.map((dept) => (
-                    <SelectOption key={dept} value={dept}>
-                      {dept}
+            <CardContent className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-1 text-left">
+                  <label htmlFor="faculty-department" className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                    Academic Department <span className="text-rose-500">*</span>
+                  </label>
+                  <Select
+                    id="faculty-department"
+                    value={selectedDept}
+                    onChange={(e) => {
+                      setSelectedDept(e.target.value);
+                      if (e.target.value !== 'Other') {
+                        setCustomDept('');
+                      }
+                    }}
+                    required
+                  >
+                    <SelectOption value="" disabled>
+                      Select your academic department
                     </SelectOption>
-                  ))}
-                </Select>
-                {selectedDept === 'Other' && (
-                  <div className="pt-2">
-                    <Input
-                      id="faculty-custom-department"
-                      value={customDept}
-                      onChange={(e) => setCustomDept(e.target.value)}
-                      placeholder="Specify your academic department"
-                      required
-                      className="text-xs sm:text-sm"
-                    />
-                  </div>
-                )}
+                    {ACADEMIC_DEPARTMENTS.map((dept) => (
+                      <SelectOption key={dept} value={dept}>
+                        {dept}
+                      </SelectOption>
+                    ))}
+                  </Select>
+                  {selectedDept === 'Other' && (
+                    <div className="pt-2">
+                      <Input
+                        id="faculty-custom-department"
+                        value={customDept}
+                        onChange={(e) => setCustomDept(e.target.value)}
+                        placeholder="Specify your academic department"
+                        required
+                        className="text-xs sm:text-sm"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-1 text-left">
+                  <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                    Designation / Academic Rank <span className="text-rose-500">*</span>
+                  </label>
+                  <Input
+                    value={designation}
+                    onChange={(e) => setDesignation(e.target.value)}
+                    placeholder="e.g. Associate Professor"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-1 text-left">
+                  <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                    Contact Phone Number (Optional)
+                  </label>
+                  <Input
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="+1 (555) 000-0000"
+                  />
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full h-10 bg-blue-600 hover:bg-blue-700 text-white font-medium"
+                  disabled={submitting}
+                >
+                  {submitting ? 'Submitting Credentials...' : 'Complete Profile'}
+                  {!submitting && <ArrowRight className="h-4 w-4 ml-1" />}
+                </Button>
+              </form>
+
+              <div className="pt-2 text-center">
+                <button
+                  type="button"
+                  onClick={() => logout()}
+                  className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer"
+                >
+                  Sign out
+                </button>
               </div>
-
-              <div className="space-y-1 text-left">
-                <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                  Designation / Academic Rank <span className="text-rose-500">*</span>
-                </label>
-                <Input
-                  value={designation}
-                  onChange={(e) => setDesignation(e.target.value)}
-                  placeholder="e.g. Associate Professor"
-                  required
-                />
-              </div>
-
-              <div className="space-y-1 text-left">
-                <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                  Contact Phone Number (Optional)
-                </label>
-                <Input
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="+1 (555) 000-0000"
-                />
-              </div>
-
-              <Button
-                type="submit"
-                className="w-full h-10 bg-blue-600 hover:bg-blue-700 text-white font-medium"
-                disabled={submitting}
-              >
-                {submitting ? 'Submitting Credentials...' : 'Complete Profile'}
-                {!submitting && <ArrowRight className="h-4 w-4 ml-1" />}
-              </Button>
-            </form>
-
-            <div className="pt-2 text-center">
-              <button
-                type="button"
-                onClick={() => logout()}
-                className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer"
-              >
-                Sign out
-              </button>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </StateBoundary>
       </div>
     </div>
   );

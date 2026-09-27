@@ -931,8 +931,28 @@ export async function evaluateIdentityMatch({
       isHeuristic = true;
       logger.info(
         { similarityScore, heuristicThreshold, matchVerdict },
-        'Evaluated local spatial projection heuristic (non-authoritative developmental fallback)'
+        'Evaluated local spatial projection heuristic against enrolled embedding'
       );
+    } else if (referenceBuffer) {
+      // Local Spatial Gradient Projection directly between referenceBuffer and snapshotBuffer
+      const refDet = await faceDetector(referenceBuffer);
+      if (refDet?.faceDetected && refDet?.boundingBox) {
+        const refEmbeddingRes = await embeddingExtractor(referenceBuffer, refDet.boundingBox);
+        const liveEmbeddingRes = await embeddingExtractor(snapshotBuffer, det.boundingBox);
+        similarityScore = cosineSimilarity(refEmbeddingRes.embedding, liveEmbeddingRes.embedding);
+        matchMethod = 'LOCAL_HEURISTIC_PROJECTION';
+        matchVerdict = similarityScore >= heuristicThreshold ? 'MATCHED' : 'MISMATCH';
+        isHeuristic = true;
+        logger.info(
+          { similarityScore, heuristicThreshold, matchVerdict },
+          'Evaluated local spatial projection heuristic directly between reference photo and live snapshot'
+        );
+      } else {
+        similarityScore = 0.0;
+        matchMethod = 'NONE';
+        matchVerdict = 'INDETERMINATE';
+        isHeuristic = false;
+      }
     } else {
       // CRITICAL SECURITY FIX (§1): Fail-closed invariant.
       // Under NO circumstances does presence of a detected face equate to an identity match.
@@ -940,7 +960,7 @@ export async function evaluateIdentityMatch({
       // the system MUST fail closed and require proctor / admin manual verification clearance.
       similarityScore = 0.0;
       matchMethod = 'NONE';
-      matchVerdict = 'REFERENCE_DATA_UNAVAILABLE';
+      matchVerdict = 'INDETERMINATE';
       isHeuristic = false;
       logger.warn(
         'Face verification failed closed: No enrolled reference embedding and AWS Rekognition unavailable. Auto-pass rejected.'
@@ -1033,7 +1053,13 @@ export async function verifyIdentitySnapshot({ userId, sessionId, image, imageBu
   let refBucket = defaultBucket;
   let refKey = null;
 
-  if (enrolledFacePhotoUrl) {
+  let referenceBuffer = null;
+  if (enrolledFacePhotoUrl && enrolledFacePhotoUrl.startsWith('data:')) {
+    const match = enrolledFacePhotoUrl.match(/^data:([^;]+);base64,(.+)$/);
+    if (match) {
+      referenceBuffer = Buffer.from(match[2], 'base64');
+    }
+  } else if (enrolledFacePhotoUrl) {
     const parsed = parseS3Url(enrolledFacePhotoUrl, defaultBucket);
     refBucket = parsed?.bucket || defaultBucket;
     refKey = parsed?.key || null;
@@ -1041,8 +1067,6 @@ export async function verifyIdentitySnapshot({ userId, sessionId, image, imageBu
     refBucket = enrolled.s3_bucket;
     refKey = enrolled.s3_key;
   }
-
-  let referenceBuffer = null;
   if (refBucket && refKey) {
     try {
       referenceBuffer = await getEvidenceObjectBuffer({

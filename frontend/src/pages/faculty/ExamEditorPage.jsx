@@ -22,6 +22,7 @@ import {
   Lock,
 } from 'lucide-react';
 import * as examsApi from '../../api/examsApi.js';
+import { StateBoundary } from '../../components/common/StateBoundary.jsx';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card.jsx';
 import { Button } from '../../components/ui/button.jsx';
 import { Input } from '../../components/ui/input.jsx';
@@ -72,7 +73,7 @@ export function ExamEditorPage() {
       const data = await examsApi.getExam(examId);
       setExam(data);
     } catch (err) {
-      setError(err.message || 'Failed to load exam blueprint');
+      setError(err?.data || err);
     } finally {
       setLoading(false);
     }
@@ -139,41 +140,27 @@ export function ExamEditorPage() {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="w-full max-w-5xl mx-auto py-20 text-center space-y-3">
-        <RefreshCw size={28} className="animate-spin mx-auto text-slate-400" />
-        <p className="text-sm font-medium text-slate-500">Loading exam blueprint details...</p>
-      </div>
-    );
-  }
-
-  if (!exam) {
-    return (
-      <div className="w-full max-w-lg mx-auto py-16">
-        <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-center p-8 space-y-4">
-          <AlertCircle size={36} className="mx-auto text-slate-400 stroke-1" />
-          <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Exam Blueprint Not Found</h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            The requested examination blueprint does not exist or has been removed.
-          </p>
-          <Button onClick={() => navigate('/faculty')}>Return to Faculty Dashboard</Button>
-        </Card>
-      </div>
-    );
-  }
-
-  const isDraft = exam.status === 'DRAFT';
-  const rules = exam.topic_rules || [];
+  const isDraft = exam?.status === 'DRAFT';
+  const rules = exam?.topic_rules || [];
   const totalRulePoints = rules.reduce(
     (sum, r) => sum + (r.question_count * r.points_per_question),
     0
   );
-  const isPointsBalanced = totalRulePoints === exam.total_marks;
+  const isPointsBalanced = exam ? totalRulePoints === exam.total_marks : false;
 
   return (
     <div className="w-full max-w-6xl mx-auto space-y-6 pb-12">
-      {/* Back Button */}
+      <StateBoundary
+        isLoading={loading}
+        error={error}
+        isEmpty={!exam}
+        emptyTitle="Exam Blueprint Not Found"
+        emptyDescription="The requested examination blueprint does not exist or has been removed."
+        onRetry={loadExam}
+      >
+        {exam && (
+          <>
+            {/* Back Button */}
       <div>
         <Button
           variant="outline"
@@ -479,6 +466,9 @@ export function ExamEditorPage() {
           )}
         </CardContent>
       </Card>
+          </>
+        )}
+      </StateBoundary>
     </div>
   );
 }

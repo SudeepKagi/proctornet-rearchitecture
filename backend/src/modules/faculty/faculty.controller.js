@@ -199,6 +199,16 @@ export async function scheduleExamHandler(req, res, next) {
   }
 }
 
+export async function updateFacultyExamHandler(req, res, next) {
+  try {
+    const { examId } = req.params;
+    const result = await facultyService.updateFacultyExam(examId, req.body, req.user?.userId);
+    res.status(200).json({ status: 'success', data: result });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function cancelExamHandler(req, res, next) {
   try {
     const { examId } = req.params;

@@ -25,6 +25,7 @@ import { Input } from '../../components/ui/input.jsx';
 import { Alert, AlertDescription } from '../../components/ui/alert.jsx';
 import { Badge } from '../../components/ui/badge.jsx';
 import { useToast } from '../../components/ui/toast.jsx';
+import { StateBoundary } from '../../components/common/StateBoundary.jsx';
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -50,6 +51,14 @@ export function LoginPage() {
       navigate(destination, { replace: true, state: null });
     }
   }, [authLoading, isAuthenticated, currentUser, navigate, location.state]);
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-4">
+        <StateBoundary loading={true} loadingMessage="Verifying academic session..." />
+      </div>
+    );
+  }
 
   const formatErrorMessage = (rawError) => {
     if (!rawError) return 'Unable to sign in. Please check your credentials and try again.';

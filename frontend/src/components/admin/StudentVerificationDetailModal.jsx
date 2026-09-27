@@ -29,6 +29,7 @@ import {
   FileText,
   ShieldCheck,
   Clock,
+  UserCheck,
 } from 'lucide-react';
 
 export function StudentVerificationDetailModal({ studentId, isOpen, onClose, onReviewSuccess }) {
@@ -163,41 +164,64 @@ export function StudentVerificationDetailModal({ studentId, isOpen, onClose, onR
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6 pt-2">
-            {/* Left Column: Document Preview */}
+            {/* Visual Verification: Side-by-side Enrolled Face & Document Photo */}
             <div className="md:col-span-7 space-y-3">
-              <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
-                <span>Identity Document Preview</span>
-                <span className="text-[11px] text-muted-foreground flex items-center gap-1 font-normal">
-                  <Lock className="h-3 w-3 text-amber-500" />
-                  300s TTL Pre-signed S3 URL
-                </span>
-              </div>
-
-              {preview?.previewUrl ? (
-                <div className="border border-border rounded-xl overflow-hidden bg-black/90 h-[360px] flex items-center justify-center">
-                  {preview.mimeType?.includes('pdf') ? (
-                    <iframe
-                      src={preview.previewUrl}
-                      title="Document PDF Preview"
-                      className="w-full h-full border-0"
-                    />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Enrolled Face Photo */}
+                <div className="space-y-1.5">
+                  <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
+                    <span>Reference Face Photo</span>
+                    <Badge variant="outline" className="text-[10px] py-0">Enrolled</Badge>
+                  </div>
+                  {user?.enrolledFacePhotoUrl ? (
+                    <div className="border border-border rounded-xl overflow-hidden bg-black/90 h-[320px] flex items-center justify-center">
+                      <img
+                        src={user.enrolledFacePhotoUrl}
+                        alt="Enrolled Candidate Face"
+                        className="max-w-full max-h-full object-contain"
+                      />
+                    </div>
                   ) : (
-                    <img
-                      src={preview.previewUrl}
-                      alt="Candidate Identity Document"
-                      className="max-w-full max-h-full object-contain"
-                    />
+                    <div className="h-[320px] border border-dashed border-border rounded-xl flex flex-col items-center justify-center p-4 text-center text-muted-foreground bg-muted/20">
+                      <UserCheck className="h-8 w-8 mb-2 opacity-40" />
+                      <p className="text-xs font-medium">No reference face enrolled</p>
+                    </div>
                   )}
                 </div>
-              ) : (
-                <div className="h-[360px] border border-dashed border-border rounded-xl flex flex-col items-center justify-center p-6 text-center text-muted-foreground bg-muted/20">
-                  <FileText className="h-10 w-10 mb-2 opacity-40" />
-                  <p className="text-sm font-medium">No previewable document binary found.</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Candidate has not uploaded or completed identity document submission.
-                  </p>
+
+                {/* Identity Document Preview */}
+                <div className="space-y-1.5">
+                  <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
+                    <span>Identity Document</span>
+                    <span className="text-[10px] text-muted-foreground flex items-center gap-1 font-normal">
+                      <Lock className="h-2.5 w-2.5 text-amber-500" />
+                      S3 Pre-signed
+                    </span>
+                  </div>
+                  {preview?.previewUrl || user?.idDocumentUrl ? (
+                    <div className="border border-border rounded-xl overflow-hidden bg-black/90 h-[320px] flex items-center justify-center">
+                      {preview?.mimeType?.includes('pdf') ? (
+                        <iframe
+                          src={preview.previewUrl}
+                          title="Document PDF Preview"
+                          className="w-full h-full border-0"
+                        />
+                      ) : (
+                        <img
+                          src={preview?.previewUrl || user?.idDocumentUrl}
+                          alt="Candidate Identity Document"
+                          className="max-w-full max-h-full object-contain"
+                        />
+                      )}
+                    </div>
+                  ) : (
+                    <div className="h-[320px] border border-dashed border-border rounded-xl flex flex-col items-center justify-center p-4 text-center text-muted-foreground bg-muted/20">
+                      <FileText className="h-8 w-8 mb-2 opacity-40" />
+                      <p className="text-xs font-medium">No document uploaded</p>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
 
             {/* Right Column: Metadata & Decision Box */}

@@ -6,6 +6,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import * as adminUsersApi from '../../api/adminUsersApi.js';
+import { StateBoundary } from '@/components/common/StateBoundary.jsx';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -104,7 +105,7 @@ export function UserDetailPage() {
       const data = await adminUsersApi.fetchUserDetail(id);
       setUser(data);
     } catch (err) {
-      setError(err?.message || 'Failed to load user details');
+      setError(err?.data || err);
     } finally {
       setLoading(false);
     }
@@ -206,35 +207,20 @@ export function UserDetailPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  if (loading) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-        <span className="ml-3 text-sm text-muted-foreground">Loading account inspector...</span>
-      </div>
-    );
-  }
-
-  if (error || !user) {
-    return (
-      <div className="container mx-auto px-4 py-8 max-w-xl space-y-4">
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Account Load Error</AlertTitle>
-          <AlertDescription>{error || 'User not found in directory'}</AlertDescription>
-        </Alert>
-        <Button variant="outline" onClick={() => navigate('/admin/users')}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Return to User Roster
-        </Button>
-      </div>
-    );
-  }
-
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl space-y-6">
-      {/* Action Notice */}
-      {actionNotice && (
+      <StateBoundary
+        isLoading={loading}
+        error={error}
+        isEmpty={!user}
+        emptyTitle="User Account Not Found"
+        emptyDescription="The requested user record does not exist or has been removed from the directory."
+        onRetry={loadUser}
+      >
+        {user && (
+          <>
+            {/* Action Notice */}
+            {actionNotice && (
         <Alert
           variant={actionNotice.type === 'error' ? 'destructive' : 'default'}
           className={actionNotice.type === 'success' ? 'border-emerald-500 text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/30' : ''}
@@ -709,6 +695,9 @@ export function UserDetailPage() {
           }}
         />
       )}
+          </>
+        )}
+      </StateBoundary>
     </div>
   );
 }

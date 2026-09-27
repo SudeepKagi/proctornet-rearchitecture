@@ -26,6 +26,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Button } from '../../components/ui/button.jsx';
 import { Badge } from '../../components/ui/badge.jsx';
 import { Alert, AlertDescription, AlertTitle } from '../../components/ui/alert.jsx';
+import { StateBoundary } from '../../components/common/StateBoundary.jsx';
 import { useAuth } from '../../hooks/useAuth.js';
 import { enrollCandidate } from '../../api/candidateIdentityApi.js';
 
@@ -188,7 +189,7 @@ export function CandidateEnrollmentPage() {
       }, 2000);
     } catch (err) {
       setSubmitError(
-        err?.message || 'Failed to complete candidate enrollment. Please try again.'
+        err?.data || err?.message || 'Failed to complete candidate enrollment. Please try again.'
       );
     } finally {
       setSubmitting(false);
@@ -258,11 +259,10 @@ export function CandidateEnrollmentPage() {
 
         {/* Error Alert */}
         {submitError && (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Enrollment Error</AlertTitle>
-            <AlertDescription className="text-xs">{submitError}</AlertDescription>
-          </Alert>
+          <StateBoundary
+            error={submitError}
+            onRetry={handleSubmit}
+          />
         )}
 
         {/* Success Alert */}

@@ -26,6 +26,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Button } from '../../components/ui/button.jsx';
 import { Badge } from '../../components/ui/badge.jsx';
 import { Alert, AlertDescription, AlertTitle } from '../../components/ui/alert.jsx';
+import { StateBoundary } from '../../components/common/StateBoundary.jsx';
 import * as sessionsApi from '../../api/sessionsApi.js';
 import { setAntiTamperToken } from '../../api/client.js';
 
@@ -62,7 +63,7 @@ export function ExamLobbyPage() {
       setSession(sessionData);
       setExistingAttempt(myAttempt);
     } catch (err) {
-      setError(err?.message || 'Failed to load examination lobby. Please refresh.');
+      setError(err?.data || err);
     } finally {
       setLoading(false);
     }
@@ -139,37 +140,19 @@ export function ExamLobbyPage() {
     }
   }, [isLive, isUpcoming, session, loading]);
 
-  if (loading) {
-    return (
-      <div className="min-h-[70vh] flex flex-col items-center justify-center space-y-4">
-        <RefreshCw size={36} className="animate-spin text-blue-600" />
-        <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
-          Connecting to proctored examination lobby...
-        </p>
-      </div>
-    );
-  }
-
-  if (!session) {
-    return (
-      <div className="max-w-md mx-auto py-16 px-4">
-        <Card className="text-center p-8 border-slate-200 shadow-sm">
-          <AlertCircle size={40} className="mx-auto text-amber-500 mb-3 stroke-1" />
-          <h2 className="text-lg font-bold text-slate-900">Examination Session Unavailable</h2>
-          <p className="text-sm text-slate-500 mt-2 mb-6">
-            The requested session could not be found or you are not enrolled in this roster.
-          </p>
-          <Button onClick={() => navigate('/candidate')} className="w-full">
-            Return to Student Portal
-          </Button>
-        </Card>
-      </div>
-    );
-  }
-
   return (
     <div className="w-full max-w-4xl mx-auto space-y-6 pb-16 pt-4 px-4 sm:px-6">
-      {/* Top Breadcrumb / Return */}
+      <StateBoundary
+        isLoading={loading}
+        error={error}
+        isEmpty={!session}
+        emptyTitle="Examination Session Unavailable"
+        emptyDescription="The requested session could not be found or you are not enrolled in this roster."
+        onRetry={loadLobby}
+      >
+        {session && (
+          <>
+            {/* Top Breadcrumb / Return */}
       <div className="flex items-center justify-between">
         <Button
           variant="outline"
@@ -371,6 +354,9 @@ export function ExamLobbyPage() {
           </Button>
         </CardFooter>
       </Card>
+          </>
+        )}
+      </StateBoundary>
     </div>
   );
 }

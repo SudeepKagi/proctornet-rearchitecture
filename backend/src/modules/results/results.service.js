@@ -66,11 +66,7 @@ export async function getCandidateAttemptResult({ attemptId, candidateUserId, re
 
   // 5. Release policy / candidate visibility check
   if (!activeRow.is_candidate_visible) {
-    if (['SUBMITTED', 'EXPIRED', 'COMPLETED'].includes(activeRow.attempt_status)) {
-      activeRow.is_candidate_visible = true;
-    } else {
-      throw new AppError('Exam results have not been released', 403, 'RESULT_NOT_PUBLISHED');
-    }
+    throw new AppError('Exam results have not been released', 403, 'RESULT_NOT_PUBLISHED');
   }
 
   // 6. Compute derived fields

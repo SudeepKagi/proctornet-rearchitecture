@@ -32,6 +32,7 @@ import { Badge } from '../../components/ui/badge.jsx';
 import { Alert, AlertDescription, AlertTitle } from '../../components/ui/alert.jsx';
 import { Separator } from '../../components/ui/separator.jsx';
 import { Checkbox } from '../../components/ui/checkbox.jsx';
+import { StateBoundary } from '../../components/common/StateBoundary.jsx';
 
 function formatDateTime(val) {
   if (!val) return 'TBA';
@@ -66,31 +67,33 @@ export function PreExamReadinessPage() {
   const [screenError, setScreenError] = useState('');
   const screenVideoRef = useRef(null);
 
-  useEffect(() => {
-    async function loadData() {
-      try {
-        setLoading(true);
-        const [sessionData, myAttempt, bioStatus] = await Promise.all([
-          sessionsApi.getSession(sessionId),
-          sessionsApi.getMyAttempt(sessionId).catch(() => null),
-          getEnrollmentStatus().catch(() => null),
-        ]);
-        setSession(sessionData);
-        setExistingAttempt(myAttempt);
-        setEnrollment(bioStatus);
+  const loadData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const [sessionData, myAttempt, bioStatus] = await Promise.all([
+        sessionsApi.getSession(sessionId),
+        sessionsApi.getMyAttempt(sessionId).catch(() => null),
+        getEnrollmentStatus().catch(() => null),
+      ]);
+      setSession(sessionData);
+      setExistingAttempt(myAttempt);
+      setEnrollment(bioStatus);
 
-        // If resuming active attempt, biometric check is already validated
-        if (myAttempt?.id && myAttempt.status === 'ACTIVE') {
-          setBiometricVerified(true);
-        }
-      } catch (err) {
-        setError(err?.message || 'Failed to load examination readiness information.');
-      } finally {
-        setLoading(false);
+      // If resuming active attempt, biometric check is already validated
+      if (myAttempt?.id && myAttempt.status === 'ACTIVE') {
+        setBiometricVerified(true);
       }
+    } catch (err) {
+      setError(err?.data || err);
+    } finally {
+      setLoading(false);
     }
-    loadData();
   }, [sessionId]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const cleanupScreenPreview = useCallback(() => {
     if (screenVideoRef.current) {
@@ -255,39 +258,25 @@ export function PreExamReadinessPage() {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="w-full max-w-3xl mx-auto py-16 text-center space-y-3">
-        <RefreshCw size={28} className="animate-spin mx-auto text-slate-400" />
-        <p className="text-sm font-medium text-slate-600">Verifying assessment readiness and session security...</p>
-      </div>
-    );
-  }
-
-  if (!session) {
-    return (
-      <div className="w-full max-w-lg mx-auto py-12">
-        <Card className="text-center p-8 border-slate-200">
-          <AlertCircle size={36} className="mx-auto text-slate-400 stroke-1" />
-          <h2 className="text-lg font-semibold text-slate-900 mt-3">Examination Session Not Found</h2>
-          <p className="text-sm text-slate-500 mt-1 mb-6">
-            The requested examination session could not be found or you are not enrolled in this roster.
-          </p>
-          <Button onClick={() => navigate('/candidate')}>Return to Dashboard</Button>
-        </Card>
-      </div>
-    );
-  }
-
-  const scheduledStart = session.scheduled_start_time ? new Date(session.scheduled_start_time) : null;
+  const scheduledStart = session?.scheduled_start_time ? new Date(session.scheduled_start_time) : null;
   const isUpcoming = scheduledStart && new Date() < scheduledStart;
-  const isSessionLive = session.status === 'ACTIVE' || (scheduledStart && new Date() >= scheduledStart);
+  const isSessionLive = session?.status === 'ACTIVE' || (scheduledStart && new Date() >= scheduledStart);
   const isResuming = existingAttempt?.status === 'ACTIVE';
   const isSubmitted = existingAttempt?.status === 'SUBMITTED';
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-6 pb-12">
-      {/* Back Button */}
+      <StateBoundary
+        isLoading={loading}
+        error={error}
+        isEmpty={!session}
+        emptyTitle="Examination Session Not Found"
+        emptyDescription="The requested examination session could not be found or you are not enrolled in this roster."
+        onRetry={loadData}
+      >
+        {session && (
+          <>
+            {/* Back Button */}
       <div>
         <Button
           variant="outline"
@@ -634,6 +623,9 @@ export function PreExamReadinessPage() {
           </Button>
         </CardFooter>
       </Card>
+          </>
+        )}
+      </StateBoundary>
     </div>
   );
 }

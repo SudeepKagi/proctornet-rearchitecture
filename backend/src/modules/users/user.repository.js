@@ -509,17 +509,36 @@ export async function updateStudentOnboardingProfile(userId, profileData, client
     ]);
   }
 
+  // 1. Resolve department_id
+  let departmentId = null;
+  if (profileData.department) {
+    const deptResult = await executor(
+      `SELECT department_id FROM departments
+       WHERE LOWER(REPLACE(name, '&', 'and')) = LOWER(REPLACE($1, '&', 'and'))
+          OR LOWER(name) = LOWER($1)
+          OR code = UPPER($1)
+          OR LOWER(REPLACE(name, '&', 'and')) ILIKE '%' || LOWER(REPLACE($1, '&', 'and')) || '%'
+          OR LOWER(REPLACE($1, '&', 'and')) ILIKE '%' || LOWER(REPLACE(name, '&', 'and')) || '%'
+          OR name ILIKE '%' || split_part($1, ' ', 1) || '%'
+       LIMIT 1;`,
+      [profileData.department.trim()]
+    );
+    departmentId = deptResult.rows[0]?.department_id || null;
+  }
+
   const sql = `
     UPDATE student_profiles
     SET department = $2,
-        semester = $3,
-        metadata = metadata || $4::jsonb,
+        department_id = $3,
+        semester = $4,
+        metadata = metadata || $5::jsonb,
         updated_at = CURRENT_TIMESTAMP
     WHERE user_id = $1;
   `;
   await executor(sql, [
     userId,
     profileData.department.trim(),
+    departmentId,
     profileData.semester,
     JSON.stringify(profileData.metadata || {})
   ]);

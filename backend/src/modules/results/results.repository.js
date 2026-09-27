@@ -37,9 +37,8 @@ export async function getCandidateResultByAttemptId(attemptId, client = null) {
       r.evaluated_at,
       CASE
         WHEN e.status = 'RESULT_PUBLISHED' OR e.results_published_at IS NOT NULL THEN TRUE
-        WHEN a.status IN ('SUBMITTED', 'EXPIRED', 'COMPLETED') THEN TRUE
         WHEN e.results_release_policy = 'IMMEDIATE' THEN TRUE
-        WHEN e.status IN ('ENDED', 'EVALUATED') AND e.results_release_policy = 'SCHEDULED'
+        WHEN e.results_release_policy = 'SCHEDULED'
              AND e.results_release_at IS NOT NULL AND transaction_timestamp() >= e.results_release_at THEN TRUE
         ELSE FALSE
       END AS is_candidate_visible

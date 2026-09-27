@@ -27,6 +27,7 @@ facultyRouter.get('/dashboard/stats', facultyController.getDashboardStatsHandler
 // 2. Exams Management & Scheduling
 facultyRouter.get('/exams', facultyController.listFacultyExamsHandler);
 facultyRouter.post('/exams/schedule', facultyController.scheduleExamHandler);
+facultyRouter.put('/exams/:examId', facultyController.updateFacultyExamHandler);
 facultyRouter.put('/exams/:examId/cancel', facultyController.cancelExamHandler);
 facultyRouter.get('/exams/:examId/analytics-summary', facultyController.getExamAnalyticsSummaryHandler);
 

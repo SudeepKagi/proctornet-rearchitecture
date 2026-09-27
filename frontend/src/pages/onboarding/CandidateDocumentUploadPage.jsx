@@ -5,7 +5,7 @@
  * Rebuilt with shadcn/ui and Tailwind CSS.
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth.js';
 import * as candidateApi from '../../api/candidateIdentityApi.js';
@@ -36,6 +36,7 @@ import { Select, SelectOption } from '../../components/ui/select.jsx';
 import { Alert, AlertDescription } from '../../components/ui/alert.jsx';
 import { Badge } from '../../components/ui/badge.jsx';
 import { Spinner } from '../../components/ui/spinner.jsx';
+import { StateBoundary } from '../../components/common/StateBoundary.jsx';
 
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'application/pdf'];
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB limit
@@ -71,7 +72,7 @@ export function CandidateDocumentUploadPage() {
   const [extractedData, setExtractedData] = useState(null);
   const [verifiedByCandidate, setVerifiedByCandidate] = useState(false);
 
-  const loadStatus = async () => {
+  const loadStatus = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -95,15 +96,15 @@ export function CandidateDocumentUploadPage() {
         setCustomDepartment(customValue);
       }
     } catch (err) {
-      setError(err?.message || 'Failed to load candidate verification status');
+      setError(err?.data || err?.message || 'Failed to load candidate verification status');
     } finally {
       setLoading(false);
     }
-  };
+  }, [department, documentNumber, fullNameOnDocument]);
 
   useEffect(() => {
     loadStatus();
-  }, []);
+  }, [loadStatus]);
 
   // Cleanup object URL on unmount or file change
   useEffect(() => {
@@ -279,14 +280,6 @@ export function CandidateDocumentUploadPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
-        <Spinner size="lg" />
-      </div>
-    );
-  }
-
   const docStatus =
     identityStatus?.document?.verificationStatus ||
     identityStatus?.overallVerificationStatus ||
@@ -297,6 +290,12 @@ export function CandidateDocumentUploadPage() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 py-10 px-4 sm:px-6 transition-colors">
       <div className="max-w-4xl mx-auto space-y-6">
+        <StateBoundary
+          loading={loading}
+          error={error}
+          onRetry={loadStatus}
+          loadingMessage="Loading candidate verification status..."
+        >
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2.5">
             <GraduationCap className="h-7 w-7 text-blue-600 dark:text-blue-500" />
@@ -783,6 +782,7 @@ export function CandidateDocumentUploadPage() {
             </CardContent>
           </Card>
         )}
+        </StateBoundary>
       </div>
     </div>
   );

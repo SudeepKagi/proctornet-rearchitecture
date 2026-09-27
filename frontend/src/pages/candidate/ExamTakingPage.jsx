@@ -26,6 +26,7 @@ import { TimerDisplay } from '../../components/exam/TimerDisplay.jsx';
 import { AutosaveIndicator } from '../../components/exam/AutosaveIndicator.jsx';
 import { SubmitConfirmModal } from '../../components/exam/SubmitConfirmModal.jsx';
 import { OfflineBanner } from '../../components/common/OfflineBanner.jsx';
+import { StateBoundary } from '../../components/common/StateBoundary.jsx';
 import { Button } from '../../components/ui/button.jsx';
 import { Card, CardContent } from '../../components/ui/card.jsx';
 import { Spinner } from '../../components/ui/spinner.jsx';
@@ -68,46 +69,48 @@ export function ExamTakingPage() {
   const logicalSubmissionKeyRef = useRef(null);
   const [initialAnswersList, setInitialAnswersList] = useState([]);
 
-  useEffect(() => {
-    async function loadExamData() {
-      try {
-        setLoading(true);
-        const [attemptData, questionsData, savedAnswers] = await Promise.all([
-          attemptsApi.getAttempt(attemptId),
-          attemptsApi.getAttemptQuestions(attemptId),
-          answersApi.getAnswers(attemptId).catch(() => []),
-        ]);
+  const loadExamData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setInitialError(null);
+      const [attemptData, questionsData, savedAnswers] = await Promise.all([
+        attemptsApi.getAttempt(attemptId),
+        attemptsApi.getAttemptQuestions(attemptId),
+        answersApi.getAnswers(attemptId).catch(() => []),
+      ]);
 
-        if (attemptData.status === 'SUBMITTED' || attemptData.status === 'EXPIRED') {
-          navigate(`/candidate/attempts/${attemptId}/result`, { replace: true });
-          return;
-        }
-
-        setAttempt(attemptData);
-        if (attemptData.status === 'PAUSED') {
-          setAttemptStatus('PAUSED');
-          setPauseReason(attemptData.metadata?.pause_reason || 'Proctor has temporarily paused this examination attempt.');
-        } else if (attemptData.status === 'TERMINATED') {
-          setAttemptStatus('TERMINATED');
-          setTerminationReason(attemptData.metadata?.termination_reason || 'Proctor has terminated this examination attempt.');
-        } else {
-          setAttemptStatus(attemptData.status || 'ACTIVE');
-        }
-        setDynamicExpiresAt(attemptData.expires_at);
-
-        if (attemptData.anti_tamper_token) {
-          setAntiTamperToken(attemptData.anti_tamper_token);
-        }
-        setQuestions(questionsData);
-        setInitialAnswersList(savedAnswers);
-      } catch (err) {
-        setInitialError(err.message || 'Failed to load examination attempt data');
-      } finally {
-        setLoading(false);
+      if (attemptData.status === 'SUBMITTED' || attemptData.status === 'EXPIRED') {
+        navigate(`/candidate/attempts/${attemptId}/result`, { replace: true });
+        return;
       }
+
+      setAttempt(attemptData);
+      if (attemptData.status === 'PAUSED') {
+        setAttemptStatus('PAUSED');
+        setPauseReason(attemptData.metadata?.pause_reason || 'Proctor has temporarily paused this examination attempt.');
+      } else if (attemptData.status === 'TERMINATED') {
+        setAttemptStatus('TERMINATED');
+        setTerminationReason(attemptData.metadata?.termination_reason || 'Proctor has terminated this examination attempt.');
+      } else {
+        setAttemptStatus(attemptData.status || 'ACTIVE');
+      }
+      setDynamicExpiresAt(attemptData.expires_at);
+
+      if (attemptData.anti_tamper_token) {
+        setAntiTamperToken(attemptData.anti_tamper_token);
+      }
+      setQuestions(questionsData);
+      setInitialAnswersList(savedAnswers);
+    } catch (err) {
+      setInitialError(err?.data || err);
+    } finally {
+      setLoading(false);
     }
-    loadExamData();
   }, [attemptId, navigate]);
+
+  useEffect(() => {
+    loadExamData();
+  }, [loadExamData]);
 
   const {
     answers,
@@ -309,36 +312,6 @@ export function ExamTakingPage() {
     };
   }, [executeSubmission]);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950 gap-3">
-        <Spinner size="lg" />
-        <p className="text-xs text-slate-500 font-medium">Securing test environment & loading questions...</p>
-      </div>
-    );
-  }
-
-  if (initialError) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-4">
-        <Card className="max-w-md w-full text-center p-6 space-y-4">
-          <div className="mx-auto p-3 rounded-full bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400 w-fit">
-            <AlertTriangle className="h-6 w-6" />
-          </div>
-          <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Examination Access Issue</h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400">{initialError}</p>
-          <Button onClick={() => navigate('/candidate')} className="w-full">
-            Return to Dashboard
-          </Button>
-        </Card>
-      </div>
-    );
-  }
-
-  const currentQuestion = questions[currentQuestionIndex] || null;
-  const currentAnswer = currentQuestion ? answers[currentQuestion.id] : null;
-
-  const totalQuestions = questions.length;
   const answeredCount = questions.filter((q) => {
     const ans = answers[q.id];
     if (!ans) return false;
@@ -351,8 +324,18 @@ export function ExamTakingPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors">
-      {/* Sticky Topbar */}
-      <header className="sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xs border-b border-slate-200 dark:border-slate-800 shadow-2xs px-4 sm:px-6 h-16 flex items-center justify-between">
+      <StateBoundary
+        isLoading={loading}
+        error={initialError}
+        isEmpty={!attempt || questions.length === 0}
+        emptyTitle="Examination Unavailable"
+        emptyDescription="Unable to load questions or active attempt for this examination."
+        onRetry={loadExamData}
+      >
+        {attempt && (
+          <>
+            {/* Sticky Topbar */}
+            <header className="sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xs border-b border-slate-200 dark:border-slate-800 shadow-2xs px-4 sm:px-6 h-16 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div>
             <span className="text-sm font-bold text-slate-900 dark:text-slate-100 block truncate max-w-[180px] sm:max-w-xs">
@@ -529,6 +512,9 @@ export function ExamTakingPage() {
           </div>
         </div>
       )}
+          </>
+        )}
+      </StateBoundary>
     </div>
   );
 }

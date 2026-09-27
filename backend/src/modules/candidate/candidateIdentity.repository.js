@@ -296,6 +296,8 @@ export async function findStudentProfile(userId, client = null) {
       u.status,
       u.verification_status,
       u.verification_notes,
+      u.enrolled_face_photo_url,
+      u.id_document_url,
       sp.enrollment_number,
       sp.department,
       sp.semester

@@ -10,6 +10,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { StateBoundary } from '../../components/common/StateBoundary.jsx';
 import {
   Dialog,
   DialogContent,
@@ -51,7 +52,7 @@ export function CreateUserPage() {
   const [copied, setCopied] = useState(false);
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     setError(null);
 
     if (role === 'STUDENT' && !identifier.trim()) {
@@ -81,7 +82,7 @@ export function CreateUserPage() {
       setCopied(false);
       setSuccessModalOpen(true);
     } catch (err) {
-      setError(err?.message || 'Failed to provision user');
+      setError(err?.data || err?.message || 'Failed to provision user');
     } finally {
       setLoading(false);
     }
@@ -129,11 +130,10 @@ export function CreateUserPage() {
       </div>
 
       {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Provisioning Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
+        <StateBoundary
+          error={error}
+          onRetry={handleSubmit}
+        />
       )}
 
       <Card className="shadow-xs border-border/80">

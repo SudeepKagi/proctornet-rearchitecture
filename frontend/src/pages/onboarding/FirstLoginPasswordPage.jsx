@@ -13,6 +13,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../..
 import { Button } from '../../components/ui/button.jsx';
 import { Input } from '../../components/ui/input.jsx';
 import { Alert, AlertDescription } from '../../components/ui/alert.jsx';
+import { StateBoundary } from '../../components/common/StateBoundary.jsx';
 
 export function FirstLoginPasswordPage() {
   const navigate = useNavigate();
@@ -44,7 +45,7 @@ export function FirstLoginPasswordPage() {
   const strengthColors = ['bg-rose-500', 'bg-orange-500', 'bg-amber-500', 'bg-emerald-500', 'bg-emerald-600'];
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     setError(null);
 
     if (newPassword !== confirmPassword) {
@@ -69,7 +70,7 @@ export function FirstLoginPasswordPage() {
       const destination = resolvePostLoginDestination(targetUser);
       navigate(destination, { replace: true });
     } catch (err) {
-      setError(err?.message || 'Failed to update temporary password');
+      setError(err?.data || err?.message || 'Failed to update temporary password');
     } finally {
       setLoading(false);
     }
@@ -78,26 +79,26 @@ export function FirstLoginPasswordPage() {
   return (
     <div className="min-h-screen flex flex-col justify-center items-center bg-slate-50 dark:bg-slate-950 p-4 sm:p-6 transition-colors">
       <div className="w-full max-w-md space-y-4">
-        <Card className="shadow-lg border-slate-200/90 dark:border-slate-800 dark:bg-slate-900">
-          <CardHeader className="text-center space-y-2 pb-4">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600 text-white shadow-md">
-              <KeyRound className="h-6 w-6" />
-            </div>
-            <CardTitle className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
-              Set New Password
-            </CardTitle>
-            <CardDescription className="text-xs text-slate-500 dark:text-slate-400">
-              Your account was provisioned with a temporary password. Please establish a permanent, secure password to continue.
-            </CardDescription>
-          </CardHeader>
+        <StateBoundary
+          loading={loading}
+          error={error}
+          onRetry={handleSubmit}
+          loadingMessage="Updating password credentials..."
+        >
+          <Card className="shadow-lg border-slate-200/90 dark:border-slate-800 dark:bg-slate-900">
+            <CardHeader className="text-center space-y-2 pb-4">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600 text-white shadow-md">
+                <KeyRound className="h-6 w-6" />
+              </div>
+              <CardTitle className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+                Set New Password
+              </CardTitle>
+              <CardDescription className="text-xs text-slate-500 dark:text-slate-400">
+                Your account was provisioned with a temporary password. Please establish a permanent, secure password to continue.
+              </CardDescription>
+            </CardHeader>
 
-          <CardContent className="space-y-4">
-            {error && (
-              <Alert variant="destructive" className="py-2.5">
-                <ShieldAlert className="h-4 w-4" />
-                <AlertDescription className="text-xs">{error}</AlertDescription>
-              </Alert>
-            )}
+            <CardContent className="space-y-4">
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-1 text-left">
@@ -197,6 +198,7 @@ export function FirstLoginPasswordPage() {
             </div>
           </CardContent>
         </Card>
+        </StateBoundary>
       </div>
     </div>
   );

@@ -7,6 +7,7 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as adminUsersApi from '../../api/adminUsersApi.js';
+import { StateBoundary } from '@/components/common/StateBoundary.jsx';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -71,7 +72,7 @@ export function BulkImportPage() {
       const data = await adminUsersApi.previewBulkImport(selectedFile, defaultRole);
       setPreviewData(data);
     } catch (err) {
-      setPreviewError(err?.message || 'Failed to parse spreadsheet file');
+      setPreviewError(err?.data || err);
     } finally {
       setPreviewLoading(false);
     }
@@ -217,14 +218,6 @@ export function BulkImportPage() {
               Supported formats: .xlsx, .xls, .csv (Up to 10,000 rows). Passwords must never be included.
             </p>
           </div>
-
-          {previewError && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Validation Error</AlertTitle>
-              <AlertDescription>{previewError}</AlertDescription>
-            </Alert>
-          )}
         </CardContent>
 
         <CardFooter className="flex justify-end border-t border-border/60 p-4">
@@ -242,7 +235,7 @@ export function BulkImportPage() {
       </Card>
 
       {/* Step 2: Validation Preview */}
-      {previewData && !commitResult && (
+      {(previewLoading || previewError || (previewData && !commitResult)) && (
         <Card className="shadow-xs border-border/80">
           <CardHeader>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -252,62 +245,79 @@ export function BulkImportPage() {
                   Review spreadsheet parsing diagnostics before generating user credentials.
                 </CardDescription>
               </div>
-              <div className="flex flex-wrap gap-2">
-                <Badge variant="outline">Total: {previewData.summary?.total}</Badge>
-                <Badge variant="default" className="bg-emerald-600 hover:bg-emerald-700">
-                  Valid: {previewData.summary?.valid}
-                </Badge>
-                {previewData.summary?.invalid > 0 && (
-                  <Badge variant="destructive">Invalid: {previewData.summary?.invalid}</Badge>
-                )}
-                {previewData.summary?.duplicatesInFile > 0 && (
-                  <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300">
-                    Duplicates: {previewData.summary?.duplicatesInFile}
+              {previewData && (
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="outline">Total: {previewData.summary?.total}</Badge>
+                  <Badge variant="default" className="bg-emerald-600 hover:bg-emerald-700">
+                    Valid: {previewData.summary?.valid}
                   </Badge>
-                )}
-              </div>
+                  {previewData.summary?.invalid > 0 && (
+                    <Badge variant="destructive">Invalid: {previewData.summary?.invalid}</Badge>
+                  )}
+                  {previewData.summary?.duplicatesInFile > 0 && (
+                    <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300">
+                      Duplicates: {previewData.summary?.duplicatesInFile}
+                    </Badge>
+                  )}
+                </div>
+              )}
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            {previewData.errors?.length > 0 && (
-              <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 max-h-[220px] overflow-y-auto">
-                <div className="flex items-center gap-2 text-destructive text-sm font-semibold mb-2">
-                  <AlertCircle className="h-4 w-4" />
-                  <span>Row Validation Issues Detected ({previewData.errors.length}):</span>
-                </div>
-                <ul className="space-y-1 text-xs text-muted-foreground list-disc pl-5">
-                  {previewData.errors.map((err, idx) => (
-                    <li key={idx}>
-                      Row {err.row}: <span className="font-semibold text-foreground">{err.email || 'Unknown'}</span> — {err.error}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+            <StateBoundary
+              isLoading={previewLoading}
+              error={previewError}
+              isEmpty={previewData && previewData.summary?.total === 0}
+              emptyTitle="No Candidate Records Found"
+              emptyDescription="The uploaded roster file contained no user entries to parse."
+              onRetry={handleAnalyze}
+            >
+              {previewData && (
+                <>
+                  {previewData.errors?.length > 0 && (
+                    <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 max-h-[220px] overflow-y-auto">
+                      <div className="flex items-center gap-2 text-destructive text-sm font-semibold mb-2">
+                        <AlertCircle className="h-4 w-4" />
+                        <span>Row Validation Issues Detected ({previewData.errors.length}):</span>
+                      </div>
+                      <ul className="space-y-1 text-xs text-muted-foreground list-disc pl-5">
+                        {previewData.errors.map((err, idx) => (
+                          <li key={idx}>
+                            Row {err.row}: <span className="font-semibold text-foreground">{err.email || 'Unknown'}</span> — {err.error}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
 
-            {atomic && previewData.summary?.invalid > 0 && (
-              <Alert variant="destructive">
-                <ShieldAlert className="h-4 w-4" />
-                <AlertTitle>Atomic Mode Invariant Violated</AlertTitle>
-                <AlertDescription className="text-xs">
-                  Ingestion is blocked because {previewData.summary?.invalid} invalid row(s) were found. Fix the spreadsheet or switch to Resilient Mode.
-                </AlertDescription>
-              </Alert>
-            )}
+                  {atomic && previewData.summary?.invalid > 0 && (
+                    <Alert variant="destructive">
+                      <ShieldAlert className="h-4 w-4" />
+                      <AlertTitle>Atomic Mode Invariant Violated</AlertTitle>
+                      <AlertDescription className="text-xs">
+                        Ingestion is blocked because {previewData.summary?.invalid} invalid row(s) were found. Fix the spreadsheet or switch to Resilient Mode.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </>
+              )}
+            </StateBoundary>
           </CardContent>
 
-          <CardFooter className="flex justify-end border-t border-border/60 p-4">
-            <Button
-              disabled={(atomic && previewData.summary?.invalid > 0) || commitLoading}
-              onClick={handleCommit}
-              className="flex items-center gap-2"
-            >
-              {commitLoading && (
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-              )}
-              <span>Commit Ingestion & Issue Credentials ({previewData.summary?.valid || 0} Accounts)</span>
-            </Button>
-          </CardFooter>
+          {previewData && (
+            <CardFooter className="flex justify-end border-t border-border/60 p-4">
+              <Button
+                disabled={(atomic && previewData.summary?.invalid > 0) || commitLoading}
+                onClick={handleCommit}
+                className="flex items-center gap-2"
+              >
+                {commitLoading && (
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                )}
+                <span>Commit Ingestion & Issue Credentials ({previewData.summary?.valid || 0} Accounts)</span>
+              </Button>
+            </CardFooter>
+          )}
         </Card>
       )}
 

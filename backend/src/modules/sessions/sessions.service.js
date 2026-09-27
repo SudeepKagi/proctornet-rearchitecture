@@ -252,7 +252,74 @@ export async function updateSession(sessionId, updates, user, requestId = null) 
       }
     }
 
+    // Resolve canonical department if target_department is updated
+    let deptId = updates.department_id;
+    let deptName = updates.target_department;
+    if (deptName && deptId === undefined) {
+      const deptRes = await client.query(
+        `SELECT department_id, name FROM departments 
+         WHERE LOWER(REPLACE(name, '&', 'and')) = LOWER(REPLACE($1, '&', 'and'))
+            OR LOWER(name) = LOWER($1)
+            OR LOWER(code) = LOWER($1)
+            OR LOWER(REPLACE(name, '&', 'and')) ILIKE '%' || LOWER(REPLACE($1, '&', 'and')) || '%'
+            OR LOWER(REPLACE($1, '&', 'and')) ILIKE '%' || LOWER(REPLACE(name, '&', 'and')) || '%'
+            OR name ILIKE '%' || split_part($1, ' ', 1) || '%'
+         LIMIT 1`,
+        [deptName.trim()]
+      );
+      if (deptRes.rows.length > 0) {
+        deptId = deptRes.rows[0].department_id;
+        deptName = deptRes.rows[0].name;
+      }
+    }
+    if (deptId !== undefined) {
+      updates.department_id = deptId;
+    }
+    if (deptName !== undefined) {
+      updates.target_department = deptName;
+    }
+
     const updatedSession = await sessionsRepo.updateSession(sessionId, updates, client);
+
+    // If target branch or semester changed, re-sync the unstarted candidate roster
+    if (updates.target_semester !== undefined || updates.target_department !== undefined) {
+      const finalSemester = updates.target_semester !== undefined ? Number(updates.target_semester) : session.target_semester;
+      const finalDeptName = deptName !== undefined ? deptName : session.target_department;
+      const finalDeptId = deptId !== undefined ? deptId : session.department_id;
+
+      // 1. Delete unstarted assigned candidates
+      await client.query(
+        `DELETE FROM session_students WHERE session_id = $1 AND status = 'ASSIGNED'`,
+        [sessionId]
+      );
+
+      // 2. Re-insert eligible active students matching the new department and semester
+      if (finalSemester && (finalDeptName || finalDeptId)) {
+        await client.query(
+          `INSERT INTO session_students (session_id, student_id, status)
+           SELECT $1, sp.user_id, 'ASSIGNED'
+           FROM student_profiles sp
+           JOIN users u ON sp.user_id = u.user_id
+           WHERE sp.semester = $2
+             AND (
+               ($3::uuid IS NOT NULL AND sp.department_id = $3)
+               OR LOWER(sp.department) = LOWER($4)
+               OR sp.department ILIKE '%' || $4 || '%'
+             )
+             AND u.status = 'ACTIVE'
+           ON CONFLICT (session_id, student_id) DO NOTHING`,
+          [sessionId, finalSemester, finalDeptId || null, finalDeptName || '']
+        );
+      }
+
+      // 3. Keep associated exams table synchronized
+      await client.query(
+        `UPDATE exams 
+         SET target_semester = $1, target_department = $2, department_id = $3, updated_at = NOW() 
+         WHERE exam_id = $4`,
+        [finalSemester, finalDeptName, finalDeptId || null, session.exam_id]
+      );
+    }
 
     await sessionsRepo.createAuditLog(
       {

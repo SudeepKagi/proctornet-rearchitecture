@@ -430,7 +430,9 @@ export async function getStudentVerificationDossier(targetUserId) {
       semester: profile.semester,
       accountStatus: profile.status,
       verificationStatus: profile.verification_status,
-      verificationNotes: profile.verification_notes
+      verificationNotes: profile.verification_notes,
+      enrolledFacePhotoUrl: profile.enrolled_face_photo_url,
+      idDocumentUrl: profile.id_document_url
     },
     activeDocument: activeDoc
       ? {

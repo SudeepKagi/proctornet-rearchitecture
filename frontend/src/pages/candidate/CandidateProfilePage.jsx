@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   User,
@@ -19,6 +19,7 @@ import {
 import { getCandidateProfile, updateCandidateProfile } from '../../api/candidateIdentityApi.js';
 import { getEnrollmentStatus } from '../../api/biometricsApi.js';
 import { useAuth } from '../../hooks/useAuth.js';
+import { StateBoundary } from '../../components/common/StateBoundary.jsx';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card.jsx';
 import { Button } from '../../components/ui/button.jsx';
 import { Badge } from '../../components/ui/badge.jsx';
@@ -160,9 +161,9 @@ export function CandidateProfilePage() {
   const [saved, setSaved] = useState(false);
   const [form, setForm] = useState({ department: '', semester: '', phone: '' });
 
-  async function loadProfile() {
+  const loadProfile = useCallback(async () => {
     setLoading(true);
-    setError('');
+    setError(null);
     try {
       const [profileRes, enrollRes] = await Promise.all([
         getCandidateProfile().catch(() => null),
@@ -186,13 +187,13 @@ export function CandidateProfilePage() {
         });
       }
     } catch (err) {
-      setError(parseApiError(err));
+      setError(err?.data || parseApiError(err));
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
-  useEffect(() => { loadProfile(); }, []);
+  useEffect(() => { loadProfile(); }, [loadProfile]);
 
   function handleChange(e) {
     const { name, value } = e.target;
@@ -240,37 +241,32 @@ export function CandidateProfilePage() {
         <p className="text-sm text-slate-500 mt-0.5">Manage your account details and identity verification.</p>
       </div>
 
-      {error && (
-        <Alert variant="destructive">
-          <AlertCircle size={15} />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
+      <StateBoundary
+        isLoading={loading}
+        error={error}
+        isEmpty={!profile && !user}
+        emptyTitle="Student Profile Not Found"
+        emptyDescription="Unable to load your institutional profile information."
+        onRetry={loadProfile}
+      >
+        {saved && (
+          <Alert className="border-emerald-200 bg-emerald-50 mb-4">
+            <CheckCircle2 size={15} className="text-emerald-600" />
+            <AlertTitle className="text-emerald-700">Profile updated successfully.</AlertTitle>
+          </Alert>
+        )}
 
-      {saved && (
-        <Alert className="border-emerald-200 bg-emerald-50">
-          <CheckCircle2 size={15} className="text-emerald-600" />
-          <AlertTitle className="text-emerald-700">Profile updated successfully.</AlertTitle>
-        </Alert>
-      )}
-
-      {/* Account Info */}
-      <Card className="border-slate-200 bg-white shadow-xs">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold flex items-center gap-2">
-            <User size={15} className="text-slate-500" />
-            Account Information
-          </CardTitle>
-          <CardDescription className="text-xs">Basic details tied to your institution account.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {loading ? (
-            <div className="space-y-3 animate-pulse">
-              {[1,2,3].map(i => <div key={i} className="h-8 rounded bg-slate-100" />)}
-            </div>
-          ) : (
-            <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
+        {/* Account Info */}
+        <Card className="border-slate-200 bg-white shadow-xs">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <User size={15} className="text-slate-500" />
+              Account Information
+            </CardTitle>
+            <CardDescription className="text-xs">Basic details tied to your institution account.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
                 <Field label="Full Name" value={user?.name || profile?.name} icon={User} />
                 <Field label="Email" value={user?.email || profile?.email} icon={Mail} />
                 <Field label="User ID" value={user?.userId ? `#${user.userId.slice(0, 8).toUpperCase()}` : undefined} icon={Hash} />
@@ -340,9 +336,7 @@ export function CandidateProfilePage() {
                   <Field label="Phone" value={profile?.phone} icon={Phone} />
                 </div>
               )}
-            </>
-          )}
-        </CardContent>
+          </CardContent>
       </Card>
 
       {/* Identity Verification — only show the enrollment CTA if NOT done */}
@@ -360,9 +354,7 @@ export function CandidateProfilePage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {loading ? (
-            <div className="h-16 rounded-lg bg-slate-100 animate-pulse" />
-          ) : isEnrolled ? (
+          {isEnrolled ? (
             <div className="flex items-start gap-3">
               <div className="p-2 rounded-lg bg-emerald-100 text-emerald-700 shrink-0">
                 <CheckCircle2 size={18} />
@@ -408,6 +400,7 @@ export function CandidateProfilePage() {
           )}
         </CardContent>
       </Card>
+      </StateBoundary>
     </div>
   );
 }
