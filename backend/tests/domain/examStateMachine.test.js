@@ -51,17 +51,50 @@ describe('ExamStateMachine Invariants & Transitions', () => {
   });
 
   describe('Terminal state detection', () => {
-    it('identifies RESULT_PUBLISHED as the sole terminal state', () => {
+    it('identifies RESULT_PUBLISHED and CANCELLED as terminal states', () => {
       expect(isExamTerminal(ExamStatus.RESULT_PUBLISHED)).toBe(true);
+      expect(isExamTerminal(ExamStatus.CANCELLED)).toBe(true);
       expect(isExamTerminal(ExamStatus.ENDED)).toBe(false);
       expect(isExamTerminal(ExamStatus.EVALUATED)).toBe(false);
       expect(isExamTerminal(ExamStatus.LIVE)).toBe(false);
+      expect(isExamTerminal(ExamStatus.SCHEDULED)).toBe(false);
     });
 
-    it('allows zero transitions from RESULT_PUBLISHED', () => {
-      const allowed = getNextAllowedExamStates(ExamStatus.RESULT_PUBLISHED);
-      expect(allowed).toEqual([]);
+    it('allows zero transitions from RESULT_PUBLISHED and CANCELLED', () => {
+      expect(getNextAllowedExamStates(ExamStatus.RESULT_PUBLISHED)).toEqual([]);
       expect(canTransitionExam(ExamStatus.RESULT_PUBLISHED, ExamStatus.DRAFT)).toBe(false);
+      expect(getNextAllowedExamStates(ExamStatus.CANCELLED)).toEqual([]);
+      expect(canTransitionExam(ExamStatus.CANCELLED, ExamStatus.LIVE)).toBe(false);
+    });
+  });
+
+  describe('Cancellation transitions', () => {
+    it('allows transitions to CANCELLED from DRAFT, PUBLISHED, SCHEDULED, and LIVE', () => {
+      expect(canTransitionExam(ExamStatus.DRAFT, ExamStatus.CANCELLED)).toBe(true);
+      expect(transitionExamState(ExamStatus.DRAFT, ExamStatus.CANCELLED)).toBe(ExamStatus.CANCELLED);
+
+      expect(canTransitionExam(ExamStatus.PUBLISHED, ExamStatus.CANCELLED)).toBe(true);
+      expect(transitionExamState(ExamStatus.PUBLISHED, ExamStatus.CANCELLED)).toBe(ExamStatus.CANCELLED);
+
+      expect(canTransitionExam(ExamStatus.SCHEDULED, ExamStatus.CANCELLED)).toBe(true);
+      expect(transitionExamState(ExamStatus.SCHEDULED, ExamStatus.CANCELLED)).toBe(ExamStatus.CANCELLED);
+
+      expect(canTransitionExam(ExamStatus.LIVE, ExamStatus.CANCELLED)).toBe(true);
+      expect(transitionExamState(ExamStatus.LIVE, ExamStatus.CANCELLED)).toBe(ExamStatus.CANCELLED);
+    });
+
+    it('rejects transitions to CANCELLED from ENDED, EVALUATED, or RESULT_PUBLISHED', () => {
+      expect(canTransitionExam(ExamStatus.ENDED, ExamStatus.CANCELLED)).toBe(false);
+      expect(() => transitionExamState(ExamStatus.ENDED, ExamStatus.CANCELLED))
+        .toThrow(InvalidStateTransitionError);
+
+      expect(canTransitionExam(ExamStatus.EVALUATED, ExamStatus.CANCELLED)).toBe(false);
+      expect(() => transitionExamState(ExamStatus.EVALUATED, ExamStatus.CANCELLED))
+        .toThrow(InvalidStateTransitionError);
+
+      expect(canTransitionExam(ExamStatus.RESULT_PUBLISHED, ExamStatus.CANCELLED)).toBe(false);
+      expect(() => transitionExamState(ExamStatus.RESULT_PUBLISHED, ExamStatus.CANCELLED))
+        .toThrow(InvalidStateTransitionError);
     });
   });
 

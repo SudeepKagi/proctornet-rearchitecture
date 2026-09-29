@@ -6,6 +6,7 @@
 
 import { query, getPool } from '../../infrastructure/postgres/pool.js';
 import { NotFoundError, BadRequestError, ForbiddenError } from '../../utils/errors.js';
+import { createAuditLog } from '../audit/audit.repository.js';
 import { logger } from '../../utils/logger.js';
 
 /**
@@ -143,7 +144,7 @@ export async function listFacultyExams({ tab = 'all' }, facultyUserId) {
   if (tab === 'upcoming') {
     statusCondition = "AND e.status IN ('SCHEDULED', 'PUBLISHED', 'LIVE', 'DRAFT') AND (e.scheduled_end_time IS NULL OR e.scheduled_end_time >= NOW())";
   } else if (tab === 'past') {
-    statusCondition = "AND (e.status IN ('ENDED', 'COMPLETED', 'EVALUATED', 'RESULT_PUBLISHED') OR (e.scheduled_end_time IS NOT NULL AND e.scheduled_end_time < NOW()))";
+    statusCondition = "AND (e.status IN ('ENDED', 'COMPLETED', 'EVALUATED', 'RESULT_PUBLISHED', 'CANCELLED') OR (e.scheduled_end_time IS NOT NULL AND e.scheduled_end_time < NOW()))";
   }
 
   const sql = `
@@ -722,13 +723,75 @@ export async function updateFacultyExam(examId, updates, facultyUserId) {
  */
 export async function cancelExam(examId, facultyUserId) {
   const pool = getPool();
-  const exam = await pool.query('SELECT exam_id, status, created_by FROM exams WHERE exam_id = $1', [examId]);
-  if (exam.rows.length === 0) throw new NotFoundError('Exam not found');
+  const client = await pool.connect();
 
-  await pool.query("UPDATE exams SET status = 'CANCELLED', updated_at = NOW() WHERE exam_id = $1", [examId]);
-  await pool.query("UPDATE exam_sessions SET status = 'CANCELLED', updated_at = NOW() WHERE exam_id = $1", [examId]);
+  try {
+    await client.query('BEGIN');
 
-  return { message: 'Exam and associated session cancelled successfully.' };
+    const examRes = await client.query(
+      'SELECT exam_id, title, status, created_by FROM exams WHERE exam_id = $1 FOR UPDATE',
+      [examId]
+    );
+    if (examRes.rows.length === 0) {
+      throw new NotFoundError('Exam not found');
+    }
+    const exam = examRes.rows[0];
+
+    if (exam.status === 'CANCELLED') {
+      await client.query('COMMIT');
+      return { message: 'Exam is already cancelled.', examId };
+    }
+
+    if (['EVALUATED', 'RESULT_PUBLISHED'].includes(exam.status)) {
+      throw new BadRequestError(`Cannot cancel an examination in '${exam.status}' state as results have already been processed.`);
+    }
+
+    // 1. Update exam status
+    await client.query("UPDATE exams SET status = 'CANCELLED', updated_at = NOW() WHERE exam_id = $1", [examId]);
+
+    // 2. Cancel associated sessions
+    await client.query("UPDATE exam_sessions SET status = 'CANCELLED', updated_at = NOW() WHERE exam_id = $1", [examId]);
+
+    // 3. Terminate any in-progress student attempts
+    await client.query(
+      `UPDATE exam_attempts
+       SET status = 'TERMINATED',
+           termination_reason = 'Exam cancelled by faculty',
+           terminated_by_user_id = $2,
+           updated_at = NOW()
+       WHERE session_id IN (SELECT session_id FROM exam_sessions WHERE exam_id = $1)
+         AND status IN ('READY', 'ACTIVE', 'PAUSED')`,
+      [examId, facultyUserId]
+    );
+
+    // 4. Revoke/expire any unconsumed clearances for these sessions
+    await client.query(
+      `UPDATE exam_entry_clearances
+       SET consumed_at = NOW()
+       WHERE session_id IN (SELECT session_id FROM exam_sessions WHERE exam_id = $1)
+         AND consumed_at IS NULL`,
+      [examId]
+    );
+
+    // 5. Centralized Audit Log
+    await createAuditLog({
+      actorUserId: facultyUserId,
+      action: 'EXAM_CANCELLED',
+      resourceType: 'EXAM',
+      resourceId: examId,
+      metadata: { previousStatus: exam.status, examTitle: exam.title }
+    }, client);
+
+    await client.query('COMMIT');
+    logger.info({ examId, facultyUserId, previousStatus: exam.status }, 'Exam successfully cancelled');
+
+    return { message: 'Exam and associated session cancelled successfully.' };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
 }
 
 /**

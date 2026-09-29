@@ -71,7 +71,7 @@ export const examTopicRuleSchema = z.object({
 
 export const examQuerySchema = z.object({
   status: z
-    .enum(['DRAFT', 'PUBLISHED', 'SCHEDULED', 'LIVE', 'ENDED', 'EVALUATED', 'RESULT_PUBLISHED'])
+    .enum(['DRAFT', 'PUBLISHED', 'SCHEDULED', 'LIVE', 'ENDED', 'EVALUATED', 'RESULT_PUBLISHED', 'CANCELLED'])
     .optional(),
   subject_id: z.string().uuid().optional(),
   page: z.coerce.number().int().min(1).default(1),

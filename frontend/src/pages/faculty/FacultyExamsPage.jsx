@@ -96,6 +96,7 @@ export function FacultyExamsPage() {
       await facultyApi.cancelExam(examId);
       await loadExams(activeTab);
     } catch (err) {
+      setError(err?.message || 'Failed to cancel exam');
       alert(err?.message || 'Failed to cancel exam');
     } finally {
       setCancellingId(null);
@@ -274,7 +275,8 @@ export function FacultyExamsPage() {
                       <div className="flex items-center gap-2 flex-wrap">
                         {getStatusBadge(ex.status)}
                         <span className="text-xs text-slate-400 font-medium">
-                          Concluded {formatDateTime(ex.scheduled_end_time || ex.created_at)}
+                          {ex.status === 'CANCELLED' ? 'Cancelled ' : 'Concluded '}
+                          {formatDateTime(ex.scheduled_end_time || ex.created_at)}
                         </span>
                       </div>
 
@@ -304,6 +306,14 @@ export function FacultyExamsPage() {
                     </div>
 
                     <div className="flex items-center gap-2.5 self-end md:self-center shrink-0">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate(`/faculty/exams/${ex.exam_id}`)}
+                        className="h-9 px-3.5 text-xs font-semibold gap-1 bg-white text-slate-700 hover:bg-slate-50 border-slate-200"
+                      >
+                        <FileEdit size={13} /> Blueprint Details
+                      </Button>
                       <Button
                         size="sm"
                         onClick={() => navigate(`/faculty/exams/${ex.exam_id}/results`)}
