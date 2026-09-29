@@ -1,7 +1,7 @@
 /**
  * Flow 2 Audit: Admin Bulk Import & Verification Queue
  */
-import { query } from '../src/infrastructure/postgres/pool.js';
+import { query } from '../../src/infrastructure/postgres/pool.js';
 
 const BASE_URL = 'http://localhost:3000/api/v1';
 

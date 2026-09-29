@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Camera, CheckCircle2, AlertCircle, RefreshCw, ArrowLeft, Shield, Eye, Lock } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import FaceOvalGuide from '../../components/biometrics/FaceOvalGuide.jsx';
 import LightingIndicator from '../../components/biometrics/LightingIndicator.jsx';
 import {
@@ -215,10 +215,10 @@ export default function CandidateFaceEnrollmentPage() {
           <span className="text-xs font-medium text-slate-500">Self-Service Profile</span>
         </div>
         <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-          Biometric Face Enrollment
+          Photo Identity Setup
         </h1>
         <p className="text-sm text-slate-600 mt-1">
-          Enroll an official reference facial photo used by ProctorNet's automated liveness verification during exam check-in.
+          Take a quick photo to set up your student profile. We'll use this to confirm it's really you before your exams start.
         </p>
       </div>
 
@@ -226,7 +226,7 @@ export default function CandidateFaceEnrollmentPage() {
       {feedback && (
         <Alert variant={feedback.type === 'success' ? 'success' : 'destructive'}>
           {feedback.type === 'success' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
-          <AlertTitle>{feedback.type === 'success' ? 'Enrollment Complete' : 'Verification Issue'}</AlertTitle>
+          <AlertTitle>{feedback.type === 'success' ? 'Setup Complete' : 'Verification Issue'}</AlertTitle>
           <AlertDescription>{feedback.message}</AlertDescription>
         </Alert>
       )}
@@ -236,8 +236,8 @@ export default function CandidateFaceEnrollmentPage() {
         isLoading={loading}
         error={error}
         isEmpty={!enrollment}
-        emptyTitle="Biometric Status Unavailable"
-        emptyDescription="Unable to retrieve candidate enrollment details from the biometric engine."
+        emptyTitle="Identity Status Unavailable"
+        emptyDescription="Unable to retrieve candidate enrollment details. Please try again."
         onRetry={fetchStatus}
       >
         <Card className="border-slate-200 bg-white shadow-xs">
@@ -248,23 +248,13 @@ export default function CandidateFaceEnrollmentPage() {
             </span>
             <div className="flex items-center gap-2.5">
               <Badge variant={enrollment?.isEnrolled ? 'success' : 'warning'} size="default">
-                {enrollment?.isEnrolled ? 'Active Reference Enrolled' : 'Not Enrolled'}
+                {enrollment?.isEnrolled ? 'Photo on File' : 'Not Yet Set Up'}
               </Badge>
-              {enrollment?.qualityScore && (
-                <span className="text-xs font-mono text-slate-600">
-                  Quality Score: {(enrollment.qualityScore * 100).toFixed(1)}%
-                </span>
-              )}
-              {enrollment?.modelVersion && (
-                <span className="text-xs font-mono text-slate-500">
-                  Model: {enrollment.modelVersion}
-                </span>
-              )}
             </div>
             <p className="text-xs text-slate-500 mt-1">
               {enrollment?.isEnrolled
-                ? 'Your biometric profile is ready. You will be authenticated against this reference before proctored exams.'
-                : 'A clean front-facing reference photo is required to participate in monitored assessments.'}
+                ? 'Your photo is on file. We will use this to verify your identity before proctored exams.'
+                : 'A clear front-facing photo is required before participating in supervised exams.'}
             </p>
           </div>
 
@@ -275,7 +265,7 @@ export default function CandidateFaceEnrollmentPage() {
               size="default"
             >
               <Camera size={15} />
-              {enrollment?.isEnrolled ? 'Update Reference Face' : 'Start Enrollment'}
+              {enrollment?.isEnrolled ? 'Update Photo' : 'Take Photo'}
             </Button>
           )}
         </CardContent>
@@ -363,7 +353,7 @@ export default function CandidateFaceEnrollmentPage() {
                 className="gap-2 bg-emerald-700 hover:bg-emerald-800 text-white"
               >
                 {processing && <RefreshCw size={15} className="animate-spin" />}
-                {processing ? 'Extracting Server Embedding...' : 'Confirm & Save Enrollment'}
+                {processing ? 'Saving Photo...' : 'Confirm & Save Photo'}
               </Button>
             </div>
           </CardContent>
@@ -376,18 +366,24 @@ export default function CandidateFaceEnrollmentPage() {
         <CardHeader className="pb-2">
           <CardTitle className="text-xs font-semibold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
             <Lock size={13} />
-            Institutional Biometric Standards & Privacy Safeguards
+            Student Privacy & Photo Data Protection
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 pt-0 text-xs text-slate-600 leading-relaxed">
           <p>
-            • Biometric embeddings are extracted server-authoritatively and stored with AES-256 encryption.
+            • Your photo is stored securely with AES-256 encryption and automatically deleted after 90 days following exam completion.
           </p>
           <p>
-            • Raw reference photographs are restricted to institutional identity matching and are never shared with third parties or external commercial platforms.
+            • Photos are used solely to confirm your identity before exams. They are never shared with third parties or external platforms.
           </p>
           <p>
-            • If you have approved institutional accommodations or require manual identity verification, please contact your university examinations coordinator.
+            • If you have an approved medical accommodation or need manual identity verification, please contact your faculty coordinator.
+          </p>
+          <p className="pt-1">
+            • Review our full{' '}
+            <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline font-medium hover:text-blue-800">
+              Student Data Handling &amp; Privacy Policy
+            </Link>.
           </p>
         </CardContent>
       </Card>

@@ -26,7 +26,7 @@ export const FAQ_ITEMS = [
     category: 'Privacy & Security',
     question: 'Does ProctorNet record or analyze candidate webcams continuously using AI?',
     answer:
-      'No. ProctorNet explicitly rejects continuous facial emotion recognition, gaze tracking, and invasive continuous video AI. Webcams are utilized for pre-exam identity verification and live streaming to human invigilators via mediasoup WebRTC. No continuous raw webcam video or microphone audio is recorded or stored on cloud servers.',
+      'No. ProctorNet explicitly rejects continuous facial emotion recognition, gaze tracking, and invasive continuous video AI. Webcams are utilized solely for pre-exam identity verification and live streaming to human invigilators over an encrypted connection. No continuous webcam video or microphone audio is recorded or stored.',
     tags: ['Privacy', 'Webcam', 'AI Ethics'],
   },
   {
@@ -34,15 +34,15 @@ export const FAQ_ITEMS = [
     category: 'Architecture & Tech',
     question: 'How does the client-side screen analysis work?',
     answer:
-      'The candidate browser captures their display context using standard Web APIs. An in-browser Web Worker assesses desktop anomalies (such as window minimization, tab switches, full-screen drops, and multi-display transitions) locally on the candidate device. Only lightweight, ephemeral telemetry flags and periodic low-resolution hashes are sent to the backend server.',
-    tags: ['Screen Analysis', 'Web Worker', 'Client-Side'],
+      'The candidate browser captures their display context using standard Web APIs. A background process assesses desktop anomalies (such as window minimization, tab switches, full-screen drops, and multi-display transitions) locally on the student device. Only lightweight activity events and periodic low-resolution hashes are sent to the exam server.',
+    tags: ['Screen Analysis', 'Exam Environment', 'Privacy'],
   },
   {
     id: 'faq-network-drop',
     category: 'For Candidates',
     question: 'What happens if my internet connection drops during an exam?',
     answer:
-      'ProctorNet includes an offline-resilient draft queueing mechanism. When connectivity is interrupted, your answers are safely saved in encrypted browser storage. The UI presents a clear offline banner with a grace countdown. Once connection is restored, drafts sync automatically using Optimistic Concurrency Control (OCC) without overwriting newer answers.',
+      'ProctorNet includes an offline-resilient draft queueing mechanism. When connectivity is interrupted, your answers are safely saved in browser storage. The UI presents a clear offline banner with a grace countdown. Once connection is restored, drafts sync automatically without overwriting newer answers.',
     tags: ['Offline', 'Network Drop', 'Autosave'],
   },
   {
@@ -50,7 +50,7 @@ export const FAQ_ITEMS = [
     category: 'For Candidates',
     question: 'Can the AI automatically disqualify me or cancel my exam attempt?',
     answer:
-      'No. ProctorNet operates under a strict Human-in-the-Loop principle. The system only provides assistive heuristic risk scores to prioritize live sessions on the invigilator console. Only an authorized faculty member or human invigilator has the authority to issue warnings, request re-verification, or take administrative action.',
+      'No. ProctorNet operates under a strict Human-in-the-Loop principle. The system only provides assistive activity indicators to help invigilators prioritize check-ins. Only an authorized faculty member or human invigilator has the authority to issue warnings, request re-verification, or take administrative action.',
     tags: ['Disqualification', 'Human-in-the-loop', 'Candidate Rights'],
   },
   {
@@ -58,7 +58,7 @@ export const FAQ_ITEMS = [
     category: 'For Candidates',
     question: 'What hardware and browser do I need to take an exam?',
     answer:
-      'Any modern desktop computer running Windows, macOS, or Linux with Google Chrome, Mozilla Firefox, or Microsoft Edge. Your browser must support WebRTC, MediaDevices (camera capture), and getDisplayMedia (screen capture). Mobile devices and tablets are not supported for proctored examination sessions.',
+      'Any modern desktop computer running Windows, macOS, or Linux with Google Chrome, Mozilla Firefox, or Microsoft Edge. Your browser must support camera capture and screen sharing permissions. Mobile phones and tablets are not supported for proctored examination sessions.',
     tags: ['Requirements', 'Browser', 'System'],
   },
   {
@@ -82,7 +82,7 @@ export const FAQ_ITEMS = [
     category: 'Privacy & Security',
     question: 'How does ProctorNet protect against grade tampering?',
     answer:
-      'All grades, exam modifications, and proctoring interventions are recorded into an immutable audit table. Database-level PostgreSQL triggers reject any UPDATE or DELETE operations on audit records with SQLSTATE 20000, creating a cryptographically verifiable trail.',
+      'All grades, exam modifications, and proctoring interventions are recorded into an immutable audit table. Database-level tamper-prevention rules reject any modification or deletion of audit records, ensuring a verifiable and transparent trail.',
     tags: ['Audit', 'Security', 'Integrity'],
   },
   {
@@ -90,23 +90,23 @@ export const FAQ_ITEMS = [
     category: 'Architecture & Tech',
     question: 'Who can access the Developer Operations Telemetry Portal?',
     answer:
-      'Access to the Developer Operations portal is strictly restricted. In addition to requiring a user account with the DEVELOPER role, network requests are bounded to a private WireGuard VPN subnet (10.100.0.0/24). All public attempts to reach developer endpoints are rejected.',
-    tags: ['DevOps', 'WireGuard', 'Zero-Trust'],
+      'Access to the Developer Operations portal is strictly restricted to engineering staff. In addition to requiring developer credentials, access is guarded behind private administrative network boundaries. All public attempts to reach developer dashboards are rejected.',
+    tags: ['DevOps', 'Security', 'Access Control'],
   },
   {
     id: 'faq-ferpa-gdpr',
     category: 'Privacy & Security',
     question: 'Is ProctorNet compliant with FERPA and GDPR?',
     answer:
-      'ProctorNet is an academic project and does not possess formal third-party regulatory certification. However, the system architecture was engineered from the ground up to uphold the foundational privacy principles of FERPA and GDPR: minimal data collection, zero third-party trackers, encrypted media storage, automated 90-day retention purges, and candidate data export/deletion rights.',
+      'ProctorNet is an academic project and does not possess formal third-party regulatory certification. However, the system architecture was engineered from the ground up to uphold the foundational privacy principles of FERPA and GDPR: minimal data collection, zero third-party trackers, encrypted storage, automated 90-day retention purges, and candidate data export/deletion rights.',
     tags: ['FERPA', 'GDPR', 'Compliance'],
   },
   {
     id: 'faq-data-retention',
     category: 'Privacy & Security',
-    question: 'How long is candidate biometric and telemetry data retained?',
+    question: 'How long is candidate photo and exam activity data retained?',
     answer:
-      'Pre-exam biometric facial embeddings and verification photos are retained for a maximum of 90 days after exam evaluation, after which automated background workers purge the media from Amazon S3 and PostgreSQL. Ephemeral screen telemetry flags are summarized into session scorecards and deleted after 30 days.',
-    tags: ['Retention', 'Biometrics', 'Purge'],
+      'Photos used for identity checks are kept for a maximum of 90 days following exam evaluation, after which automated cleanup jobs permanently purge the media from storage and databases. Routine screen activity indicators are summarized and deleted after 30 days.',
+    tags: ['Retention', 'Privacy', 'Purge'],
   },
 ];

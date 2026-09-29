@@ -414,7 +414,7 @@ export function PreExamReadinessPage() {
               <div className="text-xs">
                 <p className="font-semibold text-blue-950 dark:text-blue-200">Requesting screen share permission...</p>
                 <p className="text-blue-800/80 dark:text-blue-300/80 mt-0.5">
-                  Please select <strong>&quot;Entire Screen&quot;</strong> in your browser&apos;s permission prompt to ensure full proctoring compliance.
+                  Please select <strong>&quot;Entire Screen&quot;</strong> in your browser&apos;s permission prompt.
                 </p>
               </div>
             </div>
@@ -459,16 +459,16 @@ export function PreExamReadinessPage() {
         </CardContent>
       </Card>
 
-      {/* Step 3: Face Check */}
+      {/* Step 3: Identity Check */}
       {!isResuming && !isSubmitted && (
         <Card className="border-slate-200 bg-white shadow-xs">
           <CardHeader className="pb-3 border-b border-slate-100">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <ShieldCheck size={16} className="text-slate-600" />
-              3. Face Check
+              3. Identity Check
             </CardTitle>
             <CardDescription className="text-xs mt-0.5">
-              Quick photo verification against your reference profile before entering.
+              Take a quick photo to confirm it's you before entering.
             </CardDescription>
           </CardHeader>
           <CardContent className="p-5">
@@ -476,9 +476,9 @@ export function PreExamReadinessPage() {
               <div className="p-6 text-center space-y-3 bg-amber-50/50 rounded-lg border border-amber-200">
                 <ShieldAlert size={28} className="mx-auto text-amber-700" />
                 <div>
-                  <h4 className="text-sm font-semibold text-amber-900">Reference Photo Enrollment Required</h4>
+                  <h4 className="text-sm font-semibold text-amber-900">Photo Setup Required</h4>
                   <p className="text-xs text-amber-800/80 max-w-md mx-auto mt-1">
-                    You must enroll a reference face photo prior to entering this examination.
+                    You need a photo on file before starting this exam.
                   </p>
                 </div>
                 <Button
@@ -489,14 +489,14 @@ export function PreExamReadinessPage() {
                   }}
                   className="bg-amber-800 hover:bg-amber-900 text-white"
                 >
-                  Enroll Reference Face Now
+                  Set Up Photo Now
                 </Button>
               </div>
             ) : biometricVerified ? (
               <div className="flex items-center gap-3 p-4 bg-emerald-50 rounded-lg border border-emerald-200 text-emerald-900">
                 <CheckCircle2 size={20} className="text-emerald-700 shrink-0" />
                 <div>
-                  <h4 className="text-xs font-semibold text-emerald-900">Face Check Verified</h4>
+                  <h4 className="text-xs font-semibold text-emerald-900">Identity Confirmed</h4>
                   <p className="text-xs text-emerald-800/80 mt-0.5">
                     Your identity has been verified for this exam session.
                   </p>

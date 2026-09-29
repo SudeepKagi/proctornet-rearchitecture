@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { getPool } from '../src/infrastructure/postgres/pool.js';
+import { getPool } from '../../src/infrastructure/postgres/pool.js';
 
 const API_BASE = 'http://localhost:3000/api/v1';
 

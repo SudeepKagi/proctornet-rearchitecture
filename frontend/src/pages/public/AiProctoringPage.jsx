@@ -10,9 +10,9 @@ import { usePageMeta } from '../../hooks/usePageMeta.js';
 
 export function AiProctoringPage() {
   usePageMeta({
-    title: 'Client-Side Screen Analysis & Ethical AI Architecture',
+    title: 'Client-Side Screen Analysis & Ethical Monitoring Standards',
     description:
-      'Technical breakdown of ProctorNet ethical proctoring: in-browser Web Worker heuristics, server-authoritative 0–100 risk scoring, and mandatory human-in-the-loop governance.',
+      'Overview of ProctorNet ethical proctoring: in-browser privacy-first screen analysis, standardized 0–100 activity review scoring, and mandatory human-in-the-loop governance.',
     canonical: '/ai-proctoring',
   });
 
@@ -21,7 +21,7 @@ export function AiProctoringPage() {
       {/* Header */}
       <div style={{ marginBottom: '40px' }}>
         <span className="badge-academic" style={{ marginBottom: '16px' }}>
-          Ethical AI &amp; Heuristic Architecture
+          Ethical Monitoring &amp; Privacy Standards
         </span>
         <h1
           style={{

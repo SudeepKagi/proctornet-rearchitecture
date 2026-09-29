@@ -9,9 +9,9 @@ import { usePageMeta } from '../../hooks/usePageMeta.js';
 
 export function SecurityPage() {
   usePageMeta({
-    title: 'Defense-in-Depth Security & WireGuard Perimeter',
+    title: 'Security Architecture & Network Controls',
     description:
-      'Detailed overview of ProctorNet security controls: RBAC/ABAC, JWT lifecycle with Redis blacklisting, PostgreSQL trigger immutability, and WireGuard VPN isolation.',
+      'Detailed overview of ProctorNet security controls: role-based access, token management, tamper-proof audit trails, and isolated administrative networks.',
     canonical: '/security',
   });
 
@@ -110,10 +110,10 @@ export function SecurityPage() {
           </ul>
         </section>
 
-        {/* Section 3: WireGuard Zero-Trust Management Perimeter */}
+        {/* Section 3: Isolated Administrative Network Perimeter */}
         <section className="card-interactive" style={{ padding: '32px', borderLeft: '4px solid var(--color-brand-accent)' }}>
           <h2 style={{ fontSize: '1.375rem', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '16px' }}>
-            3. WireGuard VPN Isolated Operations Subnet (10.100.0.0/24)
+            3. Isolated Administrative Network Perimeter
           </h2>
           <p style={{ fontSize: '0.9375rem', lineHeight: 1.7, color: 'var(--color-text-body)', margin: '0 0 16px 0' }}>
             Developer operations endpoints (`/api/v1/developer/*`) and administrative telemetry dashboards are completely isolated

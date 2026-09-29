@@ -1,7 +1,7 @@
 /**
  * Flow 1 Audit: Auth & Onboarding
  */
-import { query } from '../src/infrastructure/postgres/pool.js';
+import { query } from '../../src/infrastructure/postgres/pool.js';
 
 const BASE_URL = 'http://localhost:3000/api/v1';
 

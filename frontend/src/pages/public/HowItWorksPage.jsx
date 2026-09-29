@@ -11,55 +11,55 @@ export function HowItWorksPage() {
   usePageMeta({
     title: 'How It Works — Examination Lifecycle Walkthrough',
     description:
-      'Step-by-step visual guide to how ProctorNet conducts secure online examinations: blueprint authoring, session setup, pre-exam verification, live exam, and atomic grading.',
+      'Step-by-step visual guide to how ProctorNet conducts secure online examinations: exam setup, scheduling, pre-exam check, live testing, and grading.',
     canonical: '/how-it-works',
   });
 
   const steps = [
     {
       step: '1',
-      title: 'Blueprint Authoring & Question Banks',
+      title: 'Exam Creation & Question Selection',
       role: 'Faculty / Examiners',
       description:
-        'Faculty construct assessment blueprints specifying topic quotas, difficulty targets (Easy, Medium, Hard), and sectional time limits. Questions are selected from reusable question banks with support for Multiple Choice, Numerical, and Subjective formats.',
+        'Faculty construct exams by choosing questions from organized topic pools, setting time limits, and defining point values. Question formats include Multiple Choice, Numerical, and Written Essay responses.',
       detail:
-        'When an attempt is initialized, the server-authoritative blueprint engine dynamically generates a unique, balanced question sequence per candidate.',
+        'When a student starts an exam, the system delivers a fair, randomized question order so every test is balanced.',
     },
     {
       step: '2',
-      title: 'Session Scheduling & Invigilator Rostering',
+      title: 'Session Scheduling & Invigilator Assignment',
       role: 'Faculty / Administrators',
       description:
-        'Administrators or faculty schedule exam windows, allocate candidate rosters, and link assigned proctors. Strictness rules are configured, including grace period duration and permissible screen blur tolerance.',
+        'Faculty or staff schedule the exam date and window, assign eligible student rosters by department or class, and assign proctors to oversee the test.',
       detail:
-        'The backend provisions WebRTC media rooms in mediasoup SFU and sets up Redis Pub/Sub channels for live telemetry multiplexing.',
+        'Your exam session connects securely so an invigilator can check in if needed.',
     },
     {
       step: '3',
-      title: 'Pre-Exam Verification & Readiness Diagnostics',
-      role: 'Candidates',
+      title: 'Pre-Exam Check & Identity Confirmation',
+      role: 'Students',
       description:
-        'Prior to launching the test, candidates undergo an automated readiness check: network bandwidth validation, camera/mic checks, and screen capture permission grants.',
+        'Prior to launching the test, students run a fast equipment check to ensure their camera, microphone, and screen sharing permissions are working properly.',
       detail:
-        'Candidate identity is verified by matching a fresh snapshot against enrolled facial vector embeddings stored with SSE-S256 encryption.',
+        'A quick photo confirms your identity against your registered profile before unlocking the test questions.',
     },
     {
       step: '4',
-      title: 'Live Assessment with OCC & Screen Analysis',
-      role: 'Candidates & Invigilators (Dual)',
+      title: 'Taking the Exam with Automatic Autosave',
+      role: 'Students & Invigilators',
       description:
-        'During the exam, every answer selection is auto-saved in background using Optimistic Concurrency Control (OCC). An in-browser Web Worker analyzes desktop context switches (full-screen loss, window blur) without recording webcam video.',
+        'During the exam, every answer choice and essay keystroke is automatically saved in the background. If your internet briefly drops, answers stay safe in your browser and sync the moment you reconnect.',
       detail:
-        'Signals are dispatched to the server risk engine (0–100 scale), updating the real-time 12-stream invigilator console for live supervision.',
+        'The exam interface stays in full-screen mode to prevent accidental tab switches, with live proctors available if you need help.',
     },
     {
       step: '5',
-      title: 'Atomic Evaluation, Manual Grading & Publication',
-      role: 'Faculty & Candidates',
+      title: 'Evaluation, Grading & Results Release',
+      role: 'Faculty & Students',
       description:
-        'Objective items are graded instantly upon submission. Subjective responses route to a blind grading workspace where faculty assign scores based on defined rubrics.',
+        'Multiple-choice questions are graded immediately upon submission. Written questions route to a dedicated grading workspace where professors assign marks using clear grading rubrics.',
       detail:
-        'All grade adjustments are committed to PostgreSQL with trigger-locked immutable audit records, after which final scorecards are published.',
+        'Once professors review and approve the final grades, official scorecards and score breakdowns are released to students.',
     },
   ];
 
@@ -82,8 +82,8 @@ export function HowItWorksPage() {
           How ProctorNet Delivers Secure Exams
         </h1>
         <p style={{ fontSize: '1.125rem', lineHeight: 1.6, color: 'var(--color-text-muted)' }}>
-          A transparent walkthrough illustrating how blueprints, resilient answer persistence,
-          client-side screen analysis, and invigilator oversight operate together.
+          A clear, straightforward walkthrough showing how exam setup, continuous autosave,
+          quiet privacy-first screen checks, and human invigilation work together.
         </p>
       </div>
 
@@ -175,7 +175,7 @@ export function HowItWorksPage() {
                   color: 'var(--color-text-muted)',
                 }}
               >
-                <strong>Under the hood: </strong>
+                <strong>Behind the scenes: </strong>
                 {item.detail}
               </div>
             </div>
@@ -199,19 +199,19 @@ export function HowItWorksPage() {
             Preparing for an Exam?
           </h4>
           <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', margin: '0 0 16px 0' }}>
-            Read candidate system requirements, readiness checklists, and privacy rights.
+            Read student system requirements, readiness checklists, and privacy rights.
           </p>
           <Link to="/for-students" className="btn-academic-primary" style={{ padding: '8px 16px', fontSize: '0.875rem' }}>
-            Candidate Guide →
+            Student Guide →
           </Link>
         </div>
 
         <div>
           <h4 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: '0 0 6px 0' }}>
-            Authoring Assessments?
+            Creating Assessments?
           </h4>
           <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', margin: '0 0 16px 0' }}>
-            Explore blueprint randomization, rubric grading, and session strictness thresholds.
+            Explore question pools, exam scheduling, rubric grading, and proctoring controls.
           </p>
           <Link to="/for-faculty" className="btn-academic-secondary" style={{ padding: '8px 16px', fontSize: '0.875rem' }}>
             Faculty Guide →
@@ -221,3 +221,5 @@ export function HowItWorksPage() {
     </div>
   );
 }
+
+export default HowItWorksPage;

@@ -12,7 +12,7 @@ export function parseBiometricError(err) {
   if (!err) {
     return {
       title: 'Verification Failed',
-      message: 'An unknown biometric verification error occurred. Please retry.',
+      message: 'An unexpected identity check error occurred. Please retry.',
       category: 'generic'
     };
   }
@@ -21,7 +21,7 @@ export function parseBiometricError(err) {
   const errorCode = err.data?.code || err.code || '';
   const status = err.status || err.response?.status;
 
-  // 1. Network / S3 storage errors
+  // 1. Network / storage errors
   if (
     /Failed to fetch/i.test(rawMsg) ||
     /NetworkError/i.test(rawMsg) ||
@@ -30,8 +30,8 @@ export function parseBiometricError(err) {
     /storage/i.test(rawMsg)
   ) {
     return {
-      title: 'Network / Storage Error',
-      message: 'Failed to communicate with biometric server. Please check your network connection and retry.',
+      title: 'Connection Issue',
+      message: 'Failed to communicate with the verification server. Please check your network connection and retry.',
       category: 'network'
     };
   }
@@ -40,7 +40,7 @@ export function parseBiometricError(err) {
   if (/no face/i.test(rawMsg) || /face not detected/i.test(rawMsg) || errorCode === 'FACE_NOT_FOUND') {
     return {
       title: 'Face Not Detected',
-      message: 'No clear face was detected in the snapshot. Please look directly into the camera inside the oval guide.',
+      message: 'No clear face was detected in the photo. Please look directly into the camera inside the oval guide.',
       category: 'face_detection'
     };
   }
@@ -49,7 +49,7 @@ export function parseBiometricError(err) {
   if (/multiple faces/i.test(rawMsg) || errorCode === 'MULTIPLE_FACES_DETECTED') {
     return {
       title: 'Multiple Faces Detected',
-      message: 'Multiple faces were detected in the snapshot. Please ensure you are alone in the room.',
+      message: 'Multiple faces were detected in the photo. Please ensure you are alone in the room.',
       category: 'multiple_faces'
     };
   }
@@ -57,8 +57,8 @@ export function parseBiometricError(err) {
   // 4. Poor lighting
   if (/light/i.test(rawMsg) || /dim/i.test(rawMsg) || /dark/i.test(rawMsg) || errorCode === 'POOR_LIGHTING') {
     return {
-      title: 'Lighting Too Poor',
-      message: 'Ambient lighting is insufficient. Turn on room lights and avoid backlighting behind you.',
+      title: 'Lighting Needs Adjustment',
+      message: 'Lighting is too dim. Turn on room lights and avoid bright lights behind you.',
       category: 'lighting'
     };
   }
@@ -66,8 +66,8 @@ export function parseBiometricError(err) {
   // 5. Similarity threshold shortfall / mismatch
   if (/similarity/i.test(rawMsg) || /threshold/i.test(rawMsg) || /mismatch/i.test(rawMsg) || /inconclusive/i.test(rawMsg)) {
     return {
-      title: 'Facial Match Inconclusive',
-      message: rawMsg || 'Face similarity was below the required institutional threshold (80%). Ensure clear lighting and look directly at the camera.',
+      title: 'Photo Match Inconclusive',
+      message: 'We could not confirm a match with your registered photo. Please ensure your face is well-lit and look directly at the camera.',
       category: 'similarity'
     };
   }
@@ -75,15 +75,15 @@ export function parseBiometricError(err) {
   // 6. Session or Account Locked
   if (status === 403 || /locked/i.test(rawMsg) || errorCode === 'BIOMETRIC_LOCKED') {
     return {
-      title: 'Biometrics Locked',
-      message: 'Maximum verification attempts exceeded. Your session has been locked for security. Please contact your faculty invigilator for an override.',
+      title: 'Identity Check Locked',
+      message: 'Maximum attempts reached. Your session has been flagged for proctor review. Please contact your invigilator.',
       category: 'locked'
     };
   }
 
   return {
     title: 'Verification Failed',
-    message: rawMsg || 'Biometric verification could not be completed. Please ensure clear lighting and try again.',
+    message: 'Identity check could not be completed. Please ensure clear lighting and try again.',
     category: 'generic'
   };
 }
@@ -204,7 +204,7 @@ export default function BiometricGate({
       setStage('verifying');
       setErrorMessage('');
       setParsedError(null);
-      setGuideMessage('Sending snapshot to server for facial identity verification...');
+      setGuideMessage('Sending photo to server to confirm your identity...');
       setGuideStatus('aligning');
 
       // 4. Send snapshot directly to backend API (zero browser-to-S3 CORS issues!)
@@ -219,11 +219,7 @@ export default function BiometricGate({
 
       if (result.finalStatus === 'VERIFIED' || result.verified) {
         setStage('success');
-        setGuideMessage(
-          result.isHeuristic
-            ? 'Identity validated via local developmental heuristic. You may now proceed.'
-            : 'Identity verified successfully with biometric facial match! You may now proceed.'
-        );
+        setGuideMessage('Identity confirmed successfully! You may now proceed.');
         setGuideStatus('success');
         if (onVerified) {
           onVerified(result);
@@ -231,8 +227,8 @@ export default function BiometricGate({
       } else if (result.finalStatus === 'LOCKED') {
         setStage('locked');
         const lockedErr = {
-          title: 'Biometrics Locked',
-          message: 'Biometric verification locked due to consecutive verification failures. Please contact your invigilator.',
+          title: 'Identity Check Locked',
+          message: 'Too many unsuccessful attempts. Your session has been flagged for invigilator check-in. Please contact your proctor.',
           category: 'locked'
         };
         setParsedError(lockedErr);
@@ -245,8 +241,8 @@ export default function BiometricGate({
       } else {
         setStage('retry');
         const mismatchErr = {
-          title: 'Face Match Inconclusive',
-          message: `Match score was ${(result.similarityScore * 100).toFixed(1)}% (below required 80% threshold). Please retry.`,
+          title: 'Photo Match Inconclusive',
+          message: 'We could not confirm a match with your registered photo. Please ensure clear lighting and try again.',
           category: 'similarity'
         };
         setParsedError(mismatchErr);
@@ -283,7 +279,7 @@ export default function BiometricGate({
         </div>
         <h3 className="text-xl font-bold text-white mb-2">Medical Accommodation Approved</h3>
         <p className="text-sm text-slate-300 mb-6 leading-relaxed">
-          Your profile has been granted an institutional biometric medical exemption. Facial identity verification is bypassed in accordance with your approved accommodation.
+          Your profile has an approved accommodation on file. Photo identity verification is bypassed for your exam session.
         </p>
         <button
           onClick={() => onVerified && onVerified({ finalStatus: 'EXEMPT', medicalExemption: true })}
@@ -302,7 +298,7 @@ export default function BiometricGate({
         <div>
           <h2 className="text-base font-semibold text-white flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
-            Face Check
+            Identity Check
           </h2>
           <p className="text-xs text-slate-400">Step 2: Take a quick photo to verify your identity</p>
         </div>
@@ -378,9 +374,9 @@ export default function BiometricGate({
             {stage === 'verifying' && (
               <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center z-20">
                 <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4" />
-                <h4 className="text-base font-semibold text-white mb-1">Verifying Facial Biometrics</h4>
+                <h4 className="text-base font-semibold text-white mb-1">Confirming Your Identity</h4>
                 <p className="text-xs text-slate-400 max-w-xs">
-                  Server is storing evidence and matching facial features against institutional reference profile...
+                  Checking that your photo matches your registered student profile...
                 </p>
               </div>
             )}
@@ -394,10 +390,7 @@ export default function BiometricGate({
                   </svg>
                 </div>
                 <h3 className="text-xl font-bold text-white mb-1">Identity Verified</h3>
-                <p className="text-xs text-emerald-200 mb-2">
-                  Match Score: {(similarityScore * 100).toFixed(1)}% (Threshold: 80.0%)
-                </p>
-                <p className="text-xs text-slate-300">Biometric gate passed. You may now start the exam.</p>
+                <p className="text-xs text-slate-300">Identity check complete. You may now start the exam.</p>
               </div>
             )}
           </>
@@ -439,18 +432,18 @@ export default function BiometricGate({
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
-            Retake Snapshot & Try Again ({remainingAttempts} attempts remaining)
+            Retake Photo & Try Again ({remainingAttempts} attempts remaining)
           </button>
         )}
 
         {stage === 'locked' && (
           <div className="p-4 rounded-xl bg-red-950/40 border border-red-800/60 text-center">
-            <h4 className="text-sm font-bold text-red-300 mb-1">Session Biometric Verification Locked</h4>
+            <h4 className="text-sm font-bold text-red-300 mb-1">Identity Check Locked</h4>
             <p className="text-xs text-slate-300 mb-2">
-              You have exhausted all 3 biometric verification attempts for this session.
+              You have reached the maximum number of photo attempts for this session.
             </p>
             <p className="text-xs text-slate-400">
-              Please contact the proctor or examination supervisor immediately for manual identity inspection and an administrative override.
+              Please contact your invigilator or instructor for manual verification and an administrative check-in.
             </p>
           </div>
         )}

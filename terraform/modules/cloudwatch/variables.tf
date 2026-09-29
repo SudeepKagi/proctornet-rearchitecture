@@ -19,3 +19,9 @@ variable "log_retention_days" {
   description = "Retention period in days for CloudWatch log groups"
   default     = 30
 }
+
+variable "alarm_actions" {
+  type        = list(string)
+  description = "List of ARNs (e.g. SNS topics) to notify when alarms trigger"
+  default     = []
+}

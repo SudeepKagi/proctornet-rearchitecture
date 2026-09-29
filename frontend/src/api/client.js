@@ -5,6 +5,7 @@
  */
 
 import { createPayloadSignature } from '../utils/antiTamperClient.js';
+import { ERROR_CODE_FRIENDLY_MESSAGES, sanitizeJargon, HTTP_STATUS_MESSAGES } from '../utils/apiErrorHelper.js';
 
 let inMemoryAccessToken = null;
 let inMemoryAntiTamperToken = null;
@@ -269,40 +270,21 @@ export async function apiClient(endpoint, options = {}) {
     }
 
     // Specific domain / lifecycle status handling
-    if (response.status === 422 && (errorCode === 'ATTEMPT_EXPIRED' || (extractedMessage && extractedMessage.toLowerCase().includes('expired')))) {
+    if (errorCode && ERROR_CODE_FRIENDLY_MESSAGES[errorCode]) {
+      extractedMessage = ERROR_CODE_FRIENDLY_MESSAGES[errorCode];
+    } else if (response.status === 422 && (errorCode === 'ATTEMPT_EXPIRED' || (extractedMessage && extractedMessage.toLowerCase().includes('expired')))) {
       extractedMessage = 'Your exam time has ended. Finalizing submission...';
     } else if (extractedMessage) {
-      const lower = extractedMessage.toLowerCase();
-      if (lower.includes('concurrency') || lower.includes('occ') || lower.includes('stale revision')) {
-        extractedMessage = 'This answer changed concurrently. Please review your answers.';
-      } else if (lower.includes('jwt') || lower.includes('token expired') || lower.includes('session invalid')) {
-        extractedMessage = 'Your session has expired. Please sign in again.';
-      } else if (lower.includes('authorization denied') || lower.includes('forbidden') || lower.includes('access denied')) {
-        extractedMessage = 'You do not have permission to perform this action.';
-      } else if (lower.includes('unrecognized_keys') || lower.includes('invalid_type')) {
-        extractedMessage = 'Invalid submission data. Please check your answers and try again.';
+      if (ERROR_CODE_FRIENDLY_MESSAGES[extractedMessage.trim()]) {
+        extractedMessage = ERROR_CODE_FRIENDLY_MESSAGES[extractedMessage.trim()];
+      } else {
+        extractedMessage = sanitizeJargon(extractedMessage);
       }
     }
 
-    const fallbackStatusMessages = {
-      400: 'Invalid submission data. Please check your answers and try again.',
-      401: 'Your session has expired. Please sign in again.',
-      403: 'You do not have permission to perform this action.',
-      404: 'The requested resource could not be found.',
-      409: 'This information was updated while you were working. Please review it.',
-      422: errorCode === 'ATTEMPT_EXPIRED'
-        ? 'Your exam time has ended. Finalizing submission...'
-        : 'Some information was incomplete or incorrect. Please review and try again.',
-      429: 'Too many requests. Please wait a moment and try again.',
-      500: 'A server error occurred. Our team has been notified. Please try again.',
-      502: 'ProctorNet is temporarily unavailable. Please try again shortly.',
-      503: 'ProctorNet is temporarily unavailable. Please try again shortly.',
-      504: 'The server took too long to respond. Please try again.'
-    };
-
     const finalMessage =
       extractedMessage ||
-      fallbackStatusMessages[response.status] ||
+      HTTP_STATUS_MESSAGES[response.status] ||
       'Something went wrong. Please try again.';
 
     const requestId = rawError?.requestId || responseData?.requestId || response.headers.get('x-request-id') || null;

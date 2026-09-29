@@ -1,6 +1,6 @@
 /**
  * @file AboutPage.jsx
- * @description In-depth About page detailing academic context, problem motivation, and engineering decisions.
+ * @description Academic context, motivation, architectural design principles, and limitations for ProctorNet.
  */
 
 import React from 'react';
@@ -10,18 +10,18 @@ import { PROJECT_INFO } from '../../content/projectInfo.js';
 
 export function AboutPage() {
   usePageMeta({
-    title: 'About the Project & Academic Context',
+    title: 'About ProctorNet — Educational Capstone Project',
     description:
-      'Learn why ProctorNet was engineered: academic motivations, architectural trade-offs, privacy-first proctoring principles, and student team credits.',
+      'Learn about ProctorNet: an open-source online examination platform built for educational institutions with privacy-first student verification, autosave, and fair proctoring.',
     canonical: '/about',
   });
 
   return (
     <div className="container" style={{ paddingTop: '48px', paddingBottom: '80px', maxWidth: '900px' }}>
-      {/* Header Banner */}
+      {/* Header */}
       <div style={{ marginBottom: '40px' }}>
         <span className="badge-academic" style={{ marginBottom: '16px' }}>
-          🎓 Academic Context &amp; Purpose
+          About the Project
         </span>
         <h1
           style={{
@@ -32,36 +32,36 @@ export function AboutPage() {
             margin: '12px 0 16px 0',
           }}
         >
-          Engineering Ethical Online Assessments
+          About ProctorNet
         </h1>
         <p style={{ fontSize: '1.125rem', lineHeight: 1.6, color: 'var(--color-text-muted)' }}>
-          {PROJECT_INFO.positioningStatement}
+          An educational examination system designed to provide honest, resilient, and privacy-respecting
+          online exams for colleges and universities.
         </p>
       </div>
 
-      {/* Main Narrative Content */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '48px' }}>
-        {/* Section 1: The Problem Space */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '36px' }}>
+        {/* Section 1: Motivation & Academic Problem Statement */}
         <section className="card-interactive" style={{ padding: '32px' }}>
           <h2 style={{ fontSize: '1.375rem', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '16px' }}>
-            1. The Problem Space in Remote Examinations
+            1. Why We Built ProctorNet
           </h2>
           <p style={{ fontSize: '0.9375rem', lineHeight: 1.7, color: 'var(--color-text-body)', marginBottom: '16px' }}>
-            With the rapid shift toward remote learning, universities and educational institutions worldwide adopted online
-            examination platforms. However, existing commercial solutions created significant friction:
+            During the rapid transition to remote education, universities turned to third-party proctoring vendors.
+            However, students and professors frequently experienced significant shortcomings:
           </p>
           <ul style={{ paddingLeft: '24px', fontSize: '0.9375rem', lineHeight: 1.7, color: 'var(--color-text-body)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <li>
-              <strong>Surveillance Creep:</strong> Commercial vendors deployed invasive webcam facial expression analysis, gaze tracking,
-              and continuous room audio monitoring that caused severe anxiety and false-positive flags among students.
+              <strong>Invasive Surveillance:</strong> Commercial tools often record continuous webcam video, analyze facial expressions,
+              or monitor eye movements, causing high anxiety and false alarms for students.
             </li>
             <li>
-              <strong>Fragile Persistence:</strong> Many web examination platforms suffered catastrophic data loss during brief network
-              fluctuations, causing students to lose partially completed essays and objective answers.
+              <strong>Unreliable Autosaving:</strong> Many existing portals fail when an internet connection briefly drops,
+              causing students to lose hard-earned essay drafts or answers.
             </li>
             <li>
-              <strong>Lack of Auditability:</strong> Disciplinary penalties were frequently applied based on opaque, proprietary AI risk
-              scores without human verification or transparent audit trails.
+              <strong>Unclear Disciplinary Decisions:</strong> Disciplinary flags were frequently issued based on opaque algorithms
+              without transparent audit records or human review.
             </li>
           </ul>
         </section>
@@ -69,49 +69,45 @@ export function AboutPage() {
         {/* Section 2: Architectural Principles */}
         <section className="card-interactive" style={{ padding: '32px' }}>
           <h2 style={{ fontSize: '1.375rem', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '16px' }}>
-            2. Core Architectural Design Decisions
+            2. Core Principles
           </h2>
           <p style={{ fontSize: '0.9375rem', lineHeight: 1.7, color: 'var(--color-text-body)', marginBottom: '16px' }}>
-            To address these challenges rigorously, the ProctorNet project adopted several foundational engineering principles:
+            ProctorNet was built around foundational principles that protect both academic honesty and student dignity:
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '20px' }}>
             <div style={{ padding: '16px', backgroundColor: 'var(--color-surface-secondary)', borderRadius: 'var(--radius-md)' }}>
               <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-primary)', margin: '0 0 8px 0' }}>
-                Modular Monolith Architecture
+                Dependable &amp; Fast
               </h3>
               <p style={{ fontSize: '0.875rem', lineHeight: 1.6, color: 'var(--color-text-body)', margin: 0 }}>
-                Avoiding premature microservices complexity by implementing strict internal domain boundaries in Node.js 24 LTS
-                with PostgreSQL transactional integrity.
+                Built as a unified, well-structured platform with strict database safety so exams remain responsive and reliable during heavy testing hours.
               </p>
             </div>
 
             <div style={{ padding: '16px', backgroundColor: 'var(--color-surface-secondary)', borderRadius: 'var(--radius-md)' }}>
               <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-brand-secondary)', margin: '0 0 8px 0' }}>
-                Dual-Plane Separation
+                Independent Media &amp; Questions
               </h3>
               <p style={{ fontSize: '0.875rem', lineHeight: 1.6, color: 'var(--color-text-body)', margin: 0 }}>
-                Decoupling the HTTP/REST control plane from the real-time WebRTC media plane (mediasoup SFU). A media worker crash
-                never disrupts exam submission.
+                Video streams and exam questions run on separate backend services. If a camera connection hiccups, your exam questions and answers are never interrupted.
               </p>
             </div>
 
             <div style={{ padding: '16px', backgroundColor: 'var(--color-surface-secondary)', borderRadius: 'var(--radius-md)' }}>
               <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-brand-accent)', margin: '0 0 8px 0' }}>
-                Client-Side Screen AI
+                Private Screen Checks
               </h3>
               <p style={{ fontSize: '0.875rem', lineHeight: 1.6, color: 'var(--color-text-body)', margin: 0 }}>
-                Executing lightweight display anomaly heuristics inside in-browser Web Workers. Keeps raw screen video off cloud servers
-                while sending only ephemeral telemetry.
+                Screen monitoring runs privately in your local browser tab to detect window switches, ensuring your private screen content is never recorded or stored on remote servers.
               </p>
             </div>
 
             <div style={{ padding: '16px', backgroundColor: 'var(--color-surface-secondary)', borderRadius: 'var(--radius-md)' }}>
               <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-success)', margin: '0 0 8px 0' }}>
-                Database Trigger Immutability
+                Tamper-Proof Audit Records
               </h3>
               <p style={{ fontSize: '0.875rem', lineHeight: 1.6, color: 'var(--color-text-body)', margin: 0 }}>
-                Protecting audit records with database-level PostgreSQL triggers that abort unauthorized UPDATE and DELETE operations
-                with SQLSTATE 20000.
+                Every exam submission, grade change, and verification decision is permanently logged in a secure, tamper-proof audit trail for fair appeals.
               </p>
             </div>
           </div>
@@ -120,23 +116,23 @@ export function AboutPage() {
         {/* Section 3: Academic Boundaries & Limitations */}
         <section className="card-interactive" style={{ padding: '32px', borderLeft: '4px solid var(--color-warning)' }}>
           <h2 style={{ fontSize: '1.375rem', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '16px' }}>
-            3. Explicit Academic Limitations
+            3. Project Scope &amp; Privacy Commitments
           </h2>
           <p style={{ fontSize: '0.9375rem', lineHeight: 1.7, color: 'var(--color-text-body)', marginBottom: '16px' }}>
-            To ensure complete truth in presentation, we document the intentional boundaries of this demonstration release:
+            To ensure complete clarity for students, faculty, and university administrators:
           </p>
           <ul style={{ paddingLeft: '24px', fontSize: '0.9375rem', lineHeight: 1.7, color: 'var(--color-text-body)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <li>
-              <strong>Non-Commercial Scope:</strong> The platform contains no payment processors, commercial billing mechanisms, or enterprise licensing tiers.
+              <strong>Non-Commercial:</strong> Built for educational institutions with zero advertisements, paywalls, or commercial tracking.
             </li>
             <li>
-              <strong>Single-Region Demonstration:</strong> The reference deployment is calibrated for single-region AWS hosting rather than global multi-region replication.
+              <strong>Focused on Student Dignity:</strong> The platform intentionally omits continuous webcam emotion AI and room audio recording to safeguard student dignity and privacy.
             </li>
             <li>
-              <strong>Screen-Only Proctoring:</strong> The platform intentionally omits continuous webcam AI and audio transcription to maintain candidate privacy.
+              <strong>Human-in-the-Loop:</strong> No algorithm can disqualify a student. Only a human professor or exam supervisor can review flags and make decisions.
             </li>
             <li>
-              <strong>Academic Sandbox:</strong> Live proctoring sessions require supported desktop web browsers with WebRTC and Screen Capture APIs.
+              <strong>Browser-Based:</strong> Operates inside modern desktop browsers (Chrome, Firefox, or Edge) with no invasive software downloads required.
             </li>
           </ul>
         </section>
@@ -144,10 +140,10 @@ export function AboutPage() {
         {/* Section 4: Contributor Attributions & Open Source */}
         <section className="glass-panel" style={{ padding: '32px', textAlign: 'center' }}>
           <h2 style={{ fontSize: '1.375rem', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '12px' }}>
-            Student Engineering Team &amp; Attribution
+            Engineering Attribution &amp; Source Code
           </h2>
           <p style={{ fontSize: '0.9375rem', lineHeight: 1.6, color: 'var(--color-text-muted)', maxWidth: '640px', margin: '0 auto 24px auto' }}>
-            ProctorNet was authored as an undergraduate software engineering capstone project under academic faculty supervision.
+            ProctorNet was created as an educational software engineering project under academic faculty supervision.
             The complete source code, test suites, and documentation are available on GitHub under the MIT License.
           </p>
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '16px' }}>
@@ -169,3 +165,5 @@ export function AboutPage() {
     </div>
   );
 }
+
+export default AboutPage;

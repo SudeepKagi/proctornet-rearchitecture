@@ -1,8 +1,8 @@
 import 'dotenv/config';
 import WebSocket from 'ws';
-import { getPool } from '../src/infrastructure/postgres/pool.js';
-import { defaultSfuManager } from '../src/infrastructure/media/sfuManager.js';
-import { getRedisClient } from '../src/infrastructure/redis/client.js';
+import { getPool } from '../../src/infrastructure/postgres/pool.js';
+import { defaultSfuManager } from '../../src/infrastructure/media/sfuManager.js';
+import { getRedisClient } from '../../src/infrastructure/redis/client.js';
 
 const API_BASE = 'http://localhost:3000/api/v1';
 

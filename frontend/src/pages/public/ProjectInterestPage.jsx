@@ -124,9 +124,9 @@ export function ProjectInterestPage() {
                 boxSizing: 'border-box',
               }}
             >
-              <option value="architecture">Modular Monolith &amp; Backend Engineering</option>
-              <option value="screen-ai">Client-Side Screen AI &amp; Web Workers</option>
-              <option value="webrtc">mediasoup SFU &amp; WebRTC Scalability</option>
+              <option value="architecture">System Architecture &amp; Reliability</option>
+              <option value="screen-ai">Privacy-First Screen Monitoring</option>
+              <option value="webrtc">Live Video Streaming &amp; Scalability</option>
               <option value="evaluation">Academic Capstone Evaluation</option>
             </select>
           </div>

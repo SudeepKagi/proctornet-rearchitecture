@@ -68,13 +68,13 @@ export function AiProctoringNoticePage() {
 
         <div className="glass-panel" style={{ padding: '24px', backgroundColor: 'var(--color-surface)' }}>
           <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: '0 0 8px 0' }}>
-            Want to see the mathematical and pipeline details?
+            Learn more about our privacy architecture
           </h3>
           <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', margin: '0 0 16px 0' }}>
-            Inspect our in-browser Web Worker heuristics and 0–100 authoritative risk calculation formulas.
+            Read how client-side screen analysis and human-in-the-loop review work to protect student privacy.
           </p>
           <Link to="/ai-proctoring" className="btn-academic-primary" style={{ padding: '8px 18px', fontSize: '0.85rem' }}>
-            View AI Proctoring Architecture →
+            View Privacy &amp; Monitoring Standards →
           </Link>
         </div>
       </div>

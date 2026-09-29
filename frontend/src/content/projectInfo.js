@@ -10,9 +10,9 @@ export const PROJECT_INFO = {
   tagline: 'An Open, Resilient Architecture for Online Examinations and Ethical Screen Proctoring',
   academicBadge: 'Academic Capstone Project • Non-Commercial Software Engineering Demo',
   positioningStatement:
-    'ProctorNet is a student-built academic software engineering project demonstrating the design and implementation of an online examination and AI-assisted remote proctoring system.',
+    'ProctorNet is a student-built academic software engineering project demonstrating the design and implementation of an online examination and ethical remote proctoring system.',
   subheadline:
-    'Demonstrating server-authoritative assessment workflows, high-concurrency answer persistence with optimistic concurrency control, and privacy-first client-side screen analysis.',
+    'Demonstrating server-authoritative assessment workflows, continuous autosave with answer conflict protection, and privacy-first client-side screen analysis.',
   githubUrl: 'https://github.com/SudeepKagi/proctornet-rearchitecture',
   license: 'MIT License (Open Source Academic Project)',
   attribution: 'Engineered by Computer Science & Engineering Undergraduate Students',
@@ -36,13 +36,13 @@ export const PROJECT_INFO = {
     {
       value: '100%',
       label: 'Server-Authoritative',
-      description: 'Untrusted client model with optimistic concurrency control and immutable audit logs',
+      description: 'Untrusted client model with continuous autosave and tamper-proof audit logs',
       classification: 'MEASURED',
     },
     {
       value: '13',
       label: 'Operational Subsystems',
-      description: 'Monitored across PostgreSQL, Redis, RabbitMQ, mediasoup SFU, and Coturn',
+      description: 'Monitored across databases, caching, messaging, and real-time media services',
       classification: 'MEASURED',
     },
   ],
@@ -54,8 +54,8 @@ export const PROJECT_INFO = {
       title: 'Authoritative Examination Engine',
       subtitle: 'Resilient Assessment Lifecycle',
       description:
-        'Blueprint-driven question randomization, optimistic concurrency control (OCC) auto-saving, and offline draft queueing ensuring zero answer loss during transient network disconnects.',
-      badges: ['OCC Auto-Save', 'Offline Resilience', 'Atomic Grading'],
+        'Blueprint-driven question randomization, continuous auto-saving with answer conflict protection, and offline draft queueing ensuring zero answer loss during transient network disconnects.',
+      badges: ['Continuous Auto-Save', 'Offline Resilience', 'Atomic Grading'],
       icon: 'clipboard-document-check',
     },
     {
@@ -63,8 +63,8 @@ export const PROJECT_INFO = {
       title: 'Privacy-First Screen Analysis',
       subtitle: 'Client-Side Assistive Inference',
       description:
-        'In-browser Web Worker classification assessing desktop display contexts without continuous facial recognition, eye tracking, or invasive room audio surveillance.',
-      badges: ['Client-Side Web Worker', 'Zero Continuous Audio/Video AI', 'Ephemeral Telemetry'],
+        'In-browser background checks assessing desktop display contexts without continuous facial recognition, eye tracking, or invasive room audio surveillance.',
+      badges: ['Client-Side Privacy', 'Zero Continuous Audio/Video AI', 'Ephemeral Telemetry'],
       icon: 'computer-desktop',
     },
     {
@@ -72,8 +72,8 @@ export const PROJECT_INFO = {
       title: 'Real-Time Invigilator Console',
       subtitle: 'Live Multi-Stream Supervision',
       description:
-        '12-stream mediasoup WebRTC video matrix with sub-300ms latency, dynamic room multiplexing, in-session candidate messaging, and immediate intervention triggers.',
-      badges: ['mediasoup SFU', '12-Stream Matrix', 'Live Interventions'],
+        '12-stream live video matrix with sub-300ms latency, dynamic room multiplexing, in-session candidate messaging, and immediate intervention triggers.',
+      badges: ['Live Video Matrix', '12-Stream Grid', 'Live Interventions'],
       icon: 'video-camera',
     },
     {
@@ -81,8 +81,8 @@ export const PROJECT_INFO = {
       title: 'Developer Operations Telemetry',
       subtitle: 'Internal System Observability',
       description:
-        'Dedicated 6-screen developer operations suite protected within a private WireGuard 10.100.0.0/24 subnet, featuring live metrics, health sweeps, and distributed tracing.',
-      badges: ['WireGuard Isolation', 'Live WebSocket Feeds', 'Automated Health Sweeps'],
+        'Dedicated 6-screen developer operations suite protected within an isolated private administrative network, featuring live metrics, health sweeps, and distributed tracing.',
+      badges: ['Isolated Admin Network', 'Live Telemetry Feeds', 'Automated Health Sweeps'],
       icon: 'command-line',
     },
   ],

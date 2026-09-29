@@ -84,7 +84,7 @@ export function CandidateResultPage() {
       <div className="w-full max-w-2xl mx-auto py-16">
         <StateBoundary
           isLoading={true}
-          loadingMessage="Retrieving official assessment evaluation and scorecard..."
+          loadingMessage="Loading your examination results..."
         />
       </div>
     );
@@ -251,7 +251,7 @@ export function CandidateResultPage() {
           <div className="space-y-1">
             <h2 className="text-lg font-bold text-slate-900">Grading in Progress</h2>
             <p className="text-sm text-slate-600 max-w-md mx-auto">
-              Your examination responses are currently being evaluated and tabulated by the automated scoring worker.
+              Your examination responses are currently being evaluated. Results will appear here once grading is complete.
             </p>
           </div>
 

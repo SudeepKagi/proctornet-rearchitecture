@@ -347,10 +347,10 @@ export function CandidateProfilePage() {
               ? <ShieldCheck size={15} className="text-emerald-600" />
               : <ShieldAlert size={15} className="text-amber-600" />
             }
-            Biometric Identity Verification
+            Photo Identity Check
           </CardTitle>
           <CardDescription className="text-xs">
-            Required for proctored exam access. Face profile is used for automated liveness checks.
+            Required for exam access. Your photo is used to confirm your identity before exams.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -360,9 +360,9 @@ export function CandidateProfilePage() {
                 <CheckCircle2 size={18} />
               </div>
               <div>
-                <p className="text-sm font-semibold text-emerald-800">Face Profile Active</p>
+                <p className="text-sm font-semibold text-emerald-800">Photo on File</p>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Your reference facial embedding is active{enrollment?.modelVersion ? ` (Model ${enrollment.modelVersion})` : ''}. You are cleared for proctored exams.
+                  Your photo is on file. You are cleared for supervised exams.
                 </p>
               </div>
             </div>
@@ -373,9 +373,9 @@ export function CandidateProfilePage() {
                   <ShieldAlert size={18} />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-amber-800">Biometric Enrollment Required</p>
+                  <p className="text-sm font-semibold text-amber-800">Photo Setup Required</p>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    A reference face capture is required before you can enter any proctored examination session. This is a one-time setup.
+                    A photo setup is required before you can enter any supervised exam session. This is a one-time setup.
                   </p>
                 </div>
               </div>
@@ -393,7 +393,7 @@ export function CandidateProfilePage() {
                 onClick={() => navigate('/candidate/enrollment')}
                 className="w-full sm:w-auto h-10 px-6 font-semibold gap-2"
               >
-                Complete Face Enrollment
+                Complete Photo Setup
                 <ArrowRight size={14} />
               </Button>
             </>

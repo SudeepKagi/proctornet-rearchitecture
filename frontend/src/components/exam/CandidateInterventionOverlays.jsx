@@ -76,7 +76,7 @@ export function CandidatePauseOverlay({ isOpen, reason }) {
             }}
           >
             <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
-              Proctor Stated Rationale:
+              Invigilator Note:
             </div>
             <div style={{ fontSize: '0.875rem', color: '#f1f5f9', fontWeight: 500 }}>
               {reason}
@@ -142,12 +142,12 @@ export function CandidateTerminationOverlay({ isOpen, reason, onReturnHome }) {
         </div>
 
         <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '0.75rem', color: '#fecaca' }}>
-          Examination Attempt Terminated
+          Examination Attempt Concluded
         </h2>
 
         <p style={{ fontSize: '0.9375rem', color: '#cbd5e1', lineHeight: 1.6, marginBottom: '1.5rem' }}>
-          Your examination attempt has been officially terminated by the proctoring authority.
-          Further answers cannot be submitted.
+          Your examination attempt has been concluded by the invigilator.
+          Answers recorded prior to this point have been saved.
         </p>
 
         {reason && (
@@ -162,7 +162,7 @@ export function CandidateTerminationOverlay({ isOpen, reason, onReturnHome }) {
             }}
           >
             <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#f87171', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
-              Termination Reason:
+              Reason:
             </div>
             <div style={{ fontSize: '0.875rem', color: '#f1f5f9', fontWeight: 500 }}>
               {reason}
@@ -264,7 +264,7 @@ export function CandidateDirectMessageToast({ messageData, onDismiss }) {
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700, fontSize: '0.9375rem' }}>
           <span>{isWarning ? '⚠️' : '💬'}</span>
-          <span>{isWarning ? 'Official Invigilator Warning' : 'Direct Message from Proctor'}</span>
+          <span>{isWarning ? 'Notice from Invigilator' : 'Message from Invigilator'}</span>
         </div>
         <button
           type="button"
@@ -287,7 +287,7 @@ export function CandidateDirectMessageToast({ messageData, onDismiss }) {
 
       {messageData.reason && (
         <div style={{ fontSize: '0.75rem', color: '#cbd5e1', marginBottom: '0.75rem', fontStyle: 'italic' }}>
-          Rationale: {messageData.reason}
+          Note: {messageData.reason}
         </div>
       )}
 

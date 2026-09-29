@@ -1,6 +1,6 @@
 /**
  * @file ForInstitutionsPage.jsx
- * @description High-level architectural analysis for academic evaluators and institutions exploring self-hosted exam systems.
+ * @description Institutional guide for academic evaluators, university departments, and colleges.
  */
 
 import React from 'react';
@@ -9,9 +9,9 @@ import { usePageMeta } from '../../hooks/usePageMeta.js';
 
 export function ForInstitutionsPage() {
   usePageMeta({
-    title: 'Institutional Architecture & Data Sovereignty',
+    title: 'For Institutions — Private & Self-Hosted Exams',
     description:
-      'Architectural analysis of how educational institutions can self-host resilient, privacy-first examination platforms with zero vendor lock-in.',
+      'How educational institutions can host resilient, privacy-first examination platforms with complete control over student data.',
     canonical: '/for-institutions',
   });
 
@@ -20,7 +20,7 @@ export function ForInstitutionsPage() {
       {/* Header */}
       <div style={{ marginBottom: '40px' }}>
         <span className="badge-academic" style={{ marginBottom: '16px' }}>
-          Institutional Evaluation
+          For Colleges &amp; Universities
         </span>
         <h1
           style={{
@@ -31,11 +31,11 @@ export function ForInstitutionsPage() {
             margin: '12px 0 16px 0',
           }}
         >
-          Data Sovereignty &amp; Self-Hosted Integrity
+          Institutional Data Ownership &amp; Integrity
         </h1>
         <p style={{ fontSize: '1.125rem', lineHeight: 1.6, color: 'var(--color-text-muted)' }}>
-          A conceptual case study on how universities can own their assessment infrastructure,
-          eliminate recurring per-seat vendor licensing, and ensure strict compliance with student privacy principles.
+          A clear case study on how universities can operate their own examination infrastructure,
+          eliminate per-student subscription fees, and keep student data strictly private.
         </p>
       </div>
 
@@ -52,29 +52,29 @@ export function ForInstitutionsPage() {
             color: 'var(--color-text-body)',
           }}
         >
-          <strong style={{ color: 'var(--color-text-primary)' }}>Notice to Academic Evaluators: </strong>
-          ProctorNet is an open-source educational engineering demonstration. This page explores how the architecture was
-          specifically designed to satisfy institutional requirements for data sovereignty, cost control, and ethical governance.
+          <strong style={{ color: 'var(--color-text-primary)' }}>Overview for Academic Evaluators: </strong>
+          ProctorNet demonstrates how a university examination system can be built with standard, proven open-source
+          technologies to keep examination data private, cost-effective, and fully under institutional control.
         </div>
 
         {/* Section 1: Eliminating Commercial Vendor Lock-In */}
         <section className="card-interactive" style={{ padding: '32px' }}>
           <h2 style={{ fontSize: '1.375rem', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '16px' }}>
-            1. Eliminating Commercial SaaS Lock-In
+            1. Keeping Exam Data Within Your College
           </h2>
           <p style={{ fontSize: '0.9375rem', lineHeight: 1.7, color: 'var(--color-text-body)', marginBottom: '16px' }}>
-            Universities currently spend millions on closed-source proctoring vendors that control student biometric data
-            in proprietary clouds. ProctorNet demonstrates how an institution can maintain absolute sovereignty:
+            Universities often rely on expensive third-party vendors that store student photos and test data in external
+            commercial clouds. ProctorNet demonstrates how a college can keep full ownership of its examination data:
           </p>
           <ul style={{ paddingLeft: '20px', fontSize: '0.9375rem', lineHeight: 1.7, color: 'var(--color-text-body)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <li>
-              <strong>100% Open Infrastructure:</strong> Built on Node.js 24 LTS, PostgreSQL 16, Redis 7, RabbitMQ 3.13, and mediasoup 3. Zero dependency on proprietary third-party proctoring APIs.
+              <strong>Standard Open Technologies:</strong> Built on industry-standard web and database foundations with zero dependence on proprietary third-party proctoring vendors.
             </li>
             <li>
-              <strong>Self-Hosted Data Boundary:</strong> Exam blueprints, candidate responses, biometric embeddings, and audit logs reside strictly within institutional databases or private S3 buckets.
+              <strong>Private Data Ownership:</strong> Exam questions, student answers, verification photos, and audit logs remain strictly inside the institution's own database and private storage.
             </li>
             <li>
-              <strong>No Per-Seat Metering:</strong> Eliminates commercial per-exam or per-minute billing models in favor of predictable cloud or on-premise compute allocation.
+              <strong>No Per-Seat Metering:</strong> Eliminates recurring commercial per-exam or per-minute subscription costs in favor of standard institutional server hosting.
             </li>
           </ul>
         </section>
@@ -82,28 +82,28 @@ export function ForInstitutionsPage() {
         {/* Section 2: Privacy Alignment with FERPA & GDPR */}
         <section className="card-interactive" style={{ padding: '32px' }}>
           <h2 style={{ fontSize: '1.375rem', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '16px' }}>
-            2. Foundational Compliance Alignment (FERPA &amp; GDPR)
+            2. Privacy-First Educational Standards
           </h2>
           <p style={{ fontSize: '0.9375rem', lineHeight: 1.7, color: 'var(--color-text-body)', marginBottom: '16px' }}>
-            While an uncertified academic capstone, the system’s architecture was deliberately designed around foundational data protection principles:
+            The system is designed around standard educational privacy and data protection principles:
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
             <div style={{ padding: '16px', backgroundColor: 'var(--color-canvas)', borderRadius: '8px' }}>
               <strong style={{ fontSize: '0.9375rem', color: 'var(--color-brand-secondary)' }}>Data Minimization</strong>
               <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)', margin: '4px 0 0 0', lineHeight: 1.5 }}>
-                Only ephemeral screen context flags are collected. No continuous raw webcam video or microphone audio is persisted.
+                Only window focus flags are checked during tests. No continuous webcam video or room audio recordings are stored on servers.
               </p>
             </div>
             <div style={{ padding: '16px', backgroundColor: 'var(--color-canvas)', borderRadius: '8px' }}>
               <strong style={{ fontSize: '0.9375rem', color: 'var(--color-brand-secondary)' }}>Purpose Limitation</strong>
               <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)', margin: '4px 0 0 0', lineHeight: 1.5 }}>
-                Candidate biometric baseline embeddings are utilized strictly for pre-exam identity verification and auto-purged after 90 days.
+                Your photo used for identity checks is automatically deleted after 90 days.
               </p>
             </div>
             <div style={{ padding: '16px', backgroundColor: 'var(--color-canvas)', borderRadius: '8px' }}>
-              <strong style={{ fontSize: '0.9375rem', color: 'var(--color-brand-secondary)' }}>Integrity &amp; Confidentiality</strong>
+              <strong style={{ fontSize: '0.9375rem', color: 'var(--color-brand-secondary)' }}>Security &amp; Encryption</strong>
               <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)', margin: '4px 0 0 0', lineHeight: 1.5 }}>
-                Data encrypted at rest via AES-256 and in transit via TLS 1.3 with strict WireGuard management isolation.
+                Data is encrypted both in transit and at rest, with administrative controls restricted to authorized college staff.
               </p>
             </div>
           </div>
@@ -112,12 +112,12 @@ export function ForInstitutionsPage() {
         {/* Section 3: Compute Economics */}
         <section className="card-interactive" style={{ padding: '32px' }}>
           <h2 style={{ fontSize: '1.375rem', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '16px' }}>
-            3. Operational Compute Economics
+            3. Efficient, Predictable Infrastructure
           </h2>
           <p style={{ fontSize: '0.9375rem', lineHeight: 1.7, color: 'var(--color-text-body)', margin: 0 }}>
-            By moving screen inference to candidate browser Web Workers, backend infrastructure compute requirements are drastically reduced.
-            Instead of executing thousands of heavy computer vision neural networks on expensive GPU servers, institutional infrastructure
-            focuses on lightweight WebRTC packet forwarding via mediasoup SFU workers and transaction persistence in PostgreSQL.
+            By checking screen focus directly in the student's browser rather than running costly server-side video AI,
+            server overhead is kept minimal. The university can run exams smoothly on modest, cost-predictable infrastructure
+            without expensive server GPUs or heavy third-party licensing.
           </p>
         </section>
 
@@ -125,17 +125,19 @@ export function ForInstitutionsPage() {
         <div className="glass-panel" style={{ padding: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
           <div>
             <h4 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>
-              Review the Technical Architecture
+              Technical Engineering Details
             </h4>
             <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', margin: '4px 0 0 0' }}>
-              Inspect topological diagrams, security boundaries, and disaster recovery runbooks.
+              For engineering teams: optional system architecture and operational specifications.
             </p>
           </div>
-          <Link to="/architecture" className="btn-academic-primary" style={{ padding: '8px 20px', fontSize: '0.875rem' }}>
-            System Architecture →
+          <Link to="/architecture" className="btn-academic-secondary" style={{ padding: '8px 20px', fontSize: '0.875rem' }}>
+            Optional Technical Specs →
           </Link>
         </div>
       </div>
     </div>
   );
 }
+
+export default ForInstitutionsPage;

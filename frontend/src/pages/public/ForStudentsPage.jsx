@@ -1,6 +1,6 @@
 /**
  * @file ForStudentsPage.jsx
- * @description Candidate preparation guide, readiness checklists, and privacy commitments for ProctorNet.
+ * @description Student preparation guide, equipment checklists, and privacy commitments for ProctorNet.
  */
 
 import React from 'react';
@@ -9,9 +9,9 @@ import { usePageMeta } from '../../hooks/usePageMeta.js';
 
 export function ForStudentsPage() {
   usePageMeta({
-    title: 'Candidate Guide & Pre-Exam Readiness',
+    title: 'Student Guide & Exam Readiness',
     description:
-      'Candidate guide for ProctorNet online exams: hardware checks, browser requirements, privacy commitments, offline resilience, and test-day tips.',
+      'Student guide for ProctorNet online exams: camera and microphone checks, browser requirements, privacy commitments, automatic saving, and test-day tips.',
     canonical: '/for-students',
   });
 
@@ -20,7 +20,7 @@ export function ForStudentsPage() {
       {/* Header */}
       <div style={{ marginBottom: '40px' }}>
         <span className="badge-academic" style={{ marginBottom: '16px' }}>
-          Candidate Information
+          Student Guide
         </span>
         <h1
           style={{
@@ -31,11 +31,11 @@ export function ForStudentsPage() {
             margin: '12px 0 16px 0',
           }}
         >
-          Candidate Preparation &amp; Readiness Guide
+          Student Preparation &amp; Readiness Guide
         </h1>
         <p style={{ fontSize: '1.125rem', lineHeight: 1.6, color: 'var(--color-text-muted)' }}>
-          Everything you need to know before taking an examination on ProctorNet: equipment checks,
-          during-exam procedures, privacy protections, and offline autosave.
+          Everything you need to know before taking an exam on ProctorNet: equipment checks,
+          what to expect on exam day, your privacy rights, and automatic autosave.
         </p>
       </div>
 
@@ -49,28 +49,28 @@ export function ForStudentsPage() {
             <div style={{ padding: '16px', backgroundColor: 'var(--color-canvas)', borderRadius: '8px' }}>
               <strong style={{ fontSize: '0.9375rem', color: 'var(--color-text-primary)' }}>Supported Browsers</strong>
               <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', margin: '6px 0 0 0', lineHeight: 1.5 }}>
-                Google Chrome (recommended), Mozilla Firefox, or Microsoft Edge. Safari and mobile browsers are not supported for proctored sessions.
+                Google Chrome (recommended), Mozilla Firefox, or Microsoft Edge on a laptop or desktop computer. Phones and tablets are not supported for exams.
               </p>
             </div>
 
             <div style={{ padding: '16px', backgroundColor: 'var(--color-canvas)', borderRadius: '8px' }}>
               <strong style={{ fontSize: '0.9375rem', color: 'var(--color-text-primary)' }}>Webcam &amp; Microphone</strong>
               <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', margin: '6px 0 0 0', lineHeight: 1.5 }}>
-                Functional webcam for pre-exam identity verification and live invigilator supervision. No continuous audio AI is run.
+                A working webcam to verify your identity before the exam begins and to allow your invigilator to check in if needed. No continuous audio AI is run.
               </p>
             </div>
 
             <div style={{ padding: '16px', backgroundColor: 'var(--color-canvas)', borderRadius: '8px' }}>
-              <strong style={{ fontSize: '0.9375rem', color: 'var(--color-text-primary)' }}>Screen Sharing Support</strong>
+              <strong style={{ fontSize: '0.9375rem', color: 'var(--color-text-primary)' }}>Screen Sharing</strong>
               <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', margin: '6px 0 0 0', lineHeight: 1.5 }}>
-                Permission to share your active desktop screen for client-side heuristic analysis via browser Web APIs.
+                Permission to share your screen so your browser can detect if you accidentally switch windows or leave full-screen mode during the exam.
               </p>
             </div>
 
             <div style={{ padding: '16px', backgroundColor: 'var(--color-canvas)', borderRadius: '8px' }}>
-              <strong style={{ fontSize: '0.9375rem', color: 'var(--color-text-primary)' }}>Network Speed</strong>
+              <strong style={{ fontSize: '0.9375rem', color: 'var(--color-text-primary)' }}>Internet Connection</strong>
               <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', margin: '6px 0 0 0', lineHeight: 1.5 }}>
-                Stable broadband connection with at least 2 Mbps upload speed for smooth WebRTC video streaming.
+                A standard internet connection (at least 2 Mbps) so your exam connects smoothly and your work saves in real time.
               </p>
             </div>
           </div>
@@ -83,15 +83,15 @@ export function ForStudentsPage() {
           </h2>
           <ol style={{ paddingLeft: '20px', fontSize: '0.9375rem', lineHeight: 1.7, color: 'var(--color-text-body)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <li>
-              <strong>Biometric Baseline Enrollment:</strong> Complete your one-time face enrollment in the Candidate Portal prior to exam day.
-              A photo is captured and converted into a 512-dimensional vector embedding.
+              <strong>Photo Identity Setup:</strong> Complete your one-time photo setup in your student portal before exam day.
+              We take a quick photo to confirm it's really you before your exam starts.
             </li>
             <li>
-              <strong>Pre-Exam Diagnostics:</strong> Access the examination room 15 minutes prior to the start time.
-              The system will verify camera, microphone, and screen capture permissions.
+              <strong>Quick System Check:</strong> Join the exam room 10–15 minutes before the start time.
+              The system will test your camera, microphone, and screen sharing permissions.
             </li>
             <li>
-              <strong>Identity Confirmation:</strong> A live camera snapshot is compared against your enrolled baseline to confirm identity before unlocking the test.
+              <strong>Fast Identity Check:</strong> A quick photo snapshot confirms your identity against your registered profile before unlocking the test questions.
             </li>
           </ol>
         </section>
@@ -99,18 +99,18 @@ export function ForStudentsPage() {
         {/* Section 3: During the Exam & Resilience */}
         <section className="card-interactive" style={{ padding: '32px' }}>
           <h2 style={{ fontSize: '1.375rem', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '16px' }}>
-            3. During the Exam: Resilience &amp; Privacy
+            3. During the Exam: Autosave &amp; Privacy
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', fontSize: '0.9375rem', lineHeight: 1.7, color: 'var(--color-text-body)' }}>
             <p style={{ margin: 0 }}>
-              <strong>Optimistic Concurrency Control (OCC) Autosave:</strong> You never have to worry about manually saving your progress.
-              Every answer choice or essay keystroke is automatically synchronized in the background. If you lose internet access, your answers
-              are safely stored in browser storage and uploaded immediately once reconnected.
+              <strong>Automatic Continuous Saving:</strong> Your answers save automatically as you go — you'll never lose your work.
+              Every answer choice and essay response is continuously synchronized in the background. If your internet briefly drops, your answers
+              are safely stored in your browser and sync the moment you reconnect.
             </p>
             <p style={{ margin: 0 }}>
-              <strong>Respect for Your Dignity:</strong> You are not being monitored by automated emotion-detection or gaze-tracking AI.
-              The client-side screen analysis only monitors window blur and full-screen exits. Disciplinary actions cannot be taken automatically;
-              only your human invigilator can issue warnings or interventions.
+              <strong>Respect for Your Privacy:</strong> You are never monitored by invasive emotion-detection or gaze-tracking software.
+              The exam system only checks if you leave the exam tab or exit full-screen mode. No software can disqualify you automatically — only
+              your professor or exam invigilator can review flags and speak with you.
             </p>
           </div>
         </section>
@@ -118,19 +118,19 @@ export function ForStudentsPage() {
         {/* Section 4: Candidate Rights & Dispute Resolution */}
         <section className="glass-panel" style={{ padding: '32px', borderLeft: '4px solid var(--color-brand-secondary)' }}>
           <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '12px' }}>
-            Candidate Rights &amp; Appeals
+            Student Rights &amp; Appeals
           </h2>
           <p style={{ fontSize: '0.9375rem', lineHeight: 1.6, color: 'var(--color-text-body)', marginBottom: '16px' }}>
-            Every proctoring flag and intervention generates an immutable audit entry in the database.
-            If you believe an anomaly was incorrectly flagged (e.g. accidental browser notification or system update),
-            you have the right to request a formal human review of the session timeline with your faculty advisor.
+            Every session event and supervisor note is recorded in an official, tamper-proof audit log.
+            If you believe an accidental notification or popup caused an unintended flag, you have the right to request a fair,
+            transparent human review of your session timeline with your professor or department head.
           </p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
             <Link to="/ai-proctoring-notice" className="btn-academic-secondary" style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
-              Responsible AI Policy →
+              Responsible Monitoring Policy →
             </Link>
             <Link to="/privacy" className="btn-academic-ghost" style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
-              Privacy &amp; Data Subject Rights →
+              Privacy &amp; Data Rights →
             </Link>
           </div>
         </section>
@@ -138,3 +138,5 @@ export function ForStudentsPage() {
     </div>
   );
 }
+
+export default ForStudentsPage;

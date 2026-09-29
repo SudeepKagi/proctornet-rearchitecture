@@ -51,19 +51,19 @@ export const POLICY_DATA = {
         category: 'Academic Assessment Data',
         items: 'Exam blueprints, questions, candidate answer revisions, autosave drafts, scorecards',
         purpose: 'Delivering assessments, atomic grading, grade calculation',
-        storage: 'PostgreSQL with Optimistic Concurrency Control',
+        storage: 'PostgreSQL with continuous revision conflict prevention',
         retention: 'Academic year or per faculty archive policy',
       },
       {
-        category: 'Biometric Identity Data',
-        items: 'Enrolled facial embedding (512-dim float vector), pre-exam baseline photo',
+        category: 'Photo Identity Data',
+        items: 'Registered baseline photograph, pre-exam verification photos',
         purpose: 'Pre-exam identity verification to prevent proxy test taking',
-        storage: 'Private Amazon S3 with SSE-S256 encryption; signed URLs (15m)',
+        storage: 'Private cloud storage with AES-256 encryption; signed URLs (15m)',
         retention: 'Automated 90-day retention purge lifecycle',
       },
       {
-        category: 'Proctoring Telemetry',
-        items: 'Screen anomaly flags (full-screen exit, tab switch, blur duration), periodic low-res hashes',
+        category: 'Exam Activity Telemetry',
+        items: 'Screen activity indicators (full-screen exits, window switches), periodic low-res hashes',
         purpose: 'Live invigilator triage during exam sessions; human-in-the-loop review',
         storage: 'In-memory Redis (live) and PostgreSQL session summary',
         retention: '30 days after exam release; then automatically purged',
@@ -72,7 +72,7 @@ export const POLICY_DATA = {
         category: 'Audit Logs',
         items: 'Admin actions, grade overrides, intervention logs, IP address, timestamp',
         purpose: 'Tamper resistance, security verification, academic misconduct review',
-        storage: 'PostgreSQL immutable table with SQLSTATE 20000 trigger defense',
+        storage: 'PostgreSQL tamper-proof audit table with trigger-locked defense',
         retention: 'Indefinite academic integrity record',
       },
     ],
@@ -87,7 +87,7 @@ export const POLICY_DATA = {
       },
       {
         right: 'Right to Erasure (Purge)',
-        description: 'Candidates may request deletion of their biometric baseline once their academic evaluation has completed.',
+        description: 'Candidates may request deletion of their registered identity photos once their academic evaluation has completed.',
       },
       {
         right: 'Zero Third-Party Commercial Tracking',
@@ -169,10 +169,10 @@ export const POLICY_DATA = {
       {
         title: 'Assistive, Not Determinate',
         description:
-          'ProctorNet uses machine learning and heuristics strictly as triage mechanisms to alert human invigilators. The AI cannot make disciplinary decisions or disqualify candidates.',
+          'ProctorNet uses assistive activity checks strictly to alert human invigilators. The system cannot make disciplinary decisions or disqualify candidates.',
       },
       {
-        title: 'Absence of Invasive Biometrics',
+        title: 'Absence of Invasive Surveillance',
         description:
           'ProctorNet deliberately excludes continuous facial emotion recognition, continuous gaze tracking, and continuous voice stress analysis, preserving candidate dignity during stressful assessments.',
       },

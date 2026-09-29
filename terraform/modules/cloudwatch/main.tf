@@ -33,6 +33,7 @@ resource "aws_cloudwatch_metric_alarm" "high_cpu" {
   statistic           = "Average"
   threshold           = 80
   alarm_description   = "Alert when EC2 CPU utilization exceeds 80% for 10 consecutive minutes"
+  alarm_actions       = var.alarm_actions
 
   dimensions = {
     InstanceId = var.instance_id
@@ -58,6 +59,7 @@ resource "aws_cloudwatch_metric_alarm" "high_memory" {
   statistic           = "Average"
   threshold           = 85
   alarm_description   = "Alert when EC2 host memory utilization exceeds 85% for 10 consecutive minutes"
+  alarm_actions       = var.alarm_actions
 
   dimensions = {
     InstanceId = var.instance_id
@@ -83,6 +85,7 @@ resource "aws_cloudwatch_metric_alarm" "high_disk" {
   statistic           = "Average"
   threshold           = 85
   alarm_description   = "Alert when persistent data volume (/opt/proctornet/data) exceeds 85% capacity"
+  alarm_actions       = var.alarm_actions
 
   dimensions = {
     InstanceId = var.instance_id
@@ -109,6 +112,7 @@ resource "aws_cloudwatch_metric_alarm" "status_check_failed" {
   statistic           = "Maximum"
   threshold           = 1
   alarm_description   = "Alert immediately when EC2 instance or system status check fails"
+  alarm_actions       = var.alarm_actions
 
   dimensions = {
     InstanceId = var.instance_id

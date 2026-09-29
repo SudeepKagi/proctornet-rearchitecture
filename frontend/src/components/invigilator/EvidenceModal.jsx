@@ -64,10 +64,10 @@ export default function EvidenceModal({ isOpen, onClose, attemptId, candidateNam
           <div>
             <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
-              Secure Evidence Inspection
+              Exam Activity Review
             </h3>
             <p className="text-xs text-slate-500">
-              Candidate: <span className="text-slate-800 font-medium">{candidateName || attemptId}</span> • Private S3 Presigned Pointers
+              Candidate: <span className="text-slate-800 font-medium">{candidateName || attemptId}</span> • Secure Storage Records
             </p>
           </div>
           <button
@@ -83,12 +83,12 @@ export default function EvidenceModal({ isOpen, onClose, attemptId, candidateNam
           {/* Left Column: Evidence List */}
           <div className="p-4 overflow-y-auto max-h-[70vh] md:col-span-1 space-y-2 bg-slate-50/50">
             <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
-              Evidence Records ({evidenceList.length})
+              Activity Records ({evidenceList.length})
             </h4>
 
             {loading && (
               <div className="text-xs text-slate-500 py-6 text-center animate-pulse">
-                Fetching evidence records...
+                Loading activity records...
               </div>
             )}
 
@@ -100,7 +100,7 @@ export default function EvidenceModal({ isOpen, onClose, attemptId, candidateNam
 
             {!loading && evidenceList.length === 0 && (
               <div className="text-xs text-slate-500 py-8 text-center">
-                No evidence records archived for this candidate attempt.
+                No activity records logged for this candidate attempt.
               </div>
             )}
 
@@ -138,7 +138,7 @@ export default function EvidenceModal({ isOpen, onClose, attemptId, candidateNam
               <div className="w-full flex flex-col items-center">
                 {loadingUrl && (
                   <div className="py-16 text-center text-sm text-slate-500 animate-pulse">
-                    Acquiring authenticated 5-minute presigned GET ticket...
+                    Loading media preview...
                   </div>
                 )}
 
@@ -157,7 +157,7 @@ export default function EvidenceModal({ isOpen, onClose, attemptId, candidateNam
                       <div className="w-full flex justify-center">
                         <img
                           src={playbackUrl}
-                          alt="Violation snapshot"
+                          alt="Activity snapshot"
                           className="max-h-[50vh] max-w-full rounded-lg border border-slate-200 shadow-sm object-contain"
                         />
                       </div>
@@ -182,7 +182,7 @@ export default function EvidenceModal({ isOpen, onClose, attemptId, candidateNam
               </div>
             ) : (
               <div className="text-center text-slate-500 text-xs py-16">
-                Select an evidence record from the list to securely inspect.
+                Select an activity record from the list to review.
               </div>
             )}
           </div>
@@ -194,7 +194,7 @@ export default function EvidenceModal({ isOpen, onClose, attemptId, candidateNam
             onClick={onClose}
             className="px-4 py-1.5 text-xs font-medium rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-800 transition cursor-pointer"
           >
-            Close Inspector
+            Close
           </button>
         </div>
       </div>

@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import {
   Camera,
   UploadCloud,
@@ -271,7 +271,7 @@ export function CandidateEnrollmentPage() {
             <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
             <AlertTitle className="text-sm font-bold">Enrollment Complete!</AlertTitle>
             <AlertDescription className="text-xs">
-              Your reference face photo and ID have been saved to secure AWS S3. Your account is verified. Redirecting to candidate dashboard...
+              Your reference photo and ID have been saved securely. Your account is verified. Redirecting to your dashboard...
             </AlertDescription>
           </Alert>
         )}
@@ -470,7 +470,7 @@ export function CandidateEnrollmentPage() {
                   <CardTitle className="text-lg">Step 3: Review & Activate Account</CardTitle>
                 </div>
                 <CardDescription>
-                  Review your reference biometrics and document details before uploading to the secure AWS cloud repository.
+                  Review your reference photo and document details before activating your profile.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -479,7 +479,7 @@ export function CandidateEnrollmentPage() {
                   <div className="border border-slate-200 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40 space-y-2">
                     <div className="flex justify-between items-center">
                       <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                        Reference Face
+                        Reference Photo
                       </span>
                       <Button variant="ghost" size="sm" className="h-6 text-xs text-blue-600 p-0" onClick={() => setCurrentStep(1)}>
                         Change
@@ -521,7 +521,10 @@ export function CandidateEnrollmentPage() {
                   <div className="text-xs text-blue-900 dark:text-blue-200 space-y-0.5">
                     <p className="font-semibold">Privacy & Encryption Commitment</p>
                     <p className="text-blue-700 dark:text-blue-300">
-                      Evidence files are compressed, encrypted in transit and at rest in AWS S3 (Mumbai). Biometrics are strictly used for academic verification.
+                      Your photo and ID documents are encrypted in transit and at rest. They are used strictly for academic identity verification and deleted according to retention policy.{' '}
+                      <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="underline font-medium hover:text-blue-900 dark:hover:text-blue-100">
+                        View Data Handling Policy
+                      </Link>
                     </p>
                   </div>
                 </div>
@@ -538,7 +541,7 @@ export function CandidateEnrollmentPage() {
                   {submitting ? (
                     <>
                       <RefreshCw size={14} className="mr-2 animate-spin" />
-                      Uploading to AWS S3 & Activating...
+                      Saving & Activating Profile...
                     </>
                   ) : (
                     <>

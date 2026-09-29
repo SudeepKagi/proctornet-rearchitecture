@@ -7,6 +7,7 @@
 import React from 'react';
 import { Spinner } from './Spinner.jsx';
 import { Button } from './Button.jsx';
+import { getErrorMessage } from '../../utils/apiErrorHelper.js';
 
 export function StateBoundary({
   isLoading = false,
@@ -43,7 +44,7 @@ export function StateBoundary({
   }
 
   if (error) {
-    const errorMessage = typeof error === 'string' ? error : error?.message || 'An unexpected error occurred.';
+    const errorMessage = getErrorMessage(error, 'An unexpected error occurred. Please try again.');
 
     return (
       <div

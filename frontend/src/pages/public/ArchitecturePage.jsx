@@ -52,10 +52,38 @@ export function ArchitecturePage() {
 
   return (
     <div className="container" style={{ paddingTop: '48px', paddingBottom: '80px', maxWidth: '1000px' }}>
+      {/* Developer notice banner */}
+      <div
+        style={{
+          padding: '16px 20px',
+          background: 'var(--color-bg-secondary, #f8fafc)',
+          borderRadius: '8px',
+          border: '1px solid var(--color-border-subtle, #e2e8f0)',
+          marginBottom: '28px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '12px',
+        }}
+      >
+        <div>
+          <strong style={{ fontSize: '0.95rem', color: 'var(--color-text-primary)' }}>
+            Developer & Systems Architecture Reference
+          </strong>
+          <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
+            This page provides technical engineering specifications for developers, IT architects, and security reviewers. Exam takers do not need to read this page.
+          </p>
+        </div>
+        <Link to="/how-it-works" className="btn-academic-secondary" style={{ fontSize: '0.85rem', padding: '6px 14px' }}>
+          Student Guide →
+        </Link>
+      </div>
+
       {/* Header */}
       <div style={{ marginBottom: '36px' }}>
         <span className="badge-academic" style={{ marginBottom: '12px' }}>
-          Technical Specifications
+          Technical Specifications (Optional Reference)
         </span>
         <h1
           style={{

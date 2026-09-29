@@ -32,9 +32,10 @@ temp/
 tmp/
 *.log
 
-# Documentation
+# Documentation & Scripts
 *.md
 docs/
+scripts/
 
 # OS specific files
 .DS_Store
