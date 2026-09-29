@@ -91,10 +91,10 @@ export const PROJECT_INFO = {
   techStack: [
     { name: 'Node.js 24 LTS', category: 'Backend Runtime', detail: 'Modular monolith with asynchronous event loop' },
     { name: 'React 19', category: 'Frontend SPA', detail: 'Component-driven UI with fluid responsive design system' },
-    { name: 'PostgreSQL 16', category: 'Relational Database', detail: 'Strict relational integrity with OCC and trigger-locked audit trails' },
+    { name: 'PostgreSQL 16', category: 'Relational Database', detail: 'Strict relational integrity with concurrent write safety and trigger-locked audit trails' },
     { name: 'Redis 7', category: 'In-Memory Cache & Pub/Sub', detail: 'Fast session state, token blacklisting, and WebSocket room multiplexing' },
     { name: 'RabbitMQ 3.13', category: 'Message Broker', detail: 'Transactional outbox event routing with DLQ fault recovery' },
-    { name: 'mediasoup 3', category: 'Selective Forwarding Unit', detail: 'Multi-stream WebRTC video distribution and bandwidth adaptation' },
+    { name: 'WebRTC Media Server', category: 'Live Video Streaming', detail: 'Multi-stream WebRTC video distribution and bandwidth adaptation' },
     { name: 'Coturn STUN/TURN', category: 'NAT Traversal', detail: 'RFC 5766 TURN relay for firewalled candidate streaming' },
     { name: 'Docker Compose', category: 'Container Orchestration', detail: 'Unified local and production containerized topology' },
   ],

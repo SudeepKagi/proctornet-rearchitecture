@@ -6,7 +6,22 @@
 
 ---
 
-## 1. What Happens Automatically on Student Screens (0–60 Seconds)
+## 1. How You'll Know (Automated Alerts & Dispatch)
+
+When an infrastructure anomaly or server outage occurs, CloudWatch metric alarms trigger automated notifications dispatched immediately via Amazon SNS to the operations inbox:
+
+- **Notification Method:** Automated email dispatch via Amazon SNS topic `proctornet-production-ops-alerts` (`arn:aws:sns:ap-south-1:<account-id>:proctornet-production-ops-alerts`).
+- **Recipient Inbox:** Configured via `notification_email` in `terraform.tfvars` (defaults to `devops-alerts@proctornet.edu` — the on-call DevOps/SRE distribution list, forwarded to the active on-call engineer and PagerDuty/Opsgenie integration).
+- **Alarm Triggers That Dispatch Alerts:**
+  1. **`proctornet-production-StatusCheckFailed` (P0 - Immediate Action):** EC2 hypervisor, network, or hardware check failed (`StatusCheckFailed >= 1` for 2 periods). Dispatched within ~2 minutes of host unresponsiveness.
+  2. **`proctornet-production-High-CPU` (P1):** Sustained CPU utilization `>= 80%` across 2 consecutive 5-minute evaluation periods (10 minutes total). Indicates compute saturation or thread starvation.
+  3. **`proctornet-production-High-Memory` (P1):** Host memory consumption `>= 85%` for 2 consecutive 5-minute evaluation periods (via CloudWatch Agent `mem_used_percent`). Warns of impending Node.js heap exhaustion or Redis memory pressure.
+  4. **`proctornet-production-High-Disk` (P1):** Persistent data partition (`/opt/proctornet/data`) disk usage `>= 85%` for 3 consecutive 5-minute evaluation periods (15 minutes total). Warns of PostgreSQL WAL or media storage volume exhaustion.
+- **On-Call Responsibility:** The on-call engineer receiving the alert email must acknowledge receipt in the incident channel and initiate diagnostic triage within 3 minutes using Section 3 below.
+
+---
+
+## 2. What Happens Automatically on Student Screens (0–60 Seconds)
 
 When the backend server or network connection drops during an active exam:
 - **Automatic Client Offline Draft Buffering:** The candidate's browser immediately detects the network disruption. The answer submission queue switches to local offline storage.
@@ -15,9 +30,9 @@ When the backend server or network connection drops during an active exam:
 
 ---
 
-## 2. Immediate Diagnostic Triage (Minutes 1–3)
+## 3. Immediate Diagnostic Triage (Minutes 1–3)
 
-### Step 2.1: Verify Outage Scope
+### Step 3.1: Verify Outage Scope
 Check whether the application is responding to health probes:
 ```bash
 curl -I https://<your-exam-domain>/health
@@ -25,7 +40,7 @@ curl -I https://<your-exam-domain>/health
 curl -I http://localhost:4000/health
 ```
 
-### Step 2.2: Connect to Host
+### Step 3.2: Connect to Host
 Connect to the EC2 host via AWS Systems Manager (SSM) Session Manager or SSH:
 ```bash
 cd /opt/proctornet
@@ -39,7 +54,7 @@ Identify container states:
 
 ---
 
-## 3. Rapid Recovery Procedures (Minutes 3–7)
+## 4. Rapid Recovery Procedures (Minutes 3–7)
 
 ### Scenario A: Backend Node.js Process Crash (OOM or Unhandled Exception)
 Restart the backend container:
@@ -67,7 +82,7 @@ If the host does not respond to SSH or SSM:
 
 ---
 
-## 4. Student Resumption & Session Extension (Minutes 7–10)
+## 5. Student Resumption & Session Extension (Minutes 7–10)
 
 Once `/health` returns `200 OK`:
 1. **Automatic Sync:** As students remain on the exam screen, the frontend sync worker detects reconnected status and flushes queued offline drafts with version conflict protection.
@@ -80,7 +95,7 @@ Once `/health` returns `200 OK`:
 
 ---
 
-## 5. Escalation Contacts & Worst-Case Contingency
+## 6. Escalation Contacts & Worst-Case Contingency
 
 - **Database Backup Location:**
   - Local disk: `/opt/proctornet/backups/proctornet_db_<timestamp>.sql.gz`

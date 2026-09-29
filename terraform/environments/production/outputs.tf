@@ -42,3 +42,8 @@ output "alb_dns_name" {
   description = "ALB DNS name (when enable_alb = true)"
   value       = module.alb.alb_dns_name
 }
+
+output "ops_alerts_topic_arn" {
+  description = "SNS topic ARN for operational alerts and incident escalation"
+  value       = aws_sns_topic.ops_alerts.arn
+}

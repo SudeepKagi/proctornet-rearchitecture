@@ -93,3 +93,9 @@ variable "db_pool_max" {
   description = "Maximum concurrent PostgreSQL connections in Node.js pg-pool sized for c6i.xlarge production compute (prevents FIFO queue starvation under concurrent student load)"
   default     = 50
 }
+
+variable "notification_email" {
+  type        = string
+  description = "Email address for operations alerts dispatched by CloudWatch alarms via SNS"
+  default     = "devops-alerts@proctornet.edu"
+}

@@ -13,7 +13,7 @@ export function FeaturesPage() {
   usePageMeta({
     title: 'Platform Capabilities & Engineering Features',
     description:
-      'Detailed catalog of ProctorNet capabilities across examination engines, client-side screen analysis, real-time invigilation, biometrics, and security.',
+      'Detailed catalog of ProctorNet capabilities across examination engines, client-side screen analysis, real-time invigilation, identity verification, and security.',
     canonical: '/features',
   });
 

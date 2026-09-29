@@ -449,7 +449,7 @@ export function SessionMonitorPage() {
           <TabsList>
             <TabsTrigger value="media" className="gap-1.5">
               <Video size={14} />
-              <span>Live Media Monitor (12-Stream SFU)</span>
+              <span>Live Candidate Monitoring</span>
             </TabsTrigger>
             <TabsTrigger value="roster" className="gap-1.5">
               <Users size={14} />

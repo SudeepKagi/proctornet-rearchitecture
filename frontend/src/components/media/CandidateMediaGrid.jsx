@@ -44,7 +44,7 @@ export function CandidateMediaGrid({ sessionId, onSelectCandidate }) {
             }`}
           />
           <span className="font-medium text-gray-200">
-            {isReady ? 'Live SFU Media Connected' : 'Connecting to Media Plane...'}
+            {isReady ? 'Connected' : 'Connecting...'}
           </span>
           <span className="text-gray-400 ml-2">
             ({candidateList.length} Active Stream{candidateList.length === 1 ? '' : 's'})

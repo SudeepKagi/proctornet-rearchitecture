@@ -142,18 +142,19 @@ export function normalizeApiError(err, fallback = 'An unexpected error occurred.
 
   let status = typeof err.status === 'number' ? err.status : (isNetworkError ? 0 : 500);
 
+  const explicitCode = err.code || err.data?.code || err.data?.error?.code;
   const rawCode =
-    err.code ||
-    err.data?.code ||
-    err.data?.error?.code ||
+    explicitCode ||
     (isNetworkError ? 'NETWORK_UNAVAILABLE' : status >= 500 ? 'SERVER_ERROR' : 'CLIENT_ERROR');
 
   const code = String(rawCode || '').trim();
 
-  // 1. First priority: Check if the error code maps to a friendly message
-  let message = ERROR_CODE_FRIENDLY_MESSAGES[code] || null;
+  // 1. First priority: Check if explicit error code maps to a friendly message
+  let message = explicitCode && ERROR_CODE_FRIENDLY_MESSAGES[explicitCode]
+    ? ERROR_CODE_FRIENDLY_MESSAGES[explicitCode]
+    : null;
 
-  // 2. Second priority: Extract server message and sanitize jargon
+  // 2. Second priority: Extract server message or Error message and sanitize jargon
   if (!message) {
     let rawMsg = null;
     if (typeof err === 'string' && err.trim().length > 0) {
@@ -181,9 +182,9 @@ export function normalizeApiError(err, fallback = 'An unexpected error occurred.
     message = HTTP_STATUS_MESSAGES[status];
   }
 
-  // 4. Fallback
+  // 4. Fourth priority: Fallback to code mapping or generic fallback
   if (!message) {
-    message = fallback;
+    message = ERROR_CODE_FRIENDLY_MESSAGES[code] || fallback;
   }
 
   const requestId = err.requestId || err.data?.requestId || err.data?.error?.requestId || null;

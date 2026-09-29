@@ -29,3 +29,6 @@ backup_retention_days = 90
 # PostgreSQL Connection Pool Sizing for Production c6i.xlarge
 db_pool_min = 10
 db_pool_max = 50
+
+# Operations Alerting Email (receives CloudWatch alarm notifications via SNS)
+notification_email = "devops-alerts@proctornet.edu"

@@ -319,13 +319,13 @@ export function CandidateDashboardPage() {
               <div className="flex items-center gap-2 mb-1.5">
                 <CheckCircle2 size={16} className={isEnrolled ? 'text-emerald-600' : 'text-amber-600'} />
                 <p className="text-xs font-semibold text-slate-700">
-                  {isEnrolled ? 'Biometrics Verified' : 'Verification Pending'}
+                  {isEnrolled ? 'Identity Confirmed' : 'Verification Pending'}
                 </p>
               </div>
               <p className="text-xs text-slate-500 leading-relaxed">
                 {isEnrolled
-                  ? 'Your face profile is active. You can enter proctored exams.'
-                  : 'Complete face enrollment to unlock proctored exam access.'}
+                  ? 'Your photo is on file. You are cleared to take exams.'
+                  : 'Complete photo setup to unlock exam access.'}
               </p>
               {!isEnrolled && (
                 <Button

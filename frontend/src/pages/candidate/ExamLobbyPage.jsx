@@ -322,8 +322,8 @@ export function ExamLobbyPage() {
               <div className="flex items-center gap-2.5 p-3 rounded-lg bg-white border border-slate-200/80">
                 <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
                 <div>
-                  <p className="text-xs font-semibold text-slate-800">Biometrics</p>
-                  <p className="text-[11px] text-slate-500">Verified & Enrolled</p>
+                  <p className="text-xs font-semibold text-slate-800">Identity Check</p>
+                  <p className="text-[11px] text-slate-500">Confirmed</p>
                 </div>
               </div>
 

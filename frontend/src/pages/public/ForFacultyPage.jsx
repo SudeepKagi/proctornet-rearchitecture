@@ -79,7 +79,7 @@ export function ForFacultyPage() {
             <div style={{ padding: '16px', backgroundColor: 'var(--color-canvas)', borderRadius: '8px' }}>
               <strong style={{ fontSize: '0.9375rem', color: 'var(--color-primary)' }}>Network Grace Period</strong>
               <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)', margin: '4px 0 0 0', lineHeight: 1.5 }}>
-                Set the offline reconnection window (e.g. 3 minutes) during which candidate OCC autosave queues retain local answers.
+                Set the offline reconnection window (e.g. 3 minutes) during which candidates' saved answers are securely preserved locally until reconnection.
               </p>
             </div>
             <div style={{ padding: '16px', backgroundColor: 'var(--color-canvas)', borderRadius: '8px' }}>
@@ -101,7 +101,7 @@ export function ForFacultyPage() {
               <strong>Blind Manual Evaluation:</strong> When evaluating subjective essays, faculty can enable Blind Grading mode to mask candidate identities, eliminating implicit bias. Multi-criteria grading rubrics provide structured, defensible score allocations.
             </p>
             <p style={{ margin: 0 }}>
-              <strong>Immutable Audit Records:</strong> Once grades are published, every score adjustment is recorded in PostgreSQL with trigger-locked defense (`SQLSTATE 20000`). No database administrator or faculty member can quietly overwrite past marks without leaving a verifiable audit entry.
+              <strong>Immutable Audit Records:</strong> Once grades are published, every score adjustment is recorded with database-level tamper protection. No user can quietly overwrite past marks without leaving a verifiable audit entry.
             </p>
           </div>
         </section>

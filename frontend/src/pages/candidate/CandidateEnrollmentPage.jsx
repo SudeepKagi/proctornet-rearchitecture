@@ -206,10 +206,10 @@ export function CandidateEnrollmentPage() {
             Mandatory Student Onboarding
           </Badge>
           <h1 className="text-3xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
-            Identity & Biometric Enrollment
+            Set Up Your Identity Check
           </h1>
           <p className="text-sm text-slate-600 dark:text-slate-400 max-w-lg mx-auto">
-            Before entering proctored examinations, institutional security requires you to enroll your official reference face photo and submit a Government ID.
+            Before taking online examinations, please take a quick photo and upload a student or government ID so instructors can verify your identity.
           </p>
         </div>
 

@@ -79,13 +79,33 @@ module "ec2" {
   db_pool_max           = var.db_pool_max
 }
 
+# 5.5 Operations Alerting via SNS
+resource "aws_sns_topic" "ops_alerts" {
+  #checkov:skip=CKV_AWS_26:Default AWS-managed encryption key is sufficient for ops notification topic
+  name = "${var.project_name}-${var.environment}-ops-alerts"
+
+  tags = {
+    Name        = "${var.project_name}-${var.environment}-ops-alerts"
+    Environment = var.environment
+    Project     = "ProctorNet"
+    ManagedBy   = "Terraform"
+  }
+}
+
+resource "aws_sns_topic_subscription" "ops_alerts_email" {
+  topic_arn = aws_sns_topic.ops_alerts.arn
+  protocol  = "email"
+  endpoint  = var.notification_email
+}
+
 # 6. CloudWatch Host Telemetry & Alarms
 module "cloudwatch" {
   source = "../../modules/cloudwatch"
 
-  environment  = var.environment
-  project_name = var.project_name
-  instance_id  = module.ec2.instance_id
+  environment   = var.environment
+  project_name  = var.project_name
+  instance_id   = module.ec2.instance_id
+  alarm_actions = [aws_sns_topic.ops_alerts.arn]
 }
 
 # 7. Scale-Ready RDS PostgreSQL 16 (Toggleable; disabled in Phase 20)

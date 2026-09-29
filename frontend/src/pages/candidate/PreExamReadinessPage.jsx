@@ -312,7 +312,7 @@ export function PreExamReadinessPage() {
           </Badge>
         </div>
         <p className="text-sm text-slate-600 mt-1">
-          Verify your hardware peripherals, confirm biometric identity, and review exam guidelines before launching.
+          Check your camera and microphone, confirm your identity, and review exam guidelines before launching.
         </p>
       </div>
 
