@@ -17,6 +17,7 @@ import {
   UserCircle,
   Calendar,
   Sparkles,
+  Trophy,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth.js';
 import { resolveWorkspace } from '../../routes/roleNavigation.js';
@@ -30,7 +31,7 @@ const WORKSPACES = {
     links: [
       { to: '/candidate', label: 'Dashboard', icon: LayoutDashboard },
       { to: '/candidate/exams', label: 'My Exams', icon: BookOpen },
-      { to: '/candidate/profile', label: 'Profile', icon: UserCircle },
+      { to: '/candidate/results', label: 'Results', icon: Trophy },
     ],
   },
   faculty: {

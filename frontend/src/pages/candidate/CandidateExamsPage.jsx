@@ -136,7 +136,7 @@ function ExamCard({ session, onEnter, onViewResult }) {
   );
 }
 
-export function CandidateExamsPage() {
+export function CandidateExamsPage({ defaultTab = 'all' }) {
   const navigate = useNavigate();
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -226,7 +226,7 @@ export function CandidateExamsPage() {
       )}
 
       {/* Tabs */}
-      <Tabs defaultValue="all">
+      <Tabs defaultValue={defaultTab} key={defaultTab}>
         <TabsList className="border-b border-slate-200 rounded-none bg-transparent p-0 h-auto gap-1 mb-5">
           {tabs.map(t => (
             <TabsTrigger

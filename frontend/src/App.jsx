@@ -56,6 +56,7 @@ const UserDetailPage = lazyNamed(() => import('./pages/admin/UserDetailPage.jsx'
 const OrganizationSettingsPage = lazyNamed(() => import('./pages/admin/OrganizationSettingsPage.jsx'), 'OrganizationSettingsPage');
 const AdminAuditPage = lazyNamed(() => import('./pages/admin/AdminAuditPage.jsx'), 'AdminAuditPage');
 const DeveloperLayout = lazyNamed(() => import('./components/layout/DeveloperLayout.jsx'), 'DeveloperLayout');
+const ExamLayout = lazyNamed(() => import('./components/layout/ExamLayout.jsx'), 'ExamLayout');
 const DeveloperOverviewPage = lazyNamed(() => import('./pages/developer/DeveloperOverviewPage.jsx'), 'DeveloperOverviewPage');
 const DeveloperHealthPage = lazyNamed(() => import('./pages/developer/DeveloperHealthPage.jsx'), 'DeveloperHealthPage');
 const DeveloperLogsPage = lazyNamed(() => import('./pages/developer/DeveloperLogsPage.jsx'), 'DeveloperLogsPage');
@@ -179,29 +180,19 @@ export function App() {
 
         {/* Distraction-Free Exam Taking Workspace */}
         <Route
-          path="/candidate/attempts/:attemptId"
           element={
             <ProtectedRoute>
               <RoleRoute allowedRoles={['STUDENT', 'ADMIN']}>
                 <VerifiedRoute>
-                  <ExamTakingPage />
+                  <ExamLayout />
                 </VerifiedRoute>
               </RoleRoute>
             </ProtectedRoute>
           }
-        />
-        <Route
-          path="/candidate/exam/:attemptId"
-          element={
-            <ProtectedRoute>
-              <RoleRoute allowedRoles={['STUDENT', 'ADMIN']}>
-                <VerifiedRoute>
-                  <ExamTakingPage />
-                </VerifiedRoute>
-              </RoleRoute>
-            </ProtectedRoute>
-          }
-        />
+        >
+          <Route path="/candidate/attempts/:attemptId" element={<ExamTakingPage />} />
+          <Route path="/candidate/exam/:attemptId" element={<ExamTakingPage />} />
+        </Route>
 
         {/* Standard Authenticated Layout */}
         <Route
@@ -278,6 +269,18 @@ export function App() {
               <RoleRoute allowedRoles={['STUDENT', 'ADMIN']}>
                 <VerifiedRoute>
                   <CandidateExamsPage />
+                </VerifiedRoute>
+              </RoleRoute>
+            }
+          />
+
+          {/* Candidate: Results */}
+          <Route
+            path="/candidate/results"
+            element={
+              <RoleRoute allowedRoles={['STUDENT', 'ADMIN']}>
+                <VerifiedRoute>
+                  <CandidateExamsPage defaultTab="completed" />
                 </VerifiedRoute>
               </RoleRoute>
             }
