@@ -223,6 +223,11 @@ const envSchema = z.object({
     .union([z.boolean(), z.enum(['true', 'false', '1', '0'])])
     .default(process.env.NODE_ENV === 'test' ? 'false' : 'true')
     .transform((val) => (typeof val === 'boolean' ? val : val === 'true' || val === '1')),
+  BIOMETRIC_PHOTO_LOCKOUT_HOURS: z
+    .string()
+    .regex(/^\d+$/, { message: 'BIOMETRIC_PHOTO_LOCKOUT_HOURS must be an integer' })
+    .transform(Number)
+    .default('24'),
 
   // WebSocket Realtime configuration
   WS_ENABLED: z

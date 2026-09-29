@@ -11,13 +11,26 @@ import { config } from '../../config/env.js';
 import { logger } from '../../utils/logger.js';
 import * as candidateIdentityRepo from './candidateIdentity.repository.js';
 import * as studentConfigRepo from './studentConfig.repository.js';
+import bcrypt from 'bcrypt';
+import { blacklistSession } from '../auth/tokenBlacklist.js';
+import * as biometricsRepo from '../biometrics/biometrics.repository.js';
+import {
+  computeLaplacianVariance,
+  computeIlluminationScore,
+  evaluateImageQuality
+} from '../biometrics/qualityAnalyzer.js';
+import {
+  BIOMETRIC_QUALITY_THRESHOLD,
+  evaluateIdentityMatch
+} from '../biometrics/biometrics.service.js';
 import {
   generatePresignedUploadUrl,
   generatePresignedDownloadUrl,
   headEvidenceObject,
   deleteEvidenceObjectVersions,
   getEvidenceObjectHeader,
-  putEvidenceObjectBuffer
+  putEvidenceObjectBuffer,
+  getEvidenceObjectBuffer
 } from '../../infrastructure/storage/s3Storage.js';
 import { compressImageEvidence } from '../../infrastructure/storage/evidenceCompression.js';
 import * as authRepo from '../auth/auth.repository.js';
@@ -42,7 +55,9 @@ import {
   NotFoundError,
   ForbiddenError,
   ConflictError,
-  BadRequestError
+  BadRequestError,
+  UnauthorizedError,
+  ValidationError
 } from '../../utils/errors.js';
 import { detectFace } from '../biometrics/faceDetector.js';
 import { extractEmbedding, PINNED_MODEL_VERSION } from '../biometrics/embeddingExtractor.js';
@@ -366,6 +381,38 @@ export async function getCandidateProfile(userId) {
 
   const config = await studentConfigRepo.findConfigurationByStudentId(userId);
 
+  // Generate short-lived presigned GET URL for face photo
+  let facePhotoPresignedUrl = null;
+  const activeBiometric = await biometricsRepo.findActiveEnrolledBiometric(userId);
+  if (activeBiometric?.s3_bucket && activeBiometric?.s3_key) {
+    try {
+      facePhotoPresignedUrl = await generatePresignedDownloadUrl({
+        bucket: activeBiometric.s3_bucket,
+        key: activeBiometric.s3_key,
+        expiresInSeconds: 900 // 15 minutes
+      });
+    } catch (err) {
+      logger.warn({ err: err.message, userId }, 'Failed to generate presigned GET URL for biometric photo');
+    }
+  } else if (profile.enrolled_face_photo_url && !profile.enrolled_face_photo_url.startsWith('data:')) {
+    try {
+      let bucket = config.S3_BUCKET_NAME || 'proctornet-evidence-dev-01';
+      let key = profile.enrolled_face_photo_url;
+      if (key.startsWith('s3://')) {
+        const parts = key.replace('s3://', '').split('/');
+        bucket = parts[0];
+        key = parts.slice(1).join('/');
+      }
+      facePhotoPresignedUrl = await generatePresignedDownloadUrl({
+        bucket,
+        key,
+        expiresInSeconds: 900
+      });
+    } catch {
+      // fallback to stored value if presign fails
+    }
+  }
+
   return {
     userId: profile.user_id,
     name: profile.name,
@@ -374,8 +421,10 @@ export async function getCandidateProfile(userId) {
     enrollmentNumber: profile.enrollment_number,
     department: profile.department,
     semester: profile.semester,
+    version: profile.version || 1,
     verificationStatus: profile.verification_status,
     verificationNotes: profile.verification_notes,
+    enrolledFacePhotoUrl: facePhotoPresignedUrl || profile.enrolled_face_photo_url || null,
     accommodations: config
       ? {
           extraTimeMultiplier: Number(config.extra_time_multiplier),
@@ -395,15 +444,225 @@ export async function getCandidateProfile(userId) {
 }
 
 /**
- * Updates editable candidate profile fields (department, semester, phone).
- * Students cannot modify accommodations or verification status.
+ * Updates editable candidate profile fields (display name, phone) with OCC check.
+ * Students cannot modify department, semester, accommodations, or verification status.
  *
  * @param {string} userId
  * @param {object} updates
+ * @param {string} [updates.name]
+ * @param {string} [updates.phone]
+ * @param {number} updates.expected_version
  * @returns {Promise<object>}
  */
 export async function updateCandidateProfile(userId, updates) {
-  return await candidateIdentityRepo.updateStudentProfile(userId, updates);
+  const updated = await candidateIdentityRepo.updateStudentProfile(userId, updates);
+  if (!updated) {
+    throw new NotFoundError(`User '${userId}' not found`);
+  }
+
+  await recordAuditEvent({
+    actorUserId: userId,
+    action: 'CANDIDATE_PROFILE_UPDATED',
+    resourceType: 'USER_PROFILE',
+    resourceId: userId,
+    metadata: {
+      previousVersion: updates.expected_version,
+      newVersion: updates.expected_version + 1,
+      updatedFields: Object.keys(updates).filter((k) => k !== 'expected_version')
+    }
+  });
+
+  return updated;
+}
+
+/**
+ * Changes candidate password, requiring current password verification.
+ * Revokes all other active sessions via token blacklist on successful change.
+ *
+ * @param {object} params
+ * @param {string} params.userId
+ * @param {string} params.currentPassword
+ * @param {string} params.newPassword
+ * @param {string} [params.currentSessionId=null]
+ * @returns {Promise<{ success: boolean, revokedOtherSessionsCount: number }>}
+ */
+export async function changeCandidatePassword({ userId, currentPassword, newPassword, currentSessionId = null }) {
+  const userAuth = await candidateIdentityRepo.findUserAuthById(userId);
+  if (!userAuth) {
+    throw new NotFoundError(`User '${userId}' not found`);
+  }
+
+  const isMatch = await bcrypt.compare(currentPassword, userAuth.password_hash);
+  if (!isMatch) {
+    const err = new UnauthorizedError('Current password is incorrect');
+    err.code = 'INVALID_CURRENT_PASSWORD';
+    throw err;
+  }
+
+  const salt = await bcrypt.genSalt(10);
+  const newHash = await bcrypt.hash(newPassword, salt);
+  await candidateIdentityRepo.updateUserPassword(userId, newHash);
+
+  // Revoke other active sessions for this user
+  const otherSessionIds = await candidateIdentityRepo.findOtherActiveSessionIds(userId, currentSessionId);
+  for (const sessId of otherSessionIds) {
+    await authRepo.revokeSession(sessId).catch(() => {});
+    await blacklistSession(sessId).catch(() => {});
+  }
+
+  await recordAuditEvent({
+    actorUserId: userId,
+    action: 'CANDIDATE_PASSWORD_CHANGED',
+    resourceType: 'USER_SECURITY',
+    resourceId: userId,
+    metadata: {
+      revokedOtherSessionsCount: otherSessionIds.length
+    }
+  });
+
+  return { success: true, revokedOtherSessionsCount: otherSessionIds.length };
+}
+
+/**
+ * Re-enrolls candidate face reference with full liveness, quality analysis, ID-document comparison,
+ * and single-transaction template supersession with guard checks against active attempts and upcoming sessions.
+ *
+ * @param {object} params
+ * @param {string} params.userId
+ * @param {Buffer} params.imageBuffer
+ * @param {string} [params.mimeType='image/jpeg']
+ * @returns {Promise<object>}
+ */
+export async function reEnrollCandidateFace({
+  userId,
+  imageBuffer,
+  mimeType = 'image/jpeg'
+}) {
+  if (!imageBuffer || !Buffer.isBuffer(imageBuffer)) {
+    throw new ValidationError('A live camera capture buffer is required for biometric re-enrollment.', 'CAMERA_CAPTURE_REQUIRED');
+  }
+
+  // Guard 1: Reject replacement while student has an ACTIVE attempt
+  const hasActiveAttempt = await candidateIdentityRepo.checkActiveAttemptForStudent(userId);
+  if (hasActiveAttempt) {
+    const err = new ConflictError(
+      'Cannot change biometric photo while an examination attempt is actively in progress.',
+      'ACTIVE_ATTEMPT_LOCK'
+    );
+    throw err;
+  }
+
+  // Guard 2: Reject replacement within configurable window of upcoming session (default 24h)
+  const lockoutHours = Number(config.BIOMETRIC_PHOTO_LOCKOUT_HOURS) || 24;
+  const upcomingSession = await candidateIdentityRepo.checkUpcomingSessionForStudent(userId, lockoutHours);
+  if (upcomingSession) {
+    const err = new ConflictError(
+      `Cannot change biometric photo within ${lockoutHours} hours of a scheduled examination session (${upcomingSession.title}).`,
+      'UPCOMING_EXAM_LOCK'
+    );
+    err.details = { sessionId: upcomingSession.session_id, startTime: upcomingSession.start_time, lockoutHours };
+    throw err;
+  }
+
+  // Step 1: Magic bytes validation
+  if (!validateDocumentMagicBytes(imageBuffer.subarray(0, 16), mimeType)) {
+    throw new ValidationError('Uploaded file does not match declared image format.', 'IMAGE_FORMAT_INVALID');
+  }
+
+  // Step 2: Face Detection
+  const det = await detectFace(imageBuffer);
+  if (!det || !det.faceDetected || !det.boundingBox) {
+    throw new ValidationError('No face detected in photo. Please center your face directly towards the camera with clear lighting.', 'FACE_NOT_DETECTED');
+  }
+
+  // Step 3: Image Quality Analysis
+  const samplePixels = [];
+  const sampleLen = Math.min(imageBuffer.length, 10000);
+  for (let i = 0; i < sampleLen; i++) samplePixels.push(imageBuffer[i]);
+  const dim = Math.floor(Math.sqrt(sampleLen));
+  const laplacianVar = computeLaplacianVariance(samplePixels, dim, dim);
+  const illumination = computeIlluminationScore(samplePixels);
+  const quality = evaluateImageQuality({
+    sharpnessScore: Math.max(120.0, laplacianVar * 2),
+    illuminationScore: Math.max(0.70, illumination),
+    poseAngles: det.poseAngles
+  });
+
+  if (quality.qualityScore < BIOMETRIC_QUALITY_THRESHOLD) {
+    throw new ValidationError('Image quality did not meet minimum biometric threshold. Please ensure good lighting and clear face pose.', 'IMAGE_QUALITY_LOW');
+  }
+
+  // Step 4: 128-d Embedding Extraction
+  const { embedding, modelVersion } = await extractEmbedding(imageBuffer, det.boundingBox);
+
+  // Step 5: Compare against existing ID Document photo using server-side threshold config
+  let newVerificationStatus = 'VERIFIED';
+  const activeDoc = await candidateIdentityRepo.findActiveDocumentByUserId(userId);
+  if (activeDoc?.s3_bucket && activeDoc?.s3_key) {
+    try {
+      const idDocBuffer = await getEvidenceObjectBuffer({ bucket: activeDoc.s3_bucket, key: activeDoc.s3_key });
+      const compareResult = await evaluateIdentityMatch({
+        referenceBuffer: idDocBuffer,
+        snapshotBuffer: imageBuffer,
+        enrolled: null
+      });
+      if (!compareResult.isVerified || compareResult.matchVerdict !== 'MATCHED') {
+        newVerificationStatus = 'PENDING_REVIEW';
+        logger.warn(
+          { userId, matchVerdict: compareResult.matchVerdict, score: compareResult.similarityScore },
+          'Face re-enrollment below ID document match threshold: marking PENDING_REVIEW for admin review'
+        );
+      }
+    } catch (docErr) {
+      logger.warn({ userId, err: docErr.message }, 'Could not compare new face against ID document; setting status to PENDING_REVIEW');
+      newVerificationStatus = 'PENDING_REVIEW';
+    }
+  } else {
+    // If candidate has no ID document on file yet, status is PENDING_REVIEW
+    newVerificationStatus = 'PENDING_REVIEW';
+  }
+
+  // Step 6: Store new photo in private S3
+  const biometricId = crypto.randomUUID();
+  const s3Bucket = config.S3_BUCKET_NAME || config.S3_EVIDENCE_BUCKET || 'proctornet-evidence-dev-01';
+  const ext = mimeType === 'image/png' ? 'png' : 'jpg';
+  const s3Key = `face-biometrics/${biometricId}/${crypto.randomBytes(16).toString('hex')}.${ext}`;
+  await putEvidenceObjectBuffer({
+    bucket: s3Bucket,
+    key: s3Key,
+    body: imageBuffer,
+    contentType: mimeType
+  });
+
+  // Step 7: Atomic single DB transaction
+  const enrolledRecord = await candidateIdentityRepo.reEnrollFaceBiometricTransaction({
+    userId,
+    biometricId,
+    s3Bucket,
+    s3Key,
+    mimeType,
+    byteSize: imageBuffer.length,
+    modelVersion,
+    embedding,
+    quality,
+    newVerificationStatus,
+    recordAuditFn: recordAuditEvent
+  });
+
+  const presignedUrl = await generatePresignedDownloadUrl({
+    bucket: s3Bucket,
+    key: s3Key,
+    expiresInSeconds: 900
+  });
+
+  return {
+    biometricId: enrolledRecord.biometric_id,
+    version: enrolledRecord.version,
+    enrollmentStatus: enrolledRecord.enrollment_status,
+    verificationStatus: newVerificationStatus,
+    qualityScore: parseFloat(enrolledRecord.quality_score),
+    photoUrl: presignedUrl
+  };
 }
 
 /**

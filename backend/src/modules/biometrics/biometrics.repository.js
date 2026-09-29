@@ -55,8 +55,7 @@ export async function findActiveEnrolledBiometric(userId, client = null) {
   const query = `
     SELECT *
     FROM face_biometrics
-    WHERE user_id = $1 AND enrollment_status = 'ENROLLED'
-    ORDER BY created_at DESC
+    WHERE user_id = $1 AND is_active = TRUE AND enrollment_status = 'ENROLLED'
     LIMIT 1;
   `;
   const res = await runner.query(query, [userId]);
@@ -102,9 +101,11 @@ export async function supersedeActiveEnrollments(userId, excludeBiometricId, cli
   const query = `
     UPDATE face_biometrics
     SET
+      is_active = FALSE,
+      superseded_at = CURRENT_TIMESTAMP,
       enrollment_status = 'SUPERSEDED',
       updated_at = CURRENT_TIMESTAMP
-    WHERE user_id = $1 AND enrollment_status = 'ENROLLED' AND biometric_id != $2
+    WHERE user_id = $1 AND is_active = TRUE AND biometric_id != $2
     RETURNING *;
   `;
   const res = await runner.query(query, [userId, excludeBiometricId]);

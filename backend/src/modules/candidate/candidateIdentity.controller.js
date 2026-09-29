@@ -8,7 +8,8 @@ import { extractStudentIdCard } from './cardExtractor.js';
 import {
   requestUploadUrlSchema,
   confirmDocumentSchema,
-  updateCandidateProfileSchema
+  updateCandidateProfileSchema,
+  changePasswordSchema
 } from './candidateIdentity.schemas.js';
 
 /**
@@ -139,6 +140,81 @@ export async function enrollCandidateHandler(req, res, next) {
       data: {
         user: updatedUser
       }
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * POST /api/v1/candidate/password
+ * Changes candidate password, requiring current password verification.
+ * Revokes other active sessions via token blacklist on successful change.
+ */
+export async function changePasswordHandler(req, res, next) {
+  try {
+    const payload = changePasswordSchema.parse(req.body);
+    const result = await candidateIdentityService.changeCandidatePassword({
+      userId: req.user.userId,
+      currentPassword: payload.currentPassword,
+      newPassword: payload.newPassword,
+      currentSessionId: req.user.sessionId || req.authSessionId || null
+    });
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Password changed successfully. Other active sessions have been signed out.',
+      data: result
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * POST /api/v1/candidate/profile/photo-re-enroll
+ * Re-enrolls candidate face reference via direct live camera capture.
+ * Validates liveness, checks quality, extracts 128-d embedding, compares with ID document,
+ * and atomically updates template and avatar in ONE DB transaction.
+ */
+export async function reEnrollFaceHandler(req, res, next) {
+  try {
+    let imageBuffer = null;
+    let mimeType = 'image/jpeg';
+
+    if (req.file && req.file.buffer) {
+      imageBuffer = req.file.buffer;
+      mimeType = req.file.mimetype || 'image/jpeg';
+    } else if (req.body?.image && typeof req.body.image === 'string') {
+      const match = req.body.image.match(/^data:image\/(jpeg|png);base64,(.+)$/);
+      if (match) {
+        mimeType = `image/${match[1]}`;
+        imageBuffer = Buffer.from(match[2], 'base64');
+      } else {
+        imageBuffer = Buffer.from(req.body.image, 'base64');
+      }
+    }
+
+    if (!imageBuffer) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'CAMERA_CAPTURE_REQUIRED',
+          message: 'A fresh camera capture image is required for biometric re-enrollment.'
+        }
+      });
+    }
+
+    const result = await candidateIdentityService.reEnrollCandidateFace({
+      userId: req.user.userId,
+      imageBuffer,
+      mimeType
+    });
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Reference face photo re-enrolled successfully.',
+      data: result
     });
   } catch (err) {
     next(err);

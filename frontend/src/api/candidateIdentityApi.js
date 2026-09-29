@@ -152,3 +152,32 @@ export async function enrollCandidate({ faceImage, idDocument, documentType = 'G
   return res.data;
 }
 
+/**
+ * Changes candidate password, requiring current password.
+ * Revokes other sessions.
+ * @param {object} payload
+ * @param {string} payload.currentPassword
+ * @param {string} payload.newPassword
+ * @returns {Promise<object>}
+ */
+export async function changePassword({ currentPassword, newPassword }) {
+  return await apiClient('/api/v1/candidate/password', {
+    method: 'POST',
+    body: { currentPassword, newPassword }
+  });
+}
+
+/**
+ * Re-enrolls candidate face reference via direct live camera capture.
+ * @param {Blob} photoBlob
+ * @returns {Promise<object>}
+ */
+export async function reEnrollFacePhoto(photoBlob) {
+  const formData = new FormData();
+  formData.append('photo', photoBlob, 'face_capture.jpg');
+  return await apiClient('/api/v1/candidate/profile/photo-re-enroll', {
+    method: 'POST',
+    body: formData
+  });
+}
+

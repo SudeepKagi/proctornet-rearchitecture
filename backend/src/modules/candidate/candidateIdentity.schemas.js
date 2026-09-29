@@ -44,9 +44,14 @@ export const confirmDocumentSchema = z.object({
 });
 
 export const updateCandidateProfileSchema = z.object({
-  department: z.string().max(100).optional(),
-  semester: z.number().int().min(1).max(12).optional(),
-  phone: z.string().max(30).optional()
+  name: z.string().min(1, 'Display name cannot be empty').max(255).trim().optional(),
+  phone: z.string().max(32).trim().optional().nullable(),
+  expected_version: z.number().int().min(1, 'expected_version must be a positive integer')
+});
+
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, 'Current password is required'),
+  newPassword: z.string().min(8, 'New password must be at least 8 characters').max(128)
 });
 
 /**

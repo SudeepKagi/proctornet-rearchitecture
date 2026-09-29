@@ -29,6 +29,8 @@ candidateRouter.post('/identity/extract-card', upload.single('card'), candidateI
 
 candidateRouter.get('/profile', candidateIdentityController.getProfileHandler);
 candidateRouter.patch('/profile', candidateIdentityController.updateProfileHandler);
+candidateRouter.post('/password', candidateIdentityController.changePasswordHandler);
+candidateRouter.post('/profile/photo-re-enroll', upload.single('photo'), candidateIdentityController.reEnrollFaceHandler);
 candidateRouter.post('/verify-identity', upload.single('image'), verifyIdentityHandler);
 candidateRouter.post(
   '/enroll',
