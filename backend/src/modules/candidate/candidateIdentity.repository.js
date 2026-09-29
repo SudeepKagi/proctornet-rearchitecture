@@ -425,13 +425,13 @@ export async function findOtherActiveSessionIds(userId, excludeSessionId = null,
  */
 export async function checkActiveAttemptForStudent(userId, client = null) {
   const runner = client || getPool();
-  const query = `SELECT attempt_id FROM exam_attempts WHERE student_id = $1 AND status = 'ACTIVE' LIMIT 1;`;
+  const query = `SELECT attempt_id FROM exam_attempts WHERE student_id = $1 AND status IN ('ACTIVE', 'PAUSED') LIMIT 1;`;
   const res = await runner.query(query, [userId]);
   return res.rows.length > 0;
 }
 
 /**
- * Checks if the student has any upcoming or in-progress session starting within lockoutHours.
+ * Checks if the student has any upcoming or active session starting within lockoutHours.
  * @param {string} userId
  * @param {number} [lockoutHours=24]
  * @param {import('pg').PoolClient} [client=null]
@@ -440,13 +440,33 @@ export async function checkActiveAttemptForStudent(userId, client = null) {
 export async function checkUpcomingSessionForStudent(userId, lockoutHours = 24, client = null) {
   const runner = client || getPool();
   const query = `
-    SELECT s.session_id, s.title, s.start_time
-    FROM session_students ss
-    JOIN exam_sessions s ON ss.session_id = s.session_id
-    WHERE ss.student_id = $1
-      AND s.status IN ('SCHEDULED', 'IN_PROGRESS')
-      AND s.start_time <= NOW() + ($2 || ' hours')::INTERVAL
-      AND s.end_time >= NOW()
+    SELECT s.session_id, e.title, s.scheduled_start_time AS start_time
+    FROM exam_sessions s
+    JOIN exams e ON s.exam_id = e.exam_id
+    LEFT JOIN session_students ss ON ss.session_id = s.session_id AND ss.student_id = $1
+    LEFT JOIN student_profiles sp ON sp.user_id = $1
+    WHERE (
+        ss.student_id = $1
+        OR (
+          sp.user_id IS NOT NULL
+          AND sp.semester IS NOT NULL
+          AND (s.target_semester = sp.semester OR e.target_semester = sp.semester)
+          AND (
+            (sp.department_id IS NOT NULL AND (s.department_id = sp.department_id OR e.department_id = sp.department_id))
+            OR (sp.department IS NOT NULL AND (
+                 LOWER(s.target_department) = LOWER(sp.department)
+              OR LOWER(e.target_department) = LOWER(sp.department)
+              OR s.target_department ILIKE '%' || sp.department || '%'
+              OR e.target_department ILIKE '%' || sp.department || '%'
+            ))
+          )
+        )
+      )
+      AND s.status IN ('SCHEDULED', 'ACTIVE')
+      AND e.status NOT IN ('CANCELLED', 'ENDED', 'EVALUATED', 'RESULT_PUBLISHED')
+      AND s.scheduled_start_time <= NOW() + ($2 || ' hours')::INTERVAL
+      AND s.scheduled_end_time >= NOW()
+    ORDER BY s.scheduled_start_time ASC
     LIMIT 1;
   `;
   const res = await runner.query(query, [userId, `${lockoutHours}`]);
