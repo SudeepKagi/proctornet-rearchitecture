@@ -5,6 +5,7 @@ import { verifyIdentitySnapshot } from '../../api/biometricsApi.js';
 
 /**
  * Parses raw errors from biometric verification flow into actionable user-friendly messages.
+ * Prioritizes structured errorCode, falling back to message regex inspection if code is absent.
  * @param {any} err
  * @returns {{ title: string, message: string, category: string }}
  */
@@ -17,11 +18,138 @@ export function parseBiometricError(err) {
     };
   }
 
-  const rawMsg = err.data?.message || err.message || '';
-  const errorCode = err.data?.code || err.code || '';
-  const status = err.status || err.response?.status;
+  const rawMsg = err.data?.message || err.data?.error?.message || err.message || '';
+  const errorCode = err.data?.code || err.data?.error?.code || err.code || '';
+  const status = err.status || err.response?.status || err.statusCode;
 
-  // 1. Network / storage errors
+  // 1. Session or Account Locked
+  if (
+    status === 403 ||
+    errorCode === 'BIOMETRIC_VERIFICATION_LOCKED' ||
+    errorCode === 'BIOMETRIC_LOCKED' ||
+    /BIOMETRIC_VERIFICATION_LOCKED/i.test(rawMsg) ||
+    /Maximum (verification )?attempts exceeded/i.test(rawMsg) ||
+    /locked/i.test(rawMsg)
+  ) {
+    return {
+      title: 'Identity Check Locked',
+      message: 'Maximum attempts reached. Your session has been flagged for proctor review. Please contact your invigilator.',
+      category: 'locked'
+    };
+  }
+
+  // 2. Structured Error Code Switch (authoritative backend contract)
+  if (errorCode && typeof errorCode === 'string') {
+    switch (errorCode) {
+      case 'REFERENCE_DATA_UNAVAILABLE':
+        return {
+          title: 'Reference Photo Missing',
+          message: "We don't have a reference photo on file to check against. Please contact your instructor or administrator — this isn't something retaking the photo will fix.",
+          category: 'reference_unavailable'
+        };
+
+      case 'SIMILARITY_BELOW_THRESHOLD':
+        return {
+          title: 'Photo Match Inconclusive',
+          message: "We couldn't match this photo to the one on file closely enough. Try better, even lighting facing the camera directly. If this keeps failing, contact your invigilator for a manual check.",
+          category: 'similarity'
+        };
+
+      case 'FACE_NOT_DETECTED':
+      case 'FACE_NOT_FOUND':
+        return {
+          title: 'Face Not Detected',
+          message: 'No clear face was detected in the photo. Please look directly into the camera inside the oval guide.',
+          category: 'face_detection'
+        };
+
+      case 'MULTIPLE_FACES_DETECTED':
+        return {
+          title: 'Multiple Faces Detected',
+          message: 'Multiple faces were detected in the photo. Please ensure you are alone in the room.',
+          category: 'multiple_faces'
+        };
+
+      case 'IMAGE_QUALITY_LOW':
+      case 'POOR_LIGHTING':
+        return {
+          title: 'Lighting Needs Adjustment',
+          message: 'Lighting is too dim or uneven. Please ensure good lighting facing your camera directly.',
+          category: 'lighting'
+        };
+
+      case 'IMAGE_FORMAT_INVALID':
+      case 'IMAGE_DATA_INVALID':
+      case 'IMAGE_SIZE_INVALID':
+        return {
+          title: 'Image Format Unsupported',
+          message: 'The captured image format is invalid. Please retry with a standard camera stream.',
+          category: 'image_format'
+        };
+
+      case 'LIVENESS_CHALLENGE_EXPIRED':
+        return {
+          title: 'Challenge Expired',
+          message: 'The liveness check challenge expired. Please retry within the allocated time.',
+          category: 'liveness'
+        };
+
+      case 'LIVENESS_FAILED':
+        return {
+          title: 'Liveness Check Failed',
+          message: 'Liveness anti-spoofing evaluation failed or action sequence did not match. Please follow the on-screen prompts.',
+          category: 'liveness'
+        };
+
+      case 'MODEL_VERSION_MISMATCH':
+        return {
+          title: 'Biometric Profile Outdated',
+          message: 'Your enrolled reference photo uses an outdated template. Please re-enroll your reference face or contact support.',
+          category: 'model_mismatch'
+        };
+
+      case 'IMAGE_NOT_FOUND':
+      case 'LIVENESS_MEDIA_NOT_FOUND':
+      case 'NETWORK_ERROR':
+        return {
+          title: 'Connection Issue',
+          message: 'Failed to communicate with the verification server. Please check your network connection and retry.',
+          category: 'network'
+        };
+
+      default:
+        break;
+    }
+  }
+
+  // 3. Fallback: free-text message regex matching (legacy/cached responses)
+  if (
+    /Reference (biometric )?data unavailable/i.test(rawMsg) ||
+    /reference photo/i.test(rawMsg) ||
+    /No enrolled biometric/i.test(rawMsg)
+  ) {
+    return {
+      title: 'Reference Photo Missing',
+      message: "We don't have a reference photo on file to check against. Please contact your instructor or administrator — this isn't something retaking the photo will fix.",
+      category: 'reference_unavailable'
+    };
+  }
+
+  if (
+    /Facial match failed/i.test(rawMsg) ||
+    /similarity/i.test(rawMsg) ||
+    /threshold/i.test(rawMsg) ||
+    /mismatch/i.test(rawMsg) ||
+    /inconclusive/i.test(rawMsg) ||
+    /match comparison/i.test(rawMsg)
+  ) {
+    return {
+      title: 'Photo Match Inconclusive',
+      message: "We couldn't match this photo to the one on file closely enough. Try better, even lighting facing the camera directly. If this keeps failing, contact your invigilator for a manual check.",
+      category: 'similarity'
+    };
+  }
+
   if (
     /Failed to fetch/i.test(rawMsg) ||
     /NetworkError/i.test(rawMsg) ||
@@ -36,8 +164,7 @@ export function parseBiometricError(err) {
     };
   }
 
-  // 2. Face not detected / framing
-  if (/no face/i.test(rawMsg) || /face not detected/i.test(rawMsg) || errorCode === 'FACE_NOT_FOUND') {
+  if (/no face/i.test(rawMsg) || /face not detected/i.test(rawMsg)) {
     return {
       title: 'Face Not Detected',
       message: 'No clear face was detected in the photo. Please look directly into the camera inside the oval guide.',
@@ -45,8 +172,7 @@ export function parseBiometricError(err) {
     };
   }
 
-  // 3. Multiple faces detected
-  if (/multiple faces/i.test(rawMsg) || errorCode === 'MULTIPLE_FACES_DETECTED') {
+  if (/multiple faces/i.test(rawMsg)) {
     return {
       title: 'Multiple Faces Detected',
       message: 'Multiple faces were detected in the photo. Please ensure you are alone in the room.',
@@ -54,8 +180,7 @@ export function parseBiometricError(err) {
     };
   }
 
-  // 4. Poor lighting
-  if (/light/i.test(rawMsg) || /dim/i.test(rawMsg) || /dark/i.test(rawMsg) || errorCode === 'POOR_LIGHTING') {
+  if (/light/i.test(rawMsg) || /dim/i.test(rawMsg) || /dark/i.test(rawMsg) || /quality/i.test(rawMsg)) {
     return {
       title: 'Lighting Needs Adjustment',
       message: 'Lighting is too dim. Turn on room lights and avoid bright lights behind you.',
@@ -63,21 +188,27 @@ export function parseBiometricError(err) {
     };
   }
 
-  // 5. Similarity threshold shortfall / mismatch
-  if (/similarity/i.test(rawMsg) || /threshold/i.test(rawMsg) || /mismatch/i.test(rawMsg) || /inconclusive/i.test(rawMsg)) {
+  if (/liveness.*expired/i.test(rawMsg)) {
     return {
-      title: 'Photo Match Inconclusive',
-      message: 'We could not confirm a match with your registered photo. Please ensure your face is well-lit and look directly at the camera.',
-      category: 'similarity'
+      title: 'Challenge Expired',
+      message: 'The liveness check challenge expired. Please retry within the allocated time.',
+      category: 'liveness'
     };
   }
 
-  // 6. Session or Account Locked
-  if (status === 403 || /locked/i.test(rawMsg) || errorCode === 'BIOMETRIC_LOCKED') {
+  if (/liveness.*fail/i.test(rawMsg) || /spoof/i.test(rawMsg)) {
     return {
-      title: 'Identity Check Locked',
-      message: 'Maximum attempts reached. Your session has been flagged for proctor review. Please contact your invigilator.',
-      category: 'locked'
+      title: 'Liveness Check Failed',
+      message: 'Liveness anti-spoofing evaluation failed or action sequence did not match. Please follow the on-screen prompts.',
+      category: 'liveness'
+    };
+  }
+
+  if (/model.*mismatch/i.test(rawMsg) || /re-enroll/i.test(rawMsg)) {
+    return {
+      title: 'Biometric Profile Outdated',
+      message: 'Your enrolled reference photo uses an outdated template. Please re-enroll your reference face or contact support.',
+      category: 'model_mismatch'
     };
   }
 
@@ -242,7 +373,7 @@ export default function BiometricGate({
         setStage('retry');
         const mismatchErr = {
           title: 'Photo Match Inconclusive',
-          message: 'We could not confirm a match with your registered photo. Please ensure clear lighting and try again.',
+          message: "We couldn't match this photo to the one on file closely enough. Try better, even lighting facing the camera directly. If this keeps failing, contact your invigilator for a manual check.",
           category: 'similarity'
         };
         setParsedError(mismatchErr);
@@ -304,9 +435,11 @@ export default function BiometricGate({
         </div>
         <div className="flex items-center gap-3">
           {stage === 'ready' && <LightingIndicator videoRef={videoRef} active={true} />}
-          <div className="text-xs px-2.5 py-1 rounded bg-slate-800 border border-slate-700 text-slate-300 font-mono">
-            Attempts: {3 - remainingAttempts}/3
-          </div>
+          {parsedError?.category !== 'reference_unavailable' && (
+            <div className="text-xs px-2.5 py-1 rounded bg-slate-800 border border-slate-700 text-slate-300 font-mono">
+              Attempts: {3 - remainingAttempts}/3
+            </div>
+          )}
         </div>
       </div>
 
@@ -424,7 +557,17 @@ export default function BiometricGate({
           </button>
         )}
 
-        {stage === 'retry' && (
+        {stage === 'retry' && parsedError?.category === 'reference_unavailable' ? (
+          <div className="p-4 rounded-xl bg-amber-950/40 border border-amber-800/60 text-center">
+            <h4 className="text-sm font-bold text-amber-300 mb-1">Reference Photo Required</h4>
+            <p className="text-xs text-slate-300 mb-2">
+              We don't have a reference photo on file to check against. Retaking this photo will not resolve the issue.
+            </p>
+            <p className="text-xs text-slate-400">
+              Please contact your instructor or exam administrator to complete identity onboarding.
+            </p>
+          </div>
+        ) : stage === 'retry' && (
           <button
             onClick={setupCamera}
             className="w-full py-3 px-6 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-semibold text-sm shadow-lg transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer"

@@ -123,4 +123,37 @@ describe('Biometrics Fail-Closed Invariants & Threshold Isolation (ADR-0016)', (
       expect(res.isVerified).toBe(true);
     });
   });
+
+  describe('ValidationError Structured Codes & Backward Compatibility', () => {
+    it('defaults code to VALIDATION_ERROR when unspecified', async () => {
+      const { ValidationError } = await import('../../src/utils/errors.js');
+      const err = new ValidationError('Generic issue');
+      expect(err.statusCode).toBe(422);
+      expect(err.code).toBe('VALIDATION_ERROR');
+      expect(err.message).toBe('Generic issue');
+    });
+
+    it('sets specific code when provided as 2nd parameter', async () => {
+      const { ValidationError } = await import('../../src/utils/errors.js');
+      const refErr = new ValidationError('Ref missing', 'REFERENCE_DATA_UNAVAILABLE');
+      expect(refErr.statusCode).toBe(422);
+      expect(refErr.code).toBe('REFERENCE_DATA_UNAVAILABLE');
+
+      const simErr = new ValidationError('Low match', 'SIMILARITY_BELOW_THRESHOLD');
+      expect(simErr.statusCode).toBe(422);
+      expect(simErr.code).toBe('SIMILARITY_BELOW_THRESHOLD');
+
+      const faceErr = new ValidationError('No face', 'FACE_NOT_DETECTED');
+      expect(faceErr.statusCode).toBe(422);
+      expect(faceErr.code).toBe('FACE_NOT_DETECTED');
+    });
+
+    it('preserves backward compatibility when details object is passed as 2nd parameter', async () => {
+      const { ValidationError } = await import('../../src/utils/errors.js');
+      const err = new ValidationError('Invalid payload', [{ field: 'image', reason: 'empty' }]);
+      expect(err.statusCode).toBe(422);
+      expect(err.code).toBe('VALIDATION_ERROR');
+      expect(err.details).toEqual([{ field: 'image', reason: 'empty' }]);
+    });
+  });
 });

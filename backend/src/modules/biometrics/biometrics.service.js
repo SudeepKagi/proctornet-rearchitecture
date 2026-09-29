@@ -205,11 +205,11 @@ export async function confirmEnrollment({ userId, biometricId }) {
   try {
     headObj = await headEvidenceObject({ bucket: record.s3_bucket, key: record.s3_key });
   } catch (err) {
-    throw new ValidationError('Uploaded image not found in storage. Please re-upload.');
+    throw new ValidationError('Uploaded image not found in storage. Please re-upload.', 'IMAGE_NOT_FOUND');
   }
 
   if (!headObj || headObj.contentLength <= 0 || headObj.contentLength > 10 * 1024 * 1024) {
-    throw new ValidationError('Uploaded image size invalid.');
+    throw new ValidationError('Uploaded image size invalid.', 'IMAGE_SIZE_INVALID');
   }
 
   // Magic bytes check
@@ -230,7 +230,7 @@ export async function confirmEnrollment({ userId, biometricId }) {
       actorUserId: userId,
       metadata: { reason: 'Magic byte signature mismatch' }
     });
-    throw new ValidationError('Uploaded file does not match declared image format.');
+    throw new ValidationError('Uploaded file does not match declared image format.', 'IMAGE_FORMAT_INVALID');
   }
 
   // Transition to PENDING_EXTRACTION
@@ -254,7 +254,7 @@ export async function confirmEnrollment({ userId, biometricId }) {
       actorUserId: userId,
       metadata: { reason: 'No face detected in photo' }
     });
-    throw new ValidationError('No face detected in photo. Please center your face with clear lighting.');
+    throw new ValidationError('No face detected in photo. Please center your face with clear lighting.', 'FACE_NOT_DETECTED');
   }
 
   // 2. Image Quality Analysis
@@ -284,7 +284,7 @@ export async function confirmEnrollment({ userId, biometricId }) {
       actorUserId: userId,
       metadata: { reason: 'Quality below threshold', qualityScore: quality.qualityScore }
     });
-    throw new ValidationError('Image quality did not meet minimum biometric threshold. Please ensure good lighting.');
+    throw new ValidationError('Image quality did not meet minimum biometric threshold. Please ensure good lighting.', 'IMAGE_QUALITY_LOW');
   }
 
   // 3. Server-authoritative 128-d Embedding Extraction
@@ -325,13 +325,13 @@ export async function confirmEnrollment({ userId, biometricId }) {
 
 export async function getEnrollmentStatus(userId) {
   const record = await biometricsRepo.findActiveEnrolledBiometric(userId);
-  if (!record) {
+  if (!record || !record.embedding) {
     return {
       isEnrolled: false,
-      enrollmentStatus: 'NOT_ENROLLED',
-      qualityScore: null,
-      enrolledAt: null,
-      modelVersion: null
+      enrollmentStatus: record ? 'INCOMPLETE' : 'NOT_ENROLLED',
+      qualityScore: record?.quality_score ? parseFloat(record.quality_score) : null,
+      enrolledAt: record?.created_at || null,
+      modelVersion: record?.model_version || null
     };
   }
 
@@ -453,7 +453,7 @@ export async function verifyLiveness({ userId, challengeId, nonce, sessionId }) 
       actorUserId: userId,
       metadata: { expiresAt: challenge.expires_at }
     });
-    throw new ValidationError('Liveness challenge has expired. Please retry within 8 seconds.');
+    throw new ValidationError('Liveness challenge has expired. Please retry within 8 seconds.', 'LIVENESS_CHALLENGE_EXPIRED');
   }
 
   // Atomic consumption of challenge
@@ -469,7 +469,7 @@ export async function verifyLiveness({ userId, challengeId, nonce, sessionId }) 
       key: challenge.live_media_s3_key
     });
   } catch (err) {
-    throw new ValidationError('Liveness media upload not found');
+    throw new ValidationError('Liveness media upload not found', 'LIVENESS_MEDIA_NOT_FOUND');
   }
 
   // Download media buffer
@@ -505,7 +505,7 @@ export async function verifyLiveness({ userId, challengeId, nonce, sessionId }) 
       }
     });
 
-    throw new ValidationError('Liveness anti-spoofing evaluation failed or action sequence did not match.');
+    throw new ValidationError('Liveness anti-spoofing evaluation failed or action sequence did not match.', 'LIVENESS_FAILED');
   }
 
   // PASSED:
@@ -622,7 +622,7 @@ export async function verifyFace({ userId, liveImageId, livenessToken }) {
   try {
     await headEvidenceObject({ bucket: s3Bucket, key: verification.live_image_s3_key });
   } catch (err) {
-    throw new ValidationError('Live selfie image not found in storage');
+    throw new ValidationError('Live selfie image not found in storage', 'IMAGE_NOT_FOUND');
   }
 
   const headerBytes = await getEvidenceObjectHeader({
@@ -632,7 +632,7 @@ export async function verifyFace({ userId, liveImageId, livenessToken }) {
   });
 
   if (!validateDocumentMagicBytes(headerBytes, 'image/jpeg') && !validateDocumentMagicBytes(headerBytes, 'image/png')) {
-    throw new ValidationError('Uploaded live selfie is not a valid JPEG or PNG image');
+    throw new ValidationError('Uploaded live selfie is not a valid JPEG or PNG image', 'IMAGE_FORMAT_INVALID');
   }
 
   // 4. Download live image buffer
@@ -664,7 +664,7 @@ export async function verifyFace({ userId, liveImageId, livenessToken }) {
     if (isLocked) {
       throw new ForbiddenError('BIOMETRIC_VERIFICATION_LOCKED: Maximum attempts exceeded.');
     }
-    throw new ValidationError('No face detected in live selfie image.');
+    throw new ValidationError('No face detected in live selfie image.', 'FACE_NOT_DETECTED');
   }
 
   // 6. Server extracts 128-d live embedding
@@ -686,7 +686,7 @@ export async function verifyFace({ userId, liveImageId, livenessToken }) {
       challengeId: tokenPayload.challengeId,
       metadata: { reason: 'MODEL_VERSION_MISMATCH' }
     });
-    throw new ValidationError('Biometric model version mismatch. Please re-enroll your reference face.');
+    throw new ValidationError('Biometric model version mismatch. Please re-enroll your reference face.', 'MODEL_VERSION_MISMATCH');
   }
 
   // 8. Compute Cosine Similarity
@@ -933,34 +933,14 @@ export async function evaluateIdentityMatch({
         { similarityScore, heuristicThreshold, matchVerdict },
         'Evaluated local spatial projection heuristic against enrolled embedding'
       );
-    } else if (referenceBuffer) {
-      // Local Spatial Gradient Projection directly between referenceBuffer and snapshotBuffer
-      const refDet = await faceDetector(referenceBuffer);
-      if (refDet?.faceDetected && refDet?.boundingBox) {
-        const refEmbeddingRes = await embeddingExtractor(referenceBuffer, refDet.boundingBox);
-        const liveEmbeddingRes = await embeddingExtractor(snapshotBuffer, det.boundingBox);
-        similarityScore = cosineSimilarity(refEmbeddingRes.embedding, liveEmbeddingRes.embedding);
-        matchMethod = 'LOCAL_HEURISTIC_PROJECTION';
-        matchVerdict = similarityScore >= heuristicThreshold ? 'MATCHED' : 'MISMATCH';
-        isHeuristic = true;
-        logger.info(
-          { similarityScore, heuristicThreshold, matchVerdict },
-          'Evaluated local spatial projection heuristic directly between reference photo and live snapshot'
-        );
-      } else {
-        similarityScore = 0.0;
-        matchMethod = 'NONE';
-        matchVerdict = 'INDETERMINATE';
-        isHeuristic = false;
-      }
     } else {
-      // CRITICAL SECURITY FIX (§1): Fail-closed invariant.
+      // CRITICAL SECURITY FIX (§1): Fail-closed invariant (ADR-0016).
       // Under NO circumstances does presence of a detected face equate to an identity match.
       // If reference biometric embedding is unavailable and AWS Rekognition cannot be reached,
       // the system MUST fail closed and require proctor / admin manual verification clearance.
       similarityScore = 0.0;
       matchMethod = 'NONE';
-      matchVerdict = 'INDETERMINATE';
+      matchVerdict = 'REFERENCE_DATA_UNAVAILABLE';
       isHeuristic = false;
       logger.warn(
         'Face verification failed closed: No enrolled reference embedding and AWS Rekognition unavailable. Auto-pass rejected.'
@@ -983,7 +963,7 @@ export async function evaluateIdentityMatch({
 
 export async function verifyIdentitySnapshot({ userId, sessionId, image, imageBuffer = null, mimeType = 'image/jpeg' }) {
   if (!sessionId) {
-    throw new ValidationError('sessionId is required for identity verification');
+    throw new ValidationError('sessionId is required for identity verification', 'SESSION_ID_REQUIRED');
   }
 
   // ---------------------------------------------------------
@@ -992,7 +972,7 @@ export async function verifyIdentitySnapshot({ userId, sessionId, image, imageBu
   let snapshotBuffer = imageBuffer;
   if (!snapshotBuffer) {
     if (!image || typeof image !== 'string') {
-      throw new ValidationError('image snapshot is required (base64 string or image file)');
+      throw new ValidationError('image snapshot is required (base64 string or image file)', 'IMAGE_REQUIRED');
     }
     let base64Clean = image;
     if (image.startsWith('data:')) {
@@ -1008,7 +988,7 @@ export async function verifyIdentitySnapshot({ userId, sessionId, image, imageBu
   }
 
   if (snapshotBuffer.length < 100) {
-    throw new ValidationError('Captured snapshot image data is invalid or empty');
+    throw new ValidationError('Captured snapshot image data is invalid or empty', 'IMAGE_DATA_INVALID');
   }
 
   // Verify magic bytes (JPEG or PNG)
@@ -1016,7 +996,7 @@ export async function verifyIdentitySnapshot({ userId, sessionId, image, imageBu
     !validateDocumentMagicBytes(snapshotBuffer.subarray(0, 16), 'image/jpeg') &&
     !validateDocumentMagicBytes(snapshotBuffer.subarray(0, 16), 'image/png')
   ) {
-    throw new ValidationError('Captured snapshot must be a valid JPEG or PNG image');
+    throw new ValidationError('Captured snapshot must be a valid JPEG or PNG image', 'IMAGE_FORMAT_INVALID');
   }
 
   // ---------------------------------------------------------
@@ -1145,7 +1125,7 @@ export async function verifyIdentitySnapshot({ userId, sessionId, image, imageBu
     if (isLocked) {
       throw new ForbiddenError('BIOMETRIC_VERIFICATION_LOCKED: Maximum attempts exceeded.');
     }
-    throw new ValidationError('No face detected in the captured snapshot. Please look straight into the camera.');
+    throw new ValidationError('No face detected in the captured snapshot. Please look straight into the camera.', 'FACE_NOT_DETECTED');
   }
 
   // ---------------------------------------------------------
@@ -1184,9 +1164,9 @@ export async function verifyIdentitySnapshot({ userId, sessionId, image, imageBu
       throw new ForbiddenError('BIOMETRIC_VERIFICATION_LOCKED: Maximum verification attempts exceeded. Please contact faculty for manual clearance.');
     }
     if (matchVerdict === 'REFERENCE_DATA_UNAVAILABLE') {
-      throw new ValidationError('Identity verification failed: Reference biometric data unavailable for match comparison. Please contact your invigilator or administrator for manual verification clearance.');
+      throw new ValidationError('Identity verification failed: Reference biometric data unavailable for match comparison. Please contact your invigilator or administrator for manual verification clearance.', 'REFERENCE_DATA_UNAVAILABLE');
     }
-    throw new ValidationError(`Facial match failed (${(similarityScore * 100).toFixed(1)}% match, required ${(appliedThreshold * 100).toFixed(0)}%). Exam entry is not permitted.`);
+    throw new ValidationError(`Facial match failed (${(similarityScore * 100).toFixed(1)}% match, required ${(appliedThreshold * 100).toFixed(0)}%). Exam entry is not permitted.`, 'SIMILARITY_BELOW_THRESHOLD');
   }
 
   return {

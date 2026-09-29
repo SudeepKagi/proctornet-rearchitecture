@@ -72,8 +72,12 @@ export class UnprocessableEntityError extends AppError {
 }
 
 export class ValidationError extends UnprocessableEntityError {
-  constructor(message = 'Validation Error', details = null) {
-    super(message, details);
+  constructor(message = 'Validation Error', codeOrDetails = 'VALIDATION_ERROR', details = null) {
+    if (typeof codeOrDetails === 'string') {
+      super(message, codeOrDetails, details);
+    } else {
+      super(message, 'VALIDATION_ERROR', codeOrDetails);
+    }
   }
 }
 

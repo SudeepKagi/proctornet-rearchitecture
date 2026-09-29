@@ -44,6 +44,8 @@ import {
   ConflictError,
   BadRequestError
 } from '../../utils/errors.js';
+import { detectFace } from '../biometrics/faceDetector.js';
+import { extractEmbedding, PINNED_MODEL_VERSION } from '../biometrics/embeddingExtractor.js';
 
 /**
  * Maps MIME type to safe file extension.
@@ -729,7 +731,24 @@ export async function enrollCandidate({
   const docNumberHash = crypto.createHash('sha256').update(`${userId}-${timestamp}`).digest('hex');
   const docNumberLast4 = docNumberHash.slice(-4);
 
-  // 3. Database Transaction: Update users, student_profiles, face_biometrics, and student_identity_documents
+  // 3. Extract Server-Authoritative 128-d Biometric Embedding from reference face photo
+  let faceEmbedding = null;
+  let embeddingDimension = null;
+  let modelVersion = PINNED_MODEL_VERSION;
+
+  try {
+    const det = await detectFace(compressedFace.buffer);
+    if (det?.faceDetected && det?.boundingBox) {
+      const extracted = await extractEmbedding(compressedFace.buffer, det.boundingBox);
+      faceEmbedding = extracted.embedding;
+      embeddingDimension = 128;
+      modelVersion = extracted.modelVersion || PINNED_MODEL_VERSION;
+    }
+  } catch (faceErr) {
+    logger.warn({ err: faceErr.message }, 'Failed to extract face embedding during candidate enrollment');
+  }
+
+  // 4. Database Transaction: Update users, student_profiles, face_biometrics, and student_identity_documents
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -772,10 +791,19 @@ export async function enrollCandidate({
     await client.query('DELETE FROM face_biometrics WHERE user_id = $1', [userId]);
     await client.query(
       `INSERT INTO face_biometrics (
-         biometric_id, user_id, enrollment_status, s3_bucket, s3_key, quality_score, mime_type, byte_size, model_version
+         biometric_id, user_id, enrollment_status, s3_bucket, s3_key, quality_score, mime_type, byte_size, model_version, embedding, embedding_dimension
        )
-       VALUES ($1, $2, 'ENROLLED', $3, $4, 0.950, 'image/jpeg', $5, 'facenet-v1')`,
-      [biometricId, userId, bucket, faceKey, compressedFace.compressedBytes]
+       VALUES ($1, $2, 'ENROLLED', $3, $4, 0.950, 'image/jpeg', $5, $6, $7, $8)`,
+      [
+        biometricId,
+        userId,
+        bucket,
+        faceKey,
+        compressedFace.compressedBytes,
+        modelVersion,
+        faceEmbedding ? JSON.stringify(faceEmbedding) : null,
+        embeddingDimension
+      ]
     );
 
     // Insert student_identity_documents
