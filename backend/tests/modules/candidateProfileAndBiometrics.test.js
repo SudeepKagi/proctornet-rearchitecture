@@ -213,6 +213,12 @@ describe('Phase 1: Candidate Profile & Biometric Re-enrollment', () => {
         mimeType: 'image/jpeg'
       });
 
+      expect(s3Storage.putEvidenceObjectBuffer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          buffer: validJpegBytes,
+          contentType: 'image/jpeg'
+        })
+      );
       expect(mockReEnrollTx).toHaveBeenCalledTimes(1);
       expect(result.biometricId).toBe('bio-new');
       expect(result.version).toBe(2);

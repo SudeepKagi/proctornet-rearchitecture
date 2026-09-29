@@ -333,19 +333,24 @@ export async function putEvidenceObjectBuffer({
   bucket,
   key,
   buffer,
+  body,
   contentType = 'image/jpeg',
   contentEncoding = undefined,
   metadata = undefined
 }) {
+  const payload = buffer || body;
+  if (!payload) {
+    throw new Error('A buffer or body is required for putEvidenceObjectBuffer');
+  }
   const timer = evidenceStorageLatencySeconds.startTimer({ operation: 'put_buffer' });
   try {
     const s3 = getS3Client();
     const commandParams = {
       Bucket: bucket,
       Key: key,
-      Body: buffer,
+      Body: payload,
       ContentType: contentType,
-      ContentLength: buffer.length
+      ContentLength: payload.length
     };
 
     if (contentEncoding) {

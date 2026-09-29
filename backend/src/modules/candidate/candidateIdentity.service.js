@@ -630,7 +630,7 @@ export async function reEnrollCandidateFace({
   await putEvidenceObjectBuffer({
     bucket: s3Bucket,
     key: s3Key,
-    body: imageBuffer,
+    buffer: imageBuffer,
     contentType: mimeType
   });
 
