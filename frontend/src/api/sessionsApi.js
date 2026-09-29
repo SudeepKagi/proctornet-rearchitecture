@@ -89,3 +89,18 @@ export async function startAttemptForSession(sessionId) {
   });
   return result.data?.attempt || result.data;
 }
+
+export async function recordScreenShareClearance(sessionId) {
+  const result = await apiClient(`/api/v1/sessions/${sessionId}/clearance/screen-share`, {
+    method: 'POST',
+  });
+  return result.data?.clearance || result.data;
+}
+
+export async function getClearanceStatus(sessionId) {
+  const result = await apiClient(`/api/v1/sessions/${sessionId}/clearance`, {
+    method: 'GET',
+  });
+  return result.data?.clearance || result.data;
+}
+

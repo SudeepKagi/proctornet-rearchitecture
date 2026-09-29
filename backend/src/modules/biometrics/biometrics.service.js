@@ -36,6 +36,7 @@ import {
   UnauthorizedError
 } from '../../utils/errors.js';
 import * as biometricsRepo from './biometrics.repository.js';
+import { recordBiometricVerification } from '../sessions/examClearance.service.js';
 import { detectFace } from './faceDetector.js';
 import {
   computeLaplacianVariance,
@@ -1158,6 +1159,19 @@ export async function verifyIdentitySnapshot({ userId, sessionId, image, imageBu
       enrolledFacePhotoUrl
     }
   });
+
+  if (isVerified && sessionId) {
+    try {
+      await recordBiometricVerification({
+        sessionId,
+        studentId: userId,
+        faceScore: similarityScore,
+        livenessPassed: true
+      });
+    } catch (clearanceErr) {
+      logger.warn({ err: clearanceErr, sessionId, userId }, 'Failed to record biometric clearance in exam_entry_clearances');
+    }
+  }
 
   if (!isVerified) {
     if (isLocked) {

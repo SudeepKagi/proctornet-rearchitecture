@@ -17,6 +17,7 @@ import { useProctoringEvents } from '../../hooks/useProctoringEvents.js';
 import { useScreenAI } from '../../hooks/useScreenAI.js';
 import { useRealtime } from '../../hooks/useRealtime.js';
 import { useMediaCapture } from '../../hooks/useMediaCapture.js';
+import { useScreenStream } from '../../context/ScreenStreamContext.jsx';
 import { mediaClient } from '../../services/mediaClient.js';
 import { generateUUID } from '../../utils/uuid.js';
 
@@ -68,6 +69,10 @@ export function ExamTakingPage() {
 
   const logicalSubmissionKeyRef = useRef(null);
   const [initialAnswersList, setInitialAnswersList] = useState([]);
+
+  // Screen Stream context & interruption state
+  const { screenStream, startScreenCapture } = useScreenStream();
+  const [screenInterrupted, setScreenInterrupted] = useState(false);
 
   const loadExamData = useCallback(async () => {
     try {
@@ -210,11 +215,35 @@ export function ExamTakingPage() {
   const [mediaPublishing, setMediaPublishing] = useState(false);
   const mediaVideoRef = useRef(null);
 
-  // Client-Side Screen AI & Proctoring Telemetry
+  // Client-Side Screen AI & Proctoring Telemetry (using persistent screen share track)
   useScreenAI({
-    screenTrack: mediaStream?.getVideoTracks()?.[0],
+    screenTrack: (screenStream || mediaStream)?.getVideoTracks()?.[0],
     isActive: Boolean(attempt && attemptStatus === 'ACTIVE' && !isExpired && !isSubmitting),
   });
+
+  // Listen for screen sharing disconnection / browser stop button
+  useEffect(() => {
+    const handleScreenEnded = () => {
+      if (attemptStatus === 'ACTIVE' && !isExpired && !isSubmitting) {
+        setScreenInterrupted(true);
+        window.dispatchEvent(
+          new CustomEvent('proctornet:incident', {
+            detail: {
+              type: 'SCREEN_CAPTURE_INTERRUPTED',
+              severity: 'HIGH',
+              message: 'Candidate stopped sharing entire screen',
+              timestamp: new Date().toISOString(),
+            },
+          })
+        );
+      }
+    };
+
+    window.addEventListener('proctornet:screen-ended', handleScreenEnded);
+    return () => {
+      window.removeEventListener('proctornet:screen-ended', handleScreenEnded);
+    };
+  }, [attemptStatus, isExpired, isSubmitting]);
 
   useProctoringEvents({
     attemptId,
@@ -509,6 +538,35 @@ export function ExamTakingPage() {
               <span className={`h-2 w-2 rounded-full ${mediaPublishing ? 'bg-emerald-500' : 'bg-amber-400'}`} />
               <span>{mediaPublishing ? 'Proctoring Active' : 'Connecting...'}</span>
             </span>
+          </div>
+        </div>
+      )}
+      {/* Screen Sharing Interrupted Mandatory Modal */}
+      {screenInterrupted && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 border border-red-500 rounded-xl max-w-md w-full p-6 text-center space-y-4 shadow-2xl">
+            <div className="w-12 h-12 bg-red-100 dark:bg-red-950/60 text-red-600 rounded-full flex items-center justify-center mx-auto">
+              <AlertTriangle size={24} />
+            </div>
+            <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
+              Screen Sharing Disconnected
+            </h3>
+            <p className="text-xs text-slate-600 dark:text-slate-300">
+              You have stopped sharing your screen. Continuous full-screen sharing is mandatory to complete this examination.
+            </p>
+            <Button
+              onClick={async () => {
+                try {
+                  await startScreenCapture();
+                  setScreenInterrupted(false);
+                } catch (err) {
+                  console.error('Failed to resume screen capture:', err);
+                }
+              }}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold"
+            >
+              Resume Screen Sharing
+            </Button>
           </div>
         </div>
       )}

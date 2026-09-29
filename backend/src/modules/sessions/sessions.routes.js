@@ -17,7 +17,9 @@ import {
   handleRemoveInvigilator,
   handleCreateRoom,
   handleListRooms,
-  handleGetIceServers
+  handleGetIceServers,
+  handleRecordScreenShare,
+  handleGetClearance
 } from './sessions.controller.js';
 import { startAttempt, getMyAttempt } from '../attempts/attempts.controller.js';
 import { handleGetSessionSummary } from '../proctoring/proctoring.routes.js';
@@ -55,3 +57,7 @@ sessionsRouter.delete('/:id/invigilators/:userId', authenticate, requireRole('FA
 // Candidate Attempt Start & Status for Session
 sessionsRouter.post('/:id/attempts', authenticate, requireRole('STUDENT'), startAttempt);
 sessionsRouter.get('/:id/my-attempt', authenticate, requireRole('STUDENT'), getMyAttempt);
+
+// Candidate Exam Entry Clearance Gate
+sessionsRouter.post('/:id/clearance/screen-share', authenticate, requireRole('STUDENT'), handleRecordScreenShare);
+sessionsRouter.get('/:id/clearance', authenticate, requireRole('STUDENT'), handleGetClearance);

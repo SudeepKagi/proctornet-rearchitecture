@@ -11,6 +11,7 @@ import { VerifiedRoute } from './routes/VerifiedRoute.jsx';
 import { AppLayout } from './components/layout/AppLayout.jsx';
 import { useAuth } from './hooks/useAuth.js';
 import { RealtimeProvider } from './context/RealtimeContext.jsx';
+import { ScreenStreamProvider } from './context/ScreenStreamContext.jsx';
 
 import { resolvePostLoginDestination } from './routes/roleNavigation.js';
 
@@ -88,8 +89,9 @@ function RootRedirect() {
 export function App() {
   return (
     <RealtimeProvider>
-      <Suspense fallback={<RouteLoadingSkeleton />}>
-      <Routes>
+      <ScreenStreamProvider>
+        <Suspense fallback={<RouteLoadingSkeleton />}>
+        <Routes>
         {/* Public Authentication Routes */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
@@ -516,6 +518,7 @@ export function App() {
         </Route>
       </Routes>
       </Suspense>
+      </ScreenStreamProvider>
     </RealtimeProvider>
   );
 }

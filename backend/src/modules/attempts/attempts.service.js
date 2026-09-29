@@ -233,6 +233,22 @@ export async function startAttempt(sessionId, user, requestId = null) {
           throw conflictErr;
         }
 
+        // Verify screen share clearance for resumption
+        const clearanceRes = await client.query(
+          `SELECT screen_share_at FROM exam_entry_clearances
+           WHERE session_id = $1 AND student_id = $2
+           ORDER BY created_at DESC LIMIT 1;`,
+          [sessionId, user.userId]
+        );
+        const resumeClearance = clearanceRes.rows[0];
+        if (!resumeClearance || !resumeClearance.screen_share_at) {
+          await client.query('ROLLBACK');
+          throw new ForbiddenError(
+            'Screen sharing required: You must share your screen to resume this examination attempt.',
+            'SCREEN_SHARE_REQUIRED'
+          );
+        }
+
         // Active and valid: Idempotent return of existing attempt
         const totalQuestions = await attemptsRepo.countAttemptQuestions(existingAttempt.attempt_id, client);
         await client.query('COMMIT');
@@ -282,53 +298,54 @@ export async function startAttempt(sessionId, user, requestId = null) {
       };
     }
 
-    // 5a. [PHASE 25 INSERTION] Biometric Verification Gate & Medical Exemption Check
-    const isBiometricGateEnforced = process.env.BIOMETRIC_GATE_ENFORCED === 'true';
+    // 5a. Server-Authoritative Exam Entry Clearance Gate (Screen Share & Live Biometric Verification)
     let medicalExemptionApplied = false;
-    let studentConf = null;
-
-    if (isBiometricGateEnforced) {
-      const configRes = await client.query(
-        'SELECT proctoring_strictness, created_by, updated_by FROM student_configurations WHERE student_id = $1 FOR SHARE;',
-        [user.userId]
-      );
-      studentConf = configRes.rows[0];
-      const strictness = studentConf ? studentConf.proctoring_strictness : 'STANDARD';
-
-      if (strictness === 'MEDICAL_EXEMPTION') {
-        medicalExemptionApplied = true;
-      } else {
-        const bioRes = await client.query(
-          `SELECT * FROM biometric_verifications
-           WHERE session_id = $1 AND user_id = $2
-           ORDER BY created_at DESC LIMIT 1
-           FOR SHARE;`,
-          [sessionId, user.userId]
-        );
-        const verification = bioRes.rows[0];
-
-        if (!verification) {
-          await client.query('ROLLBACK');
-          throw new ForbiddenError(
-            'BIOMETRIC_VERIFICATION_REQUIRED: Pre-exam facial biometric verification must be completed before starting this exam attempt.'
-          );
-        }
-
-        if (verification.final_status === 'LOCKED') {
-          await client.query('ROLLBACK');
-          throw new ForbiddenError(
-            'BIOMETRIC_VERIFICATION_LOCKED: Biometric verification is locked due to maximum failed attempts. Contact your exam administrator.'
-          );
-        }
-
-        if (verification.final_status !== 'VERIFIED' && verification.final_status !== 'OVERRIDDEN') {
-          await client.query('ROLLBACK');
-          throw new ForbiddenError(
-            'BIOMETRIC_VERIFICATION_REQUIRED: Biometric verification is not verified.'
-          );
-        }
-      }
+    const configRes = await client.query(
+      'SELECT proctoring_strictness FROM student_configurations WHERE student_id = $1 FOR SHARE;',
+      [user.userId]
+    );
+    const studentConf = configRes.rows[0];
+    if (studentConf && studentConf.proctoring_strictness === 'MEDICAL_EXEMPTION') {
+      medicalExemptionApplied = true;
     }
+
+    // Lock unconsumed clearance row FOR UPDATE
+    const clearanceRes = await client.query(
+      `SELECT * FROM exam_entry_clearances
+       WHERE session_id = $1 AND student_id = $2 AND consumed_at IS NULL
+       ORDER BY created_at DESC LIMIT 1
+       FOR UPDATE;`,
+      [sessionId, user.userId]
+    );
+    const clearance = clearanceRes.rows[0];
+
+    const hasScreenShare = Boolean(clearance && clearance.screen_share_at);
+    const hasFaceVerification = Boolean(
+      medicalExemptionApplied ||
+      (clearance && clearance.liveness_passed && clearance.face_verified_at)
+    );
+    const isClearanceValid = Boolean(
+      clearance &&
+      new Date(clearance.expires_at) > serverNow &&
+      hasScreenShare &&
+      hasFaceVerification
+    );
+
+    if (!isClearanceValid) {
+      await client.query('ROLLBACK');
+      throw new ForbiddenError(
+        'Exam entry clearance required: Candidate must complete screen share and biometric face verification before entering.',
+        'ENTRY_CLEARANCE_REQUIRED'
+      );
+    }
+
+    // Atomically consume the clearance within this transaction
+    await client.query(
+      `UPDATE exam_entry_clearances
+       SET consumed_at = CURRENT_TIMESTAMP
+       WHERE clearance_id = $1;`,
+      [clearance.clearance_id]
+    );
 
     // 6. Static Question Assignment: Fetch statically configured questions for the exam (same for all candidates)
     const allSelectedQuestions = await attemptsRepo.getQuestionsForExam(exam.exam_id, client);
@@ -437,6 +454,7 @@ export async function startAttempt(sessionId, user, requestId = null) {
     );
 
     return {
+      attemptId: attempt.attempt_id,
       attempt_id: attempt.attempt_id,
       session_id: attempt.session_id,
       student_id: attempt.student_id,

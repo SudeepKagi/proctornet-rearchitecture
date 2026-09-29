@@ -14,6 +14,7 @@ import {
   createRoomSchema
 } from './sessions.schemas.js';
 import * as sessionsService from './sessions.service.js';
+import * as examClearanceService from './examClearance.service.js';
 
 /**
  * Handles creating and scheduling an exam session.
@@ -245,6 +246,52 @@ export async function handleGetIceServers(req, res, next) {
     res.status(200).json({
       status: 'success',
       data: iceData
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Authoritatively records screen share activation by a candidate for exam entry.
+ */
+export async function handleRecordScreenShare(req, res, next) {
+  try {
+    const sessionId = req.params.id;
+    const studentId = req.user.userId;
+    const requestId = req.id || req.requestId;
+
+    const clearance = await examClearanceService.recordScreenShare({
+      sessionId,
+      studentId,
+      requestId
+    });
+
+    res.status(200).json({
+      status: 'success',
+      data: { clearance }
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Retrieves the current exam entry clearance status for the candidate.
+ */
+export async function handleGetClearance(req, res, next) {
+  try {
+    const sessionId = req.params.id;
+    const studentId = req.user.userId;
+
+    const clearance = await examClearanceService.getClearanceStatus({
+      sessionId,
+      studentId
+    });
+
+    res.status(200).json({
+      status: 'success',
+      data: { clearance }
     });
   } catch (err) {
     next(err);
