@@ -137,7 +137,7 @@ export function CandidateProfilePage() {
     setVersionConflict(null);
     try {
       const [profileRes, enrollRes] = await Promise.all([
-        getCandidateProfile().catch(() => null),
+        getCandidateProfile(),
         getEnrollmentStatus().catch(() => null)
       ]);
 
@@ -145,17 +145,19 @@ export function CandidateProfilePage() {
         ? profileRes
         : profileRes?.data?.profile || profileRes?.profile || null;
 
+      if (!p) {
+        throw new Error('Unable to retrieve candidate profile records.');
+      }
+
       setProfile(p);
       setEnrollment(enrollRes);
 
-      if (p) {
-        const formData = {
-          name: p.name || '',
-          phone: p.phone || ''
-        };
-        setForm(formData);
-        setInitialForm(formData);
-      }
+      const formData = {
+        name: p.name || '',
+        phone: p.phone || ''
+      };
+      setForm(formData);
+      setInitialForm(formData);
     } catch (err) {
       setError(err?.data?.message || err?.message || 'Failed to load candidate profile');
     } finally {
