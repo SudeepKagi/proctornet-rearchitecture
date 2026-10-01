@@ -6,12 +6,9 @@ import { sessionsRouter } from '../modules/sessions/sessions.routes.js';
 import { attemptsRouter } from '../modules/attempts/attempts.routes.js';
 import { auditRouter } from '../modules/audit/audit.routes.js';
 import { adminRouter, userSelfRouter } from '../modules/users/user.routes.js';
-import { candidateRouter } from '../modules/candidate/candidateIdentity.routes.js';
-import { candidateBiometricsRouter, adminBiometricsRouter } from '../modules/biometrics/biometrics.routes.js';
-import { questionBankRouter } from '../modules/questions/questions.routes.js';
+import { studentRouter } from '../modules/student/student.routes.js';
 import { facultyRouter } from '../modules/faculty/faculty.routes.js';
-import { manualGradingRouter } from '../modules/evaluation/manualGrading.routes.js';
-import { interventionsRouter } from '../modules/interventions/interventions.routes.js';
+import { interventionsRouter } from '../modules/proctoring/interventions.routes.js';
 import { developerRouter } from '../modules/developer/developer.routes.js';
 import { authenticate } from '../middleware/authenticate.js';
 import { requireVerifiedActiveUser } from '../middleware/verificationGate.js';
@@ -39,17 +36,11 @@ v1Router.use('/auth', authRouter);
 v1Router.use('/admin', adminRouter);
 v1Router.use('/users/me', userSelfRouter);
 
-// Candidate Identity Onboarding & Document Verification
-v1Router.use('/candidate', candidateRouter);
+// Student Identity, Profile & Onboarding (mounted on /student and alias /candidate)
+v1Router.use('/student', studentRouter);
+v1Router.use('/candidate', studentRouter);
 
-// Biometric Identity — Face Enrollment, Verification & Anti-Spoofing
-v1Router.use('/candidate/biometrics', candidateBiometricsRouter);
-v1Router.use('/admin/biometrics', adminBiometricsRouter);
-
-// Question Bank & Question Authoring (Gated for verified active faculty/admins)
-v1Router.use('/faculty/question-bank', authenticate, requireVerifiedActiveUser, questionBankRouter);
-
-// Faculty Portal Module (Dashboard stats, Exams, Question Pools, Scheduling, Analytics)
+// Faculty Portal Module (Dashboard stats, Exams, Scheduling, Analytics)
 v1Router.use('/faculty', facultyRouter);
 
 // Exam Authoring, Question Assignments & Publishing (Gated for verified active users)
@@ -60,9 +51,6 @@ v1Router.use('/sessions', authenticate, requireVerifiedActiveUser, sessionsRoute
 
 // Examination Attempts, Question Mapping & Resumption (Gated for verified active users)
 v1Router.use('/attempts', authenticate, requireVerifiedActiveUser, attemptsRouter);
-
-// Manual Grading Workspace & Subjective Evaluation
-v1Router.use('/results', authenticate, requireVerifiedActiveUser, manualGradingRouter);
 
 // Live Invigilator Realtime Interventions
 v1Router.use('/interventions', authenticate, requireVerifiedActiveUser, interventionsRouter);
@@ -75,3 +63,4 @@ v1Router.use('/developer', developerRouter);
 
 // Mount /api/v1
 rootRouter.use('/api/v1', v1Router);
+

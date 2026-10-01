@@ -75,7 +75,7 @@ export async function listExamResults(
 
   let invigilatorJoin = '';
   if (invigilatorUserId) {
-    invigilatorJoin = `JOIN session_invigilators si ON s.session_id = si.session_id AND si.user_id = $${paramIdx}`;
+    invigilatorJoin = `JOIN user_roles ur ON ur.user_id = $${paramIdx} AND ur.role IN ('FACULTY', 'ADMIN', 'DEVELOPER')`;
     values.push(invigilatorUserId);
     paramIdx++;
   }
@@ -151,7 +151,7 @@ export async function getExamResultsSummary(
 
   let invigilatorJoin = '';
   if (invigilatorUserId) {
-    invigilatorJoin = `JOIN session_invigilators si ON s.session_id = si.session_id AND si.user_id = $${paramIdx}`;
+    invigilatorJoin = `JOIN user_roles ur ON ur.user_id = $${paramIdx} AND ur.role IN ('FACULTY', 'ADMIN', 'DEVELOPER')`;
     values.push(invigilatorUserId);
     paramIdx++;
   }
@@ -323,9 +323,8 @@ export async function isInvigilatorAssignedToSession(sessionId, userId, client =
   const sql = `
     SELECT EXISTS (
       SELECT 1 FROM exam_sessions es
-      LEFT JOIN exams e ON es.exam_id = e.exam_id
-      LEFT JOIN session_invigilators si ON es.session_id = si.session_id AND si.user_id = $2
-      WHERE es.session_id = $1 AND (si.user_id IS NOT NULL OR e.created_by = $2)
+      JOIN user_roles ur ON ur.user_id = $2
+      WHERE es.session_id = $1 AND ur.role IN ('FACULTY', 'ADMIN', 'DEVELOPER')
     ) AS is_assigned;
   `;
   const result = client ? await client.query(sql, [sessionId, userId]) : await query(sql, [sessionId, userId]);

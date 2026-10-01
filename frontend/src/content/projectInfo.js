@@ -22,9 +22,9 @@ export const PROJECT_INFO = {
   // Explicitly classified quantitative metrics
   stats: [
     {
-      value: '5',
+      value: '4',
       label: 'Role-Based Portals',
-      description: 'Candidate, Faculty, Invigilator, Administrator, Developer Operations',
+      description: 'Student, Faculty, Administrator, Developer Operations',
       classification: 'MEASURED',
     },
     {
@@ -69,11 +69,11 @@ export const PROJECT_INFO = {
     },
     {
       id: 'pillar-invigilator',
-      title: 'Real-Time Invigilator Console',
-      subtitle: 'Live Multi-Stream Supervision',
+      title: 'Faculty Invigilation Console',
+      subtitle: 'Live Examination Supervision',
       description:
-        '12-stream live video matrix with sub-300ms latency, dynamic room multiplexing, in-session candidate messaging, and immediate intervention triggers.',
-      badges: ['Live Video Matrix', '12-Stream Grid', 'Live Interventions'],
+        'Live examination session supervision, participant status tracking, in-session candidate notifications, and violation monitoring.',
+      badges: ['Live Monitoring', 'Session Supervision', 'Violation Alerts'],
       icon: 'video-camera',
     },
     {
@@ -93,7 +93,7 @@ export const PROJECT_INFO = {
     { name: 'React 19', category: 'Frontend SPA', detail: 'Component-driven UI with fluid responsive design system' },
     { name: 'PostgreSQL 16', category: 'Relational Database', detail: 'Strict relational integrity with concurrent write safety and trigger-locked audit trails' },
     { name: 'Redis 7', category: 'In-Memory Cache & Pub/Sub', detail: 'Fast session state, token blacklisting, and WebSocket room multiplexing' },
-    { name: 'RabbitMQ 3.13', category: 'Message Broker', detail: 'Transactional outbox event routing with DLQ fault recovery' },
+    { name: 'RabbitMQ 3.13', category: 'Message Broker', detail: 'Event routing with DLQ fault recovery' },
     { name: 'WebRTC Media Server', category: 'Live Video Streaming', detail: 'Multi-stream WebRTC video distribution and bandwidth adaptation' },
     { name: 'Coturn STUN/TURN', category: 'NAT Traversal', detail: 'RFC 5766 TURN relay for firewalled candidate streaming' },
     { name: 'Docker Compose', category: 'Container Orchestration', detail: 'Unified local and production containerized topology' },

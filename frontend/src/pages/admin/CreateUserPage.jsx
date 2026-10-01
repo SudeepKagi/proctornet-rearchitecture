@@ -1,6 +1,10 @@
 /**
  * @file CreateUserPage.jsx
- * @description Administrative user provisioning page for individual Student, Faculty, Invigilator, or Admin accounts.
+ * @description Administrative user provisioning page.
+ * Creates an account with ONLY:
+ * - Student: USN + email
+ * - Teacher: Employee ID + email
+ * Generates a temporary password and sends user to first-login profile setup.
  */
 
 import React, { useState } from 'react';
@@ -24,24 +28,20 @@ import {
   ArrowLeft,
   GraduationCap,
   Briefcase,
-  Eye,
-  ShieldAlert,
   KeyRound,
   Copy,
   Check,
-  AlertCircle,
   ShieldCheck,
   CheckCircle2,
+  ShieldAlert
 } from 'lucide-react';
 
 export function CreateUserPage() {
   const navigate = useNavigate();
 
   const [role, setRole] = useState('STUDENT');
-  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [identifier, setIdentifier] = useState('');
-  const [phone, setPhone] = useState('');
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -55,34 +55,41 @@ export function CreateUserPage() {
     if (e && e.preventDefault) e.preventDefault();
     setError(null);
 
-    if (role === 'STUDENT' && !identifier.trim()) {
-      setError('USN / Enrollment Number is required for students');
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanId = identifier.trim();
+
+    if (!cleanEmail) {
+      setError('Institutional email address is required');
       return;
     }
 
-    if (role === 'FACULTY' && !identifier.trim()) {
-      setError('Employee / Faculty ID is required for faculty');
+    if (!cleanId) {
+      setError(
+        role === 'STUDENT'
+          ? 'University Seat Number (USN) is required'
+          : 'Employee ID is required'
+      );
       return;
     }
 
     setLoading(true);
     try {
       const res = await adminUsersApi.createSingleUser({
-        name: name.trim(),
-        email: email.trim().toLowerCase(),
+        email: cleanEmail,
         role,
-        identifier: identifier.trim() || undefined,
-        phone: phone.trim() || undefined,
+        identifier: cleanId,
       });
 
       setCreatedData({
         user: res.user,
         temporaryPassword: res.temporaryPassword,
+        role,
+        identifier: cleanId,
       });
       setCopied(false);
       setSuccessModalOpen(true);
     } catch (err) {
-      setError(err?.data || err?.message || 'Failed to provision user');
+      setError(err?.data || err?.message || 'Failed to create user account');
     } finally {
       setLoading(false);
     }
@@ -102,11 +109,27 @@ export function CreateUserPage() {
   };
 
   const roleConfigs = [
-    { id: 'STUDENT', label: 'Student', icon: GraduationCap, desc: 'Examinee / Candidate' },
-    { id: 'FACULTY', label: 'Faculty', icon: Briefcase, desc: 'Author & Examiner' },
-    { id: 'INVIGILATOR', label: 'Invigilator', icon: Eye, desc: 'Proctoring Sentinel' },
-    { id: 'ADMIN', label: 'Admin', icon: ShieldCheck, desc: 'Institutional Ops' },
+    {
+      id: 'STUDENT',
+      label: 'Student',
+      icon: GraduationCap,
+      desc: 'USN + Email',
+      idLabel: 'University Seat Number (USN) *',
+      idPlaceholder: 'e.g. 1MS21CS042',
+      idHelp: 'The student will enter their full name, branch, semester, face photo, and college ID upon first login.'
+    },
+    {
+      id: 'FACULTY',
+      label: 'Teacher',
+      icon: Briefcase,
+      desc: 'Employee ID + Email',
+      idLabel: 'Teacher Employee ID *',
+      idPlaceholder: 'e.g. EMP-CS-104',
+      idHelp: 'The teacher will choose their designation and academic branch upon first login.'
+    },
   ];
+
+  const currentRoleConfig = roleConfigs.find((r) => r.id === role) || roleConfigs[0];
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-2xl space-y-6">
@@ -118,14 +141,15 @@ export function CreateUserPage() {
           onClick={() => navigate('/admin/users')}
         >
           <ArrowLeft className="h-4 w-4" />
-          <span>Back to User Roster</span>
+          <span>Back to Accounts</span>
         </Button>
         <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
           <UserPlus className="h-7 w-7 text-primary" />
-          Provision User Account
+          Create New Account
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Create an institutional account. The user will complete verification and setup upon first login.
+          Admin provisions student or teacher accounts with only their institutional email and identifier.
+          The user will set up their password and profile information on their first login.
         </p>
       </div>
 
@@ -138,13 +162,13 @@ export function CreateUserPage() {
 
       <Card className="shadow-xs border-border/80">
         <form onSubmit={handleSubmit}>
-          <CardContent className="p-6 space-y-5">
-            {/* Role Selection */}
+          <CardContent className="p-6 space-y-6">
+            {/* Role Selection: Restricted to Student / Teacher only */}
             <div className="space-y-2">
               <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Account Role
+                Account Type
               </label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+              <div className="grid grid-cols-2 gap-3">
                 {roleConfigs.map((rc) => {
                   const Icon = rc.icon;
                   const isSelected = role === rc.id;
@@ -152,34 +176,41 @@ export function CreateUserPage() {
                     <button
                       key={rc.id}
                       type="button"
-                      onClick={() => setRole(rc.id)}
-                      className={`flex flex-col items-center justify-center p-3 rounded-lg border text-center transition-all cursor-pointer ${
+                      onClick={() => {
+                        setRole(rc.id);
+                        setError(null);
+                      }}
+                      className={`flex flex-col items-center justify-center p-4 rounded-xl border text-center transition-all cursor-pointer ${
                         isSelected
-                          ? 'border-primary bg-primary/10 text-primary font-semibold shadow-xs'
+                          ? 'border-primary bg-primary/10 text-primary font-bold shadow-xs ring-1 ring-primary'
                           : 'border-border/80 bg-background text-muted-foreground hover:border-muted-foreground/40 hover:text-foreground'
                       }`}
                     >
-                      <Icon className="h-5 w-5 mb-1.5" />
-                      <span className="text-xs font-medium">{rc.label}</span>
+                      <Icon className="h-6 w-6 mb-2" />
+                      <span className="text-sm font-semibold">{rc.label}</span>
+                      <span className="text-xs opacity-75 mt-0.5">{rc.desc}</span>
                     </button>
                   );
                 })}
               </div>
             </div>
 
-            {/* Full Name */}
+            {/* Identifier: USN for student, Employee ID for teacher */}
             <div className="space-y-1.5">
-              <label htmlFor="user-name" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Full Legal Name *
+              <label htmlFor="user-identifier" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                {currentRoleConfig.idLabel}
               </label>
               <Input
-                id="user-name"
+                id="user-identifier"
                 required
-                placeholder="e.g. Eleanor Vance"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="h-10 text-sm"
+                placeholder={currentRoleConfig.idPlaceholder}
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+                className="h-10 text-sm font-mono"
               />
+              <p className="text-xs text-muted-foreground">
+                {currentRoleConfig.idHelp}
+              </p>
             </div>
 
             {/* Institutional Email */}
@@ -191,41 +222,9 @@ export function CreateUserPage() {
                 id="user-email"
                 type="email"
                 required
-                placeholder="e.g. evance@university.edu"
+                placeholder={role === 'STUDENT' ? 'student@university.edu' : 'teacher@university.edu'}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="h-10 text-sm"
-              />
-            </div>
-
-            {/* Identifier (USN or Employee ID) */}
-            {(role === 'STUDENT' || role === 'FACULTY') && (
-              <div className="space-y-1.5">
-                <label htmlFor="user-identifier" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  {role === 'STUDENT' ? 'USN / Enrollment Number *' : 'Employee / Faculty ID *'}
-                </label>
-                <Input
-                  id="user-identifier"
-                  required
-                  placeholder={role === 'STUDENT' ? 'e.g. 1MS21CS042' : 'e.g. FAC-CS-204'}
-                  value={identifier}
-                  onChange={(e) => setIdentifier(e.target.value)}
-                  className="h-10 text-sm font-mono"
-                />
-              </div>
-            )}
-
-            {/* Phone Number */}
-            <div className="space-y-1.5">
-              <label htmlFor="user-phone" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Contact Phone (Optional)
-              </label>
-              <Input
-                id="user-phone"
-                type="tel"
-                placeholder="+1 555-0199"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
                 className="h-10 text-sm"
               />
             </div>
@@ -234,13 +233,13 @@ export function CreateUserPage() {
             <div className="rounded-lg border border-border/70 bg-muted/30 p-3.5 space-y-2 text-xs text-muted-foreground">
               <div className="font-semibold text-foreground flex items-center gap-1.5">
                 <ShieldCheck className="h-4 w-4 text-primary" />
-                Automatic Lifecycle Initialization
+                Account Setup Flow
               </div>
               <ul className="space-y-1 list-disc pl-5">
-                <li>Account status activates immediately (<code>ACTIVE</code>)</li>
-                <li>Institutional verification begins at <code>UNVERIFIED</code></li>
-                <li>Mandatory password change enforced upon initial login</li>
-                <li>Exam dashboards remain restricted until ID verification completes</li>
+                <li>A secure temporary password will be generated automatically.</li>
+                <li>On first login, the user is required to choose a new password.</li>
+                <li>{role === 'STUDENT' ? 'The student then submits their name, branch, semester, face photo, and college ID.' : 'The teacher then selects their branch and designation.'}</li>
+                <li>The account is reviewed by an administrator before exam access is granted.</li>
               </ul>
             </div>
           </CardContent>
@@ -254,53 +253,54 @@ export function CreateUserPage() {
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? 'Provisioning...' : 'Create Account & Issue Credentials'}
+              {loading ? 'Creating Account...' : `Create ${currentRoleConfig.label} Account`}
             </Button>
           </CardFooter>
         </form>
       </Card>
 
-      {/* Account Created Modal */}
+      {/* Account Created Modal with Temporary Password */}
       <Dialog open={successModalOpen} onOpenChange={handleModalClose}>
         <DialogContent className="sm:max-w-[480px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
               <CheckCircle2 className="h-5 w-5" />
-              Account Provisioned Successfully
+              Account Created Successfully
             </DialogTitle>
             <DialogDescription>
-              A new institutional account has been initialized in the directory.
+              The {createdData?.role === 'STUDENT' ? 'student' : 'teacher'} account has been created.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 pt-2">
             <Alert variant="default" className="border-amber-500 bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-200">
               <ShieldAlert className="h-4 w-4 text-amber-600" />
-              <AlertTitle className="font-semibold">Action Required</AlertTitle>
+              <AlertTitle className="font-semibold">Temporary Credentials</AlertTitle>
               <AlertDescription className="text-xs">
-                Copy the temporary credentials below. Plaintext passwords are not persisted and cannot be recovered.
+                Copy and share this temporary password with the user. It will not be shown again.
               </AlertDescription>
             </Alert>
 
             <div className="p-4 rounded-lg border border-border bg-muted/40 space-y-2.5 text-xs">
               <div className="flex justify-between items-center py-1 border-b border-border/50">
-                <span className="text-muted-foreground uppercase font-semibold">Name</span>
-                <span className="font-semibold text-foreground">{createdData?.user?.name}</span>
+                <span className="text-muted-foreground uppercase font-semibold">Account Type</span>
+                <span className="font-semibold text-foreground">{createdData?.role === 'STUDENT' ? 'Student' : 'Teacher'}</span>
+              </div>
+              <div className="flex justify-between items-center py-1 border-b border-border/50">
+                <span className="text-muted-foreground uppercase font-semibold">Identifier</span>
+                <span className="font-mono font-semibold text-foreground">{createdData?.identifier}</span>
               </div>
               <div className="flex justify-between items-center py-1 border-b border-border/50">
                 <span className="text-muted-foreground uppercase font-semibold">Email</span>
                 <span className="font-mono text-foreground">{createdData?.user?.email}</span>
               </div>
-              <div className="flex justify-between items-center py-1 border-b border-border/50">
-                <span className="text-muted-foreground uppercase font-semibold">Role</span>
-                <span className="font-semibold text-primary">{createdData?.user?.roles?.[0]}</span>
-              </div>
 
               <div className="pt-2">
-                <div className="text-muted-foreground uppercase font-semibold text-[11px] mb-1">
-                  Temporary Password
+                <div className="text-muted-foreground uppercase font-semibold text-[11px] mb-1 flex items-center justify-between">
+                  <span>Temporary Password</span>
+                  <span className="text-emerald-600 font-medium">Valid for first login</span>
                 </div>
-                <div className="p-2.5 rounded bg-background border border-border font-mono text-lg font-bold tracking-wider text-primary text-center break-all">
+                <div className="p-2.5 rounded bg-background border border-border font-mono text-lg font-bold tracking-wider text-primary text-center break-all select-all">
                   {createdData?.temporaryPassword}
                 </div>
               </div>
@@ -316,7 +316,7 @@ export function CreateUserPage() {
                 {copied ? (
                   <>
                     <Check className="h-4 w-4 text-emerald-600" />
-                    <span>Copied</span>
+                    <span>Copied!</span>
                   </>
                 ) : (
                   <>
@@ -326,7 +326,7 @@ export function CreateUserPage() {
                 )}
               </Button>
               <Button type="button" onClick={handleModalClose}>
-                Done & Return to List
+                Done & View Accounts
               </Button>
             </DialogFooter>
           </div>

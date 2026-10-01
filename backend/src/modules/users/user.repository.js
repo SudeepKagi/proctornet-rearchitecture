@@ -99,14 +99,16 @@ export async function findUsers(filters = {}, pagination = {}, sorting = {}) {
         '[]'::json
       ) AS roles,
       sp.enrollment_number,
-      sp.department AS student_department,
+      dept_sp.name AS student_department,
       sp.semester AS student_semester,
       fp.employee_id,
-      fp.department AS faculty_department,
+      dept_fp.name AS faculty_department,
       fp.designation AS faculty_designation
     FROM users u
     LEFT JOIN student_profiles sp ON u.user_id = sp.user_id
+    LEFT JOIN departments dept_sp ON sp.department_id = dept_sp.department_id
     LEFT JOIN faculty_profiles fp ON u.user_id = fp.user_id
+    LEFT JOIN departments dept_fp ON fp.department_id = dept_fp.department_id
     ${whereClause}
     ORDER BY ${sortCol} ${sortOrder}
     LIMIT $${limitIdx} OFFSET $${offsetIdx};
@@ -221,13 +223,16 @@ export async function findUserDetailById(userId) {
         '[]'::json
       ) AS roles,
       sp.enrollment_number,
-      sp.department AS student_department,
+      sp.face_photo_url,
+      sp.college_id_url,
+      sp.pending_face_photo_url,
+      sp.pending_college_id_url,
+      sp.photo_review_status,
+      dept_sp.name AS student_department,
       sp.semester AS student_semester,
-      sp.metadata AS student_metadata,
       fp.employee_id,
-      fp.department AS faculty_department,
+      dept_fp.name AS faculty_department,
       fp.designation AS faculty_designation,
-      fp.metadata AS faculty_metadata,
       (
         SELECT COUNT(*)
         FROM user_sessions s
@@ -235,7 +240,9 @@ export async function findUserDetailById(userId) {
       ) AS active_sessions_count
     FROM users u
     LEFT JOIN student_profiles sp ON u.user_id = sp.user_id
+    LEFT JOIN departments dept_sp ON sp.department_id = dept_sp.department_id
     LEFT JOIN faculty_profiles fp ON u.user_id = fp.user_id
+    LEFT JOIN departments dept_fp ON fp.department_id = dept_fp.department_id
     WHERE u.user_id = $1;
   `;
 
@@ -265,20 +272,28 @@ export async function findUserDetailById(userId) {
     department: row.student_department || row.faculty_department || null,
     semester: row.student_semester || null,
     designation: row.faculty_designation || null,
+    facePhotoUrl: row.face_photo_url || null,
+    collegeIdUrl: row.college_id_url || null,
+    pendingFacePhotoUrl: row.pending_face_photo_url || null,
+    pendingCollegeIdUrl: row.pending_college_id_url || null,
+    photoReviewStatus: row.photo_review_status || 'NONE',
     studentProfile: row.enrollment_number
       ? {
           enrollmentNumber: row.enrollment_number,
           department: row.student_department,
           semester: row.student_semester,
-          metadata: row.student_metadata
+          facePhotoUrl: row.face_photo_url || null,
+          collegeIdUrl: row.college_id_url || null,
+          pendingFacePhotoUrl: row.pending_face_photo_url || null,
+          pendingCollegeIdUrl: row.pending_college_id_url || null,
+          photoReviewStatus: row.photo_review_status || 'NONE'
         }
       : null,
     facultyProfile: row.employee_id
       ? {
           employeeId: row.employee_id,
           department: row.faculty_department,
-          designation: row.faculty_designation,
-          metadata: row.faculty_metadata
+          designation: row.faculty_designation
         }
       : null
   };
@@ -337,7 +352,7 @@ export async function createMinimalUser(
       RETURNING user_id, name, email, phone, status, verification_status, must_change_password, created_at;
     `;
     const userRes = await dbClient.query(insertUserSql, [
-      name.trim(),
+      name ? name.trim() : '',
       email.toLowerCase().trim(),
       phone ? phone.trim() : null,
       passwordHash
@@ -354,14 +369,14 @@ export async function createMinimalUser(
     // 3. Create minimal role-specific profile row if student or faculty
     if (role === 'STUDENT' && identifier) {
       const insertStudentSql = `
-        INSERT INTO student_profiles (user_id, enrollment_number, metadata)
-        VALUES ($1, $2, '{}'::jsonb);
+        INSERT INTO student_profiles (user_id, enrollment_number)
+        VALUES ($1, $2);
       `;
       await dbClient.query(insertStudentSql, [user.user_id, identifier.trim()]);
-    } else if ((role === 'FACULTY' || role === 'INVIGILATOR') && identifier) {
+    } else if (role === 'FACULTY' && identifier) {
       const insertFacultySql = `
-        INSERT INTO faculty_profiles (user_id, employee_id, metadata)
-        VALUES ($1, $2, '{}'::jsonb);
+        INSERT INTO faculty_profiles (user_id, employee_id)
+        VALUES ($1, $2);
       `;
       await dbClient.query(insertFacultySql, [user.user_id, identifier.trim()]);
     }
@@ -528,19 +543,15 @@ export async function updateStudentOnboardingProfile(userId, profileData, client
 
   const sql = `
     UPDATE student_profiles
-    SET department = $2,
-        department_id = $3,
-        semester = $4,
-        metadata = metadata || $5::jsonb,
+    SET department_id = $2,
+        semester = $3,
         updated_at = CURRENT_TIMESTAMP
     WHERE user_id = $1;
   `;
   await executor(sql, [
     userId,
-    profileData.department.trim(),
     departmentId,
-    profileData.semester,
-    JSON.stringify(profileData.metadata || {})
+    profileData.semester
   ]);
 }
 
@@ -564,19 +575,31 @@ export async function updateFacultyOnboardingProfile(userId, profileData, client
     ]);
   }
 
+  // Resolve department_id
+  let departmentId = profileData.departmentId || null;
+  if (!departmentId && profileData.department) {
+    const deptResult = await executor(
+      `SELECT department_id FROM departments
+       WHERE LOWER(REPLACE(name, '&', 'and')) = LOWER(REPLACE($1, '&', 'and'))
+          OR LOWER(name) = LOWER($1)
+          OR code = UPPER($1)
+       LIMIT 1;`,
+      [profileData.department.trim()]
+    );
+    departmentId = deptResult.rows[0]?.department_id || null;
+  }
+
   const sql = `
     UPDATE faculty_profiles
-    SET department = $2,
+    SET department_id = $2,
         designation = $3,
-        metadata = metadata || $4::jsonb,
         updated_at = CURRENT_TIMESTAMP
     WHERE user_id = $1;
   `;
   await executor(sql, [
     userId,
-    profileData.department.trim(),
-    profileData.designation.trim(),
-    JSON.stringify(profileData.metadata || {})
+    departmentId,
+    profileData.designation?.trim() || null
   ]);
 }
 
@@ -645,3 +668,32 @@ export async function updateUserProfile(userId, fields = {}) {
   await query(sql, params);
   return findUserDetailById(userId);
 }
+
+/**
+ * Promotes pending face photo to active reference or discards it.
+ * @param {string} userId
+ * @param {'VERIFIED' | 'APPROVED' | 'REJECTED'} decision
+ * @param {import('pg').PoolClient} [client]
+ */
+export async function updateStudentPhotoReview(userId, decision, client = null) {
+  const executor = client ? client.query.bind(client) : query;
+  if (decision === 'VERIFIED' || decision === 'APPROVED') {
+    await executor(`
+      UPDATE student_profiles
+      SET face_photo_url = COALESCE(pending_face_photo_url, face_photo_url),
+          pending_face_photo_url = NULL,
+          photo_review_status = 'APPROVED',
+          updated_at = CURRENT_TIMESTAMP
+      WHERE user_id = $1;
+    `, [userId]);
+  } else if (decision === 'REJECTED') {
+    await executor(`
+      UPDATE student_profiles
+      SET pending_face_photo_url = NULL,
+          photo_review_status = 'REJECTED',
+          updated_at = CURRENT_TIMESTAMP
+      WHERE user_id = $1;
+    `, [userId]);
+  }
+}
+

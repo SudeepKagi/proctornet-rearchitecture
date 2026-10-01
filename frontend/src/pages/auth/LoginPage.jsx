@@ -224,14 +224,10 @@ export function LoginPage() {
                 </div>
                 <span className="text-[10px] text-slate-400">Click to fill</span>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+              <div className="grid grid-cols-2 gap-2">
                 {[
                   { label: 'Admin', email: 'admin@proctornet.edu', pass: 'Admin#2026_SecureExams!' },
                   { label: 'Developer', email: 'developer@proctornet.edu', pass: 'Dev#2026_SecureExams!' },
-                  { label: 'Faculty', email: 'faculty@proctornet.edu', pass: 'Faculty#2026_SecureExams!' },
-                  { label: 'Invigilator', email: 'invigilator@proctornet.edu', pass: 'Invigilator#2026_SecureExams!' },
-                  { label: 'Candidate', email: 'student@proctornet.edu', pass: 'Student#2026_SecureExams!' },
-                  { label: 'Sudeep (Enrolled)', email: 'sudeep@proctornet.edu', pass: 'Student#2026_SecureExams!' },
                 ].map((demo) => (
                   <Button
                     key={demo.label}

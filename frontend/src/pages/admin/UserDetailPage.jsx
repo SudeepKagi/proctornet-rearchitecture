@@ -76,7 +76,7 @@ export function UserDetailPage() {
 
   // Role addition modal
   const [roleModalOpen, setRoleModalOpen] = useState(false);
-  const [selectedRoleToAdd, setSelectedRoleToAdd] = useState('INVIGILATOR');
+  const [selectedRoleToAdd, setSelectedRoleToAdd] = useState('FACULTY');
   const [roleLoading, setRoleLoading] = useState(false);
   const [roleError, setRoleError] = useState(null);
 
@@ -324,12 +324,12 @@ export function UserDetailPage() {
             </div>
             <div>
               <div className="text-sm font-semibold text-amber-900 dark:text-amber-200 flex items-center gap-2">
-                <span>{user.roles?.includes('FACULTY') ? 'Faculty Verification Pending' : 'Student Identity Verification Pending'}</span>
+                <span>{user.roles?.includes('FACULTY') ? 'Teacher Verification Pending' : 'Student Identity Verification Pending'}</span>
                 <Badge className="bg-amber-100 text-amber-900 border-amber-300 text-[10px] font-semibold">ACTION REQUIRED</Badge>
               </div>
               <div className="text-xs text-amber-700 dark:text-amber-300/80 mt-0.5">
                 {user.roles?.includes('FACULTY')
-                  ? 'This faculty member has submitted department affiliation details that require administrative approval.'
+                  ? 'This teacher has submitted department affiliation details that require administrative approval.'
                   : 'This student has uploaded an institutional Student ID card that requires administrative review and approval.'}
               </div>
             </div>
@@ -340,7 +340,7 @@ export function UserDetailPage() {
             onClick={() => setVerificationModalOpen(true)}
           >
             <ShieldCheck className="h-4 w-4" />
-            {user.roles?.includes('FACULTY') ? 'Review & Approve Faculty' : 'Review & Approve ID'}
+            {user.roles?.includes('FACULTY') ? 'Review & Approve Teacher' : 'Review & Approve ID'}
           </Button>
         </div>
       )}
@@ -423,7 +423,7 @@ export function UserDetailPage() {
                       Identifier (USN / Emp ID)
                     </span>
                     <strong className="font-mono text-sm text-foreground">
-                      {user.studentProfile?.enrollmentNumber || user.facultyProfile?.employeeId || '—'}
+                      {user.studentProfile?.enrollmentNumber || user.facultyProfile?.employeeId || '-'}
                     </strong>
                   </div>
 
@@ -600,7 +600,6 @@ export function UserDetailPage() {
               >
                 <option value="STUDENT">STUDENT</option>
                 <option value="FACULTY">FACULTY</option>
-                <option value="INVIGILATOR">INVIGILATOR</option>
                 <option value="ADMIN">ADMIN</option>
                 <option value="DEVELOPER">DEVELOPER</option>
               </select>

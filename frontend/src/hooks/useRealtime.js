@@ -22,7 +22,7 @@ import { useRealtimeContext } from '../context/RealtimeContext.jsx';
  * }}
  */
 export function useRealtime(room = null, handlers = {}) {
-  const { status, isDegraded, subscribe, unsubscribe, sendHeartbeat } = useRealtimeContext();
+  const { status, isDegraded, subscribe, unsubscribe, sendHeartbeat, send } = useRealtimeContext();
 
   const handlersRef = useRef(handlers);
   handlersRef.current = handlers;
@@ -60,6 +60,7 @@ export function useRealtime(room = null, handlers = {}) {
     isDegraded,
     isConnected: status === 'CONNECTED',
     sendHeartbeat,
+    send,
     subscribe,
     unsubscribe
   };

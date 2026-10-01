@@ -71,8 +71,8 @@ export async function findAttemptById(attemptId, client = null) {
  */
 export async function isUserInvigilatorForSession(sessionId, userId, client = null) {
   const sql = `
-    SELECT 1 FROM session_invigilators
-    WHERE session_id = $1 AND user_id = $2
+    SELECT 1 FROM user_roles
+    WHERE user_id = $2 AND role IN ('FACULTY', 'ADMIN', 'DEVELOPER')
     LIMIT 1;
   `;
   const executor = client ? client.query.bind(client) : query;

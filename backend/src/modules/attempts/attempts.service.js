@@ -15,7 +15,7 @@ import { AttemptStatus } from '../../domain/attempt/attemptStates.js';
 import { transitionAttemptState } from '../../domain/attempt/attemptStateMachine.js';
 import { validateAttemptInvariants } from '../../domain/attempt/attemptInvariants.js';
 import * as attemptsRepo from './attempts.repository.js';
-import * as studentConfigRepo from '../candidate/studentConfig.repository.js';
+import { evaluateAttempt } from '../evaluation/evaluation.service.js';
 import { cacheService } from '../../infrastructure/redis/cacheService.js';
 import { config } from '../../config/env.js';
 import { deriveAttemptSigningKey } from '../../utils/antiTamper.js';
@@ -354,10 +354,8 @@ export async function startAttempt(sessionId, user, requestId = null) {
       throw new BadRequestError('Cannot start exam: Exam has no assigned questions or question pool');
     }
 
-    // 8. Calculate Authoritative Expiration (incorporating per-student extra_time_multiplier)
-    const studentConfig = await studentConfigRepo.findConfigurationByStudentId(user.userId, client);
-    const rawMultiplier = studentConfig ? Number(studentConfig.extra_time_multiplier) : 1.0;
-    const extraTimeMultiplier = (!isNaN(rawMultiplier) && rawMultiplier >= 1.0 && rawMultiplier <= 3.0) ? rawMultiplier : 1.0;
+    // 8. Calculate Authoritative Expiration
+    const extraTimeMultiplier = 1.0;
     const baseDurationMinutes = Number(exam.duration_minutes);
     const effectiveDurationMinutes = Math.round(baseDurationMinutes * extraTimeMultiplier);
     const examDurationMs = effectiveDurationMinutes * 60 * 1000;
@@ -663,3 +661,130 @@ export async function getMyAttemptForSession(sessionId, user, requestId = null) 
     total_questions: totalQuestions
   };
 }
+
+/**
+ * Submits an active exam attempt atomically,
+ * processes optional final dirty answers, and triggers immediate objective evaluation.
+ *
+ * @param {string} attemptId
+ * @param {object} body - { answers?: Array<{ attempt_question_id, answer_value, expected_revision }> }
+ * @param {object} user - Authenticated user context { userId, roles }
+ * @param {string} [requestId=null]
+ * @returns {Promise<object>}
+ */
+export async function submitAttempt(attemptId, body, user, requestId = null) {
+  const isStudent = (user.roles || []).includes('STUDENT');
+  if (!isStudent) {
+    throw new ForbiddenError('Access denied: Only students can submit exam attempts');
+  }
+
+  const pool = getPool();
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const attempt = await attemptsRepo.findAttemptForUpdate(attemptId, client);
+    if (!attempt) {
+      throw new NotFoundError(`Exam attempt with ID '${attemptId}' not found`);
+    }
+
+    if (user.userId !== attempt.student_id) {
+      throw new ForbiddenError("Access denied: You cannot submit another student's exam attempt");
+    }
+
+    if (attempt.status === AttemptStatus.SUBMITTED || attempt.status === AttemptStatus.COMPLETED) {
+      await client.query('ROLLBACK');
+      return {
+        attempt_id: attempt.attempt_id,
+        status: attempt.status,
+        submitted_at: attempt.submitted_at || new Date().toISOString(),
+        server_time: new Date().toISOString(),
+        message: 'Exam attempt has already been submitted.'
+      };
+    }
+
+    if (attempt.status !== AttemptStatus.ACTIVE && attempt.status !== AttemptStatus.EXPIRED) {
+      await client.query('ROLLBACK');
+      throw new ConflictError(
+        `Cannot submit exam attempt: Attempt is in '${attempt.status}' state. Only active attempts can be submitted.`,
+        'ATTEMPT_NOT_ACTIVE'
+      );
+    }
+
+    const serverNow = new Date(attempt.server_now || new Date());
+    const expiresAt = new Date(attempt.expires_at);
+    const isExpired = serverNow >= expiresAt || Boolean(body?.auto_expired);
+    const targetStatus = isExpired ? AttemptStatus.EXPIRED : AttemptStatus.SUBMITTED;
+
+    // Process any final answers provided in submission body
+    if (Array.isArray(body?.answers) && body.answers.length > 0) {
+      for (const item of body.answers) {
+        const { attempt_question_id, answer_value, expected_revision } = item;
+        if (!attempt_question_id || !answer_value) continue;
+
+        const attemptQuestion = await attemptsRepo.findAttemptQuestion(attemptId, attempt_question_id, client);
+        if (!attemptQuestion) continue;
+
+        const existingAnswer = await attemptsRepo.findAnswerByAttemptQuestionId(attempt_question_id, client);
+
+        if (!existingAnswer) {
+          await attemptsRepo.insertAnswer(attempt_question_id, answer_value, client);
+        } else {
+          const currentRevision = Number(existingAnswer.revision);
+          await attemptsRepo.updateAnswer(
+            attempt_question_id,
+            answer_value,
+            expected_revision !== undefined ? expected_revision : currentRevision,
+            client
+          );
+        }
+      }
+    }
+
+    let finalizedAttempt;
+    if (targetStatus === AttemptStatus.EXPIRED) {
+      finalizedAttempt = await attemptsRepo.updateAttemptToExpired(attemptId, client);
+    } else {
+      finalizedAttempt = await attemptsRepo.updateAttemptToSubmitted(attemptId, client);
+    }
+
+    await attemptsRepo.createAuditLog(
+      {
+        actorUserId: user.userId,
+        action: targetStatus === AttemptStatus.EXPIRED ? 'ATTEMPT_EXPIRED' : 'ATTEMPT_SUBMITTED',
+        resourceType: 'ATTEMPT',
+        resourceId: attemptId,
+        attemptId,
+        requestId,
+        metadata: { submittedAt: finalizedAttempt.submitted_at }
+      },
+      client
+    );
+
+    await client.query('COMMIT');
+
+    // Asynchronously trigger auto-evaluation
+    setImmediate(() => {
+      evaluateAttempt(attemptId).catch((err) => {
+        logger.error({ err, attemptId }, 'Failed to evaluate attempt post-submission');
+      });
+    });
+
+    return {
+      attempt_id: attempt.attempt_id,
+      status: targetStatus,
+      submitted_at: finalizedAttempt.submitted_at ? new Date(finalizedAttempt.submitted_at).toISOString() : new Date().toISOString(),
+      server_time: serverNow.toISOString(),
+      message: isExpired
+        ? 'Exam attempt finalized due to deadline expiration.'
+        : 'Exam attempt submitted successfully.'
+    };
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+

@@ -11,7 +11,6 @@ import {
   registerReconnectHook
 } from './infrastructure/rabbitmq/client.js';
 import { assertTopology } from './infrastructure/rabbitmq/topology.js';
-import { startOutboxPoller, stopOutboxPoller } from './modules/outbox/outbox.service.js';
 import { startEvaluationConsumer, stopEvaluationConsumer } from './modules/evaluation/evaluation.consumer.js';
 import { defaultWebSocketServer, defaultBroadcaster } from './infrastructure/realtime/index.js';
 import { defaultSfuManager } from './infrastructure/media/index.js';
@@ -72,9 +71,6 @@ async function gracefulShutdown(signal) {
         resolve();
       });
     });
-
-    // 2. Stop outbox poller
-    stopOutboxPoller();
 
     // 3. Stop evaluation consumer and drain in-flight jobs (up to 5000ms)
     await stopEvaluationConsumer({ maxDrainMs: 5000 });
@@ -155,7 +151,6 @@ server.listen(config.PORT, async () => {
 
   // Initialize RabbitMQ infrastructure & consumers if enabled
   if (config.RABBITMQ_ENABLED) {
-    startOutboxPoller();
     try {
       const conn = await getRabbitMQConnection();
       if (conn) {
@@ -163,7 +158,7 @@ server.listen(config.PORT, async () => {
         await assertTopology(channel);
         await channel.close().catch(() => {});
         await startEvaluationConsumer();
-        logger.info('RabbitMQ infrastructure, outbox poller, and evaluation consumer initialized');
+        logger.info('RabbitMQ infrastructure and evaluation consumer initialized');
       }
     } catch (err) {
       logger.warn(

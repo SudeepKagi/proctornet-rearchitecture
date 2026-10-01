@@ -17,38 +17,37 @@ import { createAuditLog as createCentralAuditLog } from '../audit/audit.reposito
  * @returns {Promise<object>}
  */
 export async function createSession(
-  { examId, roomId, scheduledStartTime, scheduledEndTime },
+  { examId, departmentId, targetSemester, scheduledStartTime, scheduledEndTime },
   client = null
 ) {
   const text = `
-    INSERT INTO exam_sessions (exam_id, room_id, scheduled_start_time, scheduled_end_time, status)
-    VALUES ($1, $2, $3, $4, 'SCHEDULED')
-    RETURNING session_id, exam_id, room_id, scheduled_start_time, scheduled_end_time, status, created_at, updated_at;
+    INSERT INTO exam_sessions (exam_id, department_id, target_semester, scheduled_start_time, scheduled_end_time, status)
+    VALUES ($1, $2, $3, $4, $5, 'SCHEDULED')
+    RETURNING session_id, exam_id, department_id, target_semester, scheduled_start_time, scheduled_end_time, status, created_at, updated_at;
   `;
-  const params = [examId, roomId || null, scheduledStartTime, scheduledEndTime];
+  const params = [examId, departmentId || null, targetSemester || null, scheduledStartTime, scheduledEndTime];
   const res = client ? await client.query(text, params) : await query(text, params);
   return res.rows[0];
 }
 
 /**
- * Finds a session by ID with joined exam and room details.
+ * Finds a session by ID with joined exam and department details.
  * @param {string} sessionId
  * @param {object} [client]
  * @returns {Promise<object|null>}
  */
 export async function findSessionById(sessionId, client = null) {
   const text = `
-    SELECT s.session_id, s.exam_id, s.room_id, s.scheduled_start_time, s.scheduled_end_time,
+    SELECT s.session_id, s.exam_id, s.department_id, s.target_semester, s.scheduled_start_time, s.scheduled_end_time,
            s.status, s.created_at, s.updated_at,
-           e.title AS exam_title, e.duration_minutes AS exam_duration_minutes,
+           e.title AS exam_title, e.subject_name AS exam_subject_name, e.duration_minutes AS exam_duration_minutes,
            e.total_marks AS exam_total_marks, e.passing_marks AS exam_passing_marks,
            e.status AS exam_status, e.created_by AS exam_created_by,
-           r.name AS room_name, r.capacity AS room_capacity, r.building AS room_building,
-           (SELECT COUNT(*)::int FROM session_students WHERE session_id = s.session_id) AS student_count,
-           (SELECT COUNT(*)::int FROM session_invigilators WHERE session_id = s.session_id) AS invigilator_count
+           d.name AS department_name, d.code AS department_code,
+           (SELECT COUNT(*)::int FROM session_students WHERE session_id = s.session_id) AS student_count
     FROM exam_sessions s
     JOIN exams e ON s.exam_id = e.exam_id
-    LEFT JOIN rooms r ON s.room_id = r.room_id
+    LEFT JOIN departments d ON s.department_id = d.department_id
     WHERE s.session_id = $1;
   `;
   const res = client ? await client.query(text, [sessionId]) : await query(text, [sessionId]);
@@ -63,7 +62,7 @@ export async function findSessionById(sessionId, client = null) {
  */
 export async function findSessionByIdForUpdate(sessionId, client) {
   const text = `
-    SELECT session_id, exam_id, room_id, scheduled_start_time, scheduled_end_time, status, created_at, updated_at
+    SELECT session_id, exam_id, department_id, target_semester, scheduled_start_time, scheduled_end_time, status, created_at, updated_at
     FROM exam_sessions
     WHERE session_id = $1
     FOR UPDATE;
@@ -84,10 +83,6 @@ export async function updateSession(sessionId, updates, client = null) {
   const values = [sessionId];
   let idx = 2;
 
-  if (updates.room_id !== undefined) {
-    fields.push(`room_id = $${idx++}`);
-    values.push(updates.room_id);
-  }
   if (updates.scheduled_start_time !== undefined) {
     fields.push(`scheduled_start_time = $${idx++}`);
     values.push(updates.scheduled_start_time);
@@ -104,10 +99,6 @@ export async function updateSession(sessionId, updates, client = null) {
     fields.push(`target_semester = $${idx++}`);
     values.push(updates.target_semester);
   }
-  if (updates.target_department !== undefined) {
-    fields.push(`target_department = $${idx++}`);
-    values.push(updates.target_department);
-  }
   if (updates.department_id !== undefined) {
     fields.push(`department_id = $${idx++}`);
     values.push(updates.department_id);
@@ -119,7 +110,7 @@ export async function updateSession(sessionId, updates, client = null) {
     UPDATE exam_sessions
     SET ${fields.join(', ')}
     WHERE session_id = $1
-    RETURNING session_id, exam_id, room_id, target_semester, target_department, department_id, scheduled_start_time, scheduled_end_time, status, created_at, updated_at;
+    RETURNING session_id, exam_id, target_semester, department_id, scheduled_start_time, scheduled_end_time, status, created_at, updated_at;
   `;
 
   const res = client ? await client.query(text, values) : await query(text, values);
@@ -138,7 +129,7 @@ export async function updateSession(sessionId, updates, client = null) {
  * @returns {Promise<object[]>}
  */
 export async function listSessions(
-  { examId, roomId, status, studentTarget, limit = 20, offset = 0 },
+  { examId, status, studentTarget, limit = 20, offset = 0 },
   client = null
 ) {
   const conditions = [];
@@ -149,31 +140,20 @@ export async function listSessions(
     conditions.push(`s.exam_id = $${idx++}`);
     values.push(examId);
   }
-  if (roomId) {
-    conditions.push(`s.room_id = $${idx++}`);
-    values.push(roomId);
-  }
   if (status) {
     conditions.push(`s.status = $${idx++}`);
     values.push(status);
   }
   if (studentTarget) {
-    if (studentTarget.semester && studentTarget.department) {
+    if (studentTarget.semester && studentTarget.departmentId) {
       conditions.push(`(
         s.session_id IN (SELECT session_id FROM session_students WHERE student_id = $${idx})
         OR (
           (s.target_semester = $${idx + 1} OR e.target_semester = $${idx + 1})
-          AND (
-            s.department_id = (SELECT department_id FROM departments WHERE LOWER(name) = LOWER($${idx + 2}) OR LOWER(code) = LOWER($${idx + 2}) LIMIT 1)
-            OR e.department_id = (SELECT department_id FROM departments WHERE LOWER(name) = LOWER($${idx + 2}) OR LOWER(code) = LOWER($${idx + 2}) LIMIT 1)
-            OR LOWER(s.target_department) = LOWER($${idx + 2})
-            OR LOWER(e.target_department) = LOWER($${idx + 2})
-            OR s.target_department ILIKE '%' || $${idx + 2} || '%'
-            OR e.target_department ILIKE '%' || $${idx + 2} || '%'
-          )
+          AND (s.department_id = $${idx + 2} OR e.department_id = $${idx + 2})
         )
       )`);
-      values.push(studentTarget.studentId, studentTarget.semester, studentTarget.department);
+      values.push(studentTarget.studentId, studentTarget.semester, studentTarget.departmentId);
       idx += 3;
     } else if (studentTarget.studentId) {
       conditions.push(`s.session_id IN (SELECT session_id FROM session_students WHERE student_id = $${idx++})`);
@@ -192,16 +172,16 @@ export async function listSessions(
   }
 
   const text = `
-    SELECT s.session_id, s.exam_id, s.room_id, s.scheduled_start_time, s.scheduled_end_time,
+    SELECT s.session_id, s.exam_id, s.department_id, s.target_semester, s.scheduled_start_time, s.scheduled_end_time,
            s.status, s.created_at, s.updated_at,
-           e.title AS exam_title, e.duration_minutes AS exam_duration_minutes,
-           r.name AS room_name, r.capacity AS room_capacity, r.building AS room_building,
-           (SELECT COUNT(*)::int FROM session_students WHERE session_id = s.session_id) AS student_count,
-           (SELECT COUNT(*)::int FROM session_invigilators WHERE session_id = s.session_id) AS invigilator_count
+           e.title AS exam_title, e.subject_name AS exam_subject_name, e.duration_minutes AS exam_duration_minutes,
+           e.total_marks AS exam_total_marks, e.passing_marks AS exam_passing_marks,
+           d.name AS department_name, d.code AS department_code,
+           (SELECT COUNT(*)::int FROM session_students WHERE session_id = s.session_id) AS student_count
            ${attemptSelect}
     FROM exam_sessions s
     JOIN exams e ON s.exam_id = e.exam_id
-    LEFT JOIN rooms r ON s.room_id = r.room_id
+    LEFT JOIN departments d ON s.department_id = d.department_id
     ${whereClause}
     ORDER BY s.scheduled_start_time ASC
     LIMIT $${idx++} OFFSET $${idx++};
@@ -218,7 +198,7 @@ export async function listSessions(
  * @param {object} [client]
  * @returns {Promise<number>}
  */
-export async function countSessions({ examId, roomId, status, studentTarget }, client = null) {
+export async function countSessions({ examId, status, studentTarget }, client = null) {
   const conditions = [];
   const values = [];
   let idx = 1;
@@ -227,31 +207,20 @@ export async function countSessions({ examId, roomId, status, studentTarget }, c
     conditions.push(`s.exam_id = $${idx++}`);
     values.push(examId);
   }
-  if (roomId) {
-    conditions.push(`s.room_id = $${idx++}`);
-    values.push(roomId);
-  }
   if (status) {
     conditions.push(`s.status = $${idx++}`);
     values.push(status);
   }
   if (studentTarget) {
-    if (studentTarget.semester && studentTarget.department) {
+    if (studentTarget.semester && studentTarget.departmentId) {
       conditions.push(`(
         s.session_id IN (SELECT session_id FROM session_students WHERE student_id = $${idx})
         OR (
           (s.target_semester = $${idx + 1} OR e.target_semester = $${idx + 1})
-          AND (
-            s.department_id = (SELECT department_id FROM departments WHERE LOWER(name) = LOWER($${idx + 2}) OR LOWER(code) = LOWER($${idx + 2}) LIMIT 1)
-            OR e.department_id = (SELECT department_id FROM departments WHERE LOWER(name) = LOWER($${idx + 2}) OR LOWER(code) = LOWER($${idx + 2}) LIMIT 1)
-            OR LOWER(s.target_department) = LOWER($${idx + 2})
-            OR LOWER(e.target_department) = LOWER($${idx + 2})
-            OR s.target_department ILIKE '%' || $${idx + 2} || '%'
-            OR e.target_department ILIKE '%' || $${idx + 2} || '%'
-          )
+          AND (s.department_id = $${idx + 2} OR e.department_id = $${idx + 2})
         )
       )`);
-      values.push(studentTarget.studentId, studentTarget.semester, studentTarget.department);
+      values.push(studentTarget.studentId, studentTarget.semester, studentTarget.departmentId);
       idx += 3;
     } else if (studentTarget.studentId) {
       conditions.push(`s.session_id IN (SELECT session_id FROM session_students WHERE student_id = $${idx++})`);
@@ -429,12 +398,12 @@ export async function removeStudentFromSession(sessionId, studentId, client = nu
  */
 export async function getSessionInvigilators(sessionId, client = null) {
   const text = `
-    SELECT si.session_id, si.user_id, si.role, si.created_at,
+    SELECT es.session_id, u.user_id, 'PRIMARY' AS role, es.created_at,
            u.name AS invigilator_name, u.email AS invigilator_email
-    FROM session_invigilators si
-    JOIN users u ON si.user_id = u.user_id
-    WHERE si.session_id = $1
-    ORDER BY si.created_at ASC;
+    FROM exam_sessions es
+    JOIN exams e ON es.exam_id = e.exam_id
+    JOIN users u ON e.created_by = u.user_id
+    WHERE es.session_id = $1;
   `;
   const res = client ? await client.query(text, [sessionId]) : await query(text, [sessionId]);
   return res.rows;
@@ -449,17 +418,7 @@ export async function getSessionInvigilators(sessionId, client = null) {
  * @returns {Promise<object>}
  */
 export async function assignInvigilatorToSession(sessionId, userId, role = 'PRIMARY', client = null) {
-  const text = `
-    INSERT INTO session_invigilators (session_id, user_id, role)
-    VALUES ($1, $2, $3)
-    ON CONFLICT (session_id, user_id)
-    DO UPDATE SET role = EXCLUDED.role
-    RETURNING session_id, user_id, role, created_at;
-  `;
-  const res = client
-    ? await client.query(text, [sessionId, userId, role])
-    : await query(text, [sessionId, userId, role]);
-  return res.rows[0];
+  return { session_id: sessionId, user_id: userId, role, created_at: new Date() };
 }
 
 /**
@@ -470,9 +429,7 @@ export async function assignInvigilatorToSession(sessionId, userId, role = 'PRIM
  * @returns {Promise<boolean>}
  */
 export async function removeInvigilatorFromSession(sessionId, userId, client = null) {
-  const text = `DELETE FROM session_invigilators WHERE session_id = $1 AND user_id = $2;`;
-  const res = client ? await client.query(text, [sessionId, userId]) : await query(text, [sessionId, userId]);
-  return res.rowCount > 0;
+  return true;
 }
 
 /**
@@ -553,20 +510,5 @@ export async function findConflictingStudentSessions(studentIds, startTime, endT
  * Detects if an invigilator is already assigned to an overlapping active or scheduled session.
  */
 export async function findConflictingInvigilatorSessions(invigilatorId, startTime, endTime, excludeSessionId = null, client = null) {
-  const text = `
-    SELECT si.user_id, u.name as invigilator_name, es.session_id, es.scheduled_start_time, es.scheduled_end_time, e.title as exam_title
-    FROM session_invigilators si
-    JOIN exam_sessions es ON si.session_id = es.session_id
-    JOIN users u ON si.user_id = u.user_id
-    JOIN exams e ON es.exam_id = e.exam_id
-    WHERE si.user_id = $1
-      AND es.status IN ('SCHEDULED', 'ACTIVE')
-      AND ($2::uuid IS NULL OR es.session_id != $2::uuid)
-      AND es.scheduled_start_time < $4
-      AND es.scheduled_end_time > $3;
-  `;
-  const res = client
-    ? await client.query(text, [invigilatorId, excludeSessionId, startTime, endTime])
-    : await query(text, [invigilatorId, excludeSessionId, startTime, endTime]);
-  return res.rows;
+  return [];
 }

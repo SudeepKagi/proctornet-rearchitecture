@@ -381,9 +381,8 @@ export function UserManagementPage() {
                 onChange={(e) => setRole(e.target.value)}
               >
                 <option value="">All Roles</option>
-                <option value="STUDENT">Student / Candidate</option>
-                <option value="FACULTY">Faculty</option>
-                <option value="INVIGILATOR">Invigilator</option>
+                <option value="STUDENT">Student</option>
+                <option value="FACULTY">Teacher</option>
                 <option value="ADMIN">Administrator</option>
                 <option value="DEVELOPER">Developer</option>
               </Select>
@@ -462,13 +461,13 @@ export function UserManagementPage() {
                       <div className="text-xs text-muted-foreground font-mono">{u.email}</div>
                     </TableCell>
                     <TableCell className="font-mono text-xs text-foreground font-medium">
-                      {u.identifier || '—'}
+                      {u.identifier || '-'}
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
                         {(u.roles || []).map((r) => (
-                          <Badge key={r} variant="secondary" className="text-xs font-mono">
-                            {r}
+                          <Badge key={r} variant="secondary" className="text-xs font-medium">
+                            {r === 'FACULTY' ? 'Teacher' : r === 'STUDENT' ? 'Student' : r === 'ADMIN' ? 'Admin' : r === 'DEVELOPER' ? 'Developer' : r}
                           </Badge>
                         ))}
                       </div>

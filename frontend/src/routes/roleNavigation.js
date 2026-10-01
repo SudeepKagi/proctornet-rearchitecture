@@ -11,7 +11,6 @@ export const ROLE_DEFAULT_ROUTES = {
   ADMIN: '/admin',
   DEVELOPER: '/developer/overview',
   FACULTY: '/faculty',
-  INVIGILATOR: '/invigilator',
   STUDENT: '/candidate',
 };
 
@@ -22,7 +21,6 @@ export const ROUTE_ROLE_PERMISSIONS = {
   '/admin': ['ADMIN'],
   '/developer': ['DEVELOPER'],
   '/faculty': ['FACULTY', 'ADMIN'],
-  '/invigilator': ['INVIGILATOR', 'FACULTY', 'ADMIN'],
   '/candidate': ['STUDENT', 'ADMIN'],
   '/student': ['STUDENT', 'ADMIN'],
 };
@@ -40,7 +38,6 @@ export function getDefaultRouteForUser(user) {
   if (user.roles.includes('ADMIN')) return ROLE_DEFAULT_ROUTES.ADMIN;
   if (user.roles.includes('DEVELOPER')) return ROLE_DEFAULT_ROUTES.DEVELOPER;
   if (user.roles.includes('FACULTY')) return ROLE_DEFAULT_ROUTES.FACULTY;
-  if (user.roles.includes('INVIGILATOR')) return ROLE_DEFAULT_ROUTES.INVIGILATOR;
   if (user.roles.includes('STUDENT')) return ROLE_DEFAULT_ROUTES.STUDENT;
 
   return ROLE_DEFAULT_ROUTES.STUDENT;
@@ -97,11 +94,11 @@ export function resolvePostLoginDestination(user, attemptedPath = null) {
     const isVerified = user.isVerified === true || user.verificationStatus === 'VERIFIED';
 
     if (isStudent && (!isVerified || !user.enrolledFacePhotoUrl)) {
-      return '/candidate/enrollment';
+      return '/onboarding/student';
     }
 
     if (user.verificationStatus === 'UNVERIFIED') {
-      return user.roles.includes('FACULTY') ? '/onboarding/faculty' : '/candidate/enrollment';
+      return user.roles.includes('FACULTY') ? '/onboarding/faculty' : '/onboarding/student';
     }
     if (user.verificationStatus === 'PENDING') {
       return '/onboarding/pending';
@@ -152,7 +149,7 @@ export function resolvePostLoginDestination(user, attemptedPath = null) {
  *
  * @param {string} pathname - Current window pathname
  * @param {Object|null} user - Authenticated user
- * @returns {'admin'|'faculty'|'invigilator'|'developer'|'student'} Workspace key
+ * @returns {'admin'|'faculty'|'developer'|'student'} Workspace key
  */
 export function resolveWorkspace(pathname, user) {
   if (!user || !Array.isArray(user.roles)) {
@@ -162,7 +159,6 @@ export function resolveWorkspace(pathname, user) {
   // Admin users have cross-portal inspection rights
   if (user.roles.includes('ADMIN')) {
     if (pathname.startsWith('/faculty')) return 'faculty';
-    if (pathname.startsWith('/invigilator')) return 'invigilator';
     if (pathname.startsWith('/developer')) return 'developer';
     if (pathname.startsWith('/candidate') || pathname.startsWith('/student')) return 'student';
     return 'admin';
@@ -170,7 +166,6 @@ export function resolveWorkspace(pathname, user) {
 
   // Non-admin roles strictly display their own workspace navigation
   if (user.roles.includes('FACULTY')) return 'faculty';
-  if (user.roles.includes('INVIGILATOR')) return 'invigilator';
   if (user.roles.includes('DEVELOPER')) return 'developer';
   return 'student';
 }

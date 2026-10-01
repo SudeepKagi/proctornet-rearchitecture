@@ -130,11 +130,11 @@ export function parseUserRoster(fileBuffer, options = {}) {
       continue;
     }
 
-    if (!['STUDENT', 'FACULTY', 'INVIGILATOR'].includes(role)) {
+    if (!['STUDENT', 'FACULTY'].includes(role)) {
       invalidRows.push({
         rowNumber,
         data: rawRow,
-        error: `Invalid role '${role}'. Only STUDENT, FACULTY, or INVIGILATOR may be provisioned via bulk roster.`
+        error: `Invalid role '${role}'. Only STUDENT or FACULTY may be provisioned via bulk roster.`
       });
       continue;
     }

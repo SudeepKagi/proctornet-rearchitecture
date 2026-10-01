@@ -54,6 +54,7 @@ async function purgeData() {
         evidence_records,
         exam_analytics_cache,
         exam_attempts,
+        exam_entry_clearances,
         exam_questions,
         exam_sessions,
         exams,
@@ -94,7 +95,7 @@ async function purgeData() {
       DELETE FROM user_roles
       WHERE user_id NOT IN (
         SELECT user_id FROM users
-        WHERE email IN ('admin@proctornet.edu', 'developer@proctornet.edu')
+        WHERE email IN ('admin@proctornet.edu', 'developer@proctornet.edu', 'dev@proctornet.edu')
       );
     `);
 
@@ -102,7 +103,7 @@ async function purgeData() {
     console.log('[Purge] Purging non-admin, non-developer users...');
     const delUsersRes = await client.query(`
       DELETE FROM users
-      WHERE email NOT IN ('admin@proctornet.edu', 'developer@proctornet.edu');
+      WHERE email NOT IN ('admin@proctornet.edu', 'developer@proctornet.edu', 'dev@proctornet.edu');
     `);
     console.log(`[Purge] Deleted ${delUsersRes.rowCount} user rows.`);
 
@@ -135,7 +136,7 @@ async function purgeData() {
       ON CONFLICT (user_id, role) DO NOTHING;
     `, [adminId]);
 
-    // Developer account
+    // Developer account (developer@proctornet.edu)
     const devRes = await client.query(`
       INSERT INTO users (name, email, password_hash, status, verification_status, must_change_password, failed_login_attempts, locked_until)
       VALUES ('Developer Operations', 'developer@proctornet.edu', $1, 'ACTIVE', 'VERIFIED', FALSE, 0, NULL)
@@ -157,6 +158,29 @@ async function purgeData() {
       VALUES ($1, 'DEVELOPER')
       ON CONFLICT (user_id, role) DO NOTHING;
     `, [devId]);
+
+    // Developer account alias (dev@proctornet.edu)
+    const devAliasRes = await client.query(`
+      INSERT INTO users (name, email, password_hash, status, verification_status, must_change_password, failed_login_attempts, locked_until)
+      VALUES ('Developer Operations', 'dev@proctornet.edu', $1, 'ACTIVE', 'VERIFIED', FALSE, 0, NULL)
+      ON CONFLICT (email) DO UPDATE SET
+        name = 'Developer Operations',
+        password_hash = $1,
+        status = 'ACTIVE',
+        verification_status = 'VERIFIED',
+        must_change_password = FALSE,
+        failed_login_attempts = 0,
+        locked_until = NULL,
+        updated_at = NOW()
+      RETURNING user_id;
+    `, [devPassHash]);
+    const devAliasId = devAliasRes.rows[0].user_id;
+
+    await client.query(`
+      INSERT INTO user_roles (user_id, role)
+      VALUES ($1, 'DEVELOPER')
+      ON CONFLICT (user_id, role) DO NOTHING;
+    `, [devAliasId]);
 
     // 7. Update organization settings to point to Admin
     await client.query(`

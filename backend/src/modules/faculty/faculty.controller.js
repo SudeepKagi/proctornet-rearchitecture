@@ -126,56 +126,7 @@ export async function saveQuestionsToPoolHandler(req, res, next) {
 
 export async function scheduleExamHandler(req, res, next) {
   try {
-    const payload = req.body || {};
-    const {
-      title,
-      description,
-      duration_minutes,
-      durationMinutes,
-      total_marks,
-      totalMarks,
-      passing_marks,
-      passingMarks,
-      passing_percentage,
-      passingPercentage,
-      target_semester,
-      targetSemester,
-      target_department,
-      targetDepartment,
-      scheduled_start_time,
-      scheduledStartTime,
-      scheduled_end_time,
-      scheduledEndTime,
-      topic_rules,
-      topicRules,
-      pool_id,
-      poolId,
-      topic_id,
-      topicId,
-      question_ids,
-      questionIds
-    } = payload;
-
-    const result = await facultyService.scheduleExam(
-      {
-        title,
-        description,
-        durationMinutes: duration_minutes || durationMinutes,
-        totalMarks: total_marks || totalMarks,
-        passingMarks: passing_marks || passingMarks,
-        passingPercentage: passing_percentage ?? passingPercentage,
-        targetSemester: target_semester || targetSemester,
-        targetDepartment: target_department || targetDepartment,
-        scheduledStartTime: scheduled_start_time || scheduledStartTime,
-        scheduledEndTime: scheduled_end_time || scheduledEndTime,
-        topicRules: topic_rules || topicRules || [],
-        poolId: pool_id || poolId || topic_id || topicId,
-        pool_id: pool_id || poolId || topic_id || topicId,
-        questionIds: question_ids || questionIds || [],
-        question_ids: question_ids || questionIds || []
-      },
-      req.user?.userId
-    );
+    const result = await facultyService.scheduleExam(req.body, req.user?.userId);
 
     return res.status(201).json({
       status: 'success',
@@ -196,6 +147,16 @@ export async function scheduleExamHandler(req, res, next) {
       });
     }
     return next(err);
+  }
+}
+
+export async function getExamDetailsHandler(req, res, next) {
+  try {
+    const { examId } = req.params;
+    const result = await facultyService.getExamDetails(examId, req.user?.userId);
+    res.status(200).json({ status: 'success', data: result });
+  } catch (err) {
+    next(err);
   }
 }
 

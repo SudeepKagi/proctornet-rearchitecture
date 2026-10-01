@@ -21,7 +21,7 @@ export function AutosaveIndicator({ status = 'saved' }) {
     return (
       <div className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-600 dark:text-amber-400">
         <CloudOff className="h-3.5 w-3.5" aria-hidden="true" />
-        <span>Offline — buffered</span>
+        <span>Offline (buffered)</span>
       </div>
     );
   }

@@ -66,25 +66,7 @@ export async function authorizeParticipant({ sessionId, userId, roles, direction
     return { authorized: true, attemptId: attemptRes.rows[0].attempt_id };
   }
 
-  // 3. INVIGILATOR - assigned proctor
-  if (roles.includes('INVIGILATOR')) {
-    if (direction === 'send') {
-      return { authorized: false, reason: 'INVIGILATOR_CANNOT_PUBLISH' };
-    }
 
-    const invigRes = await query(
-      `SELECT 1 FROM session_invigilators
-       WHERE session_id = $1 AND user_id = $2
-       LIMIT 1;`,
-      [sessionId, userId]
-    );
-
-    if (invigRes.rows.length === 0) {
-      return { authorized: false, reason: 'INVIGILATOR_NOT_ASSIGNED_TO_SESSION' };
-    }
-
-    return { authorized: true };
-  }
 
   // 4. FACULTY - exam author
   if (roles.includes('FACULTY')) {

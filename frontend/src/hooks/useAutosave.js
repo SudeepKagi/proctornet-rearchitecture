@@ -47,7 +47,7 @@ export function useAutosave({
   }, [storageKey]);
 
   // Recover answers queued before a connectivity loss or tab reload. These
-  // records contain answers only—never credentials or signing material.
+  // records contain answers only, never credentials or signing material.
   useEffect(() => {
     if (!storageKey) return;
     try {

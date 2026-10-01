@@ -10,7 +10,7 @@ import { usePageMeta } from '../../hooks/usePageMeta.js';
 
 export function ContactPage() {
   usePageMeta({
-    title: 'Contact Project Team — Academic & Technical Inquiries',
+    title: 'Contact Project Team: Academic & Technical Inquiries',
     description:
       'Contact the student engineering team behind ProctorNet: technical questions, bug reports, academic evaluation inquiries, and architecture discussions.',
     canonical: '/contact',
@@ -27,6 +27,7 @@ export function ContactPage() {
   });
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
   const validate = () => {
     const errs = {};
@@ -53,7 +54,7 @@ export function ContactPage() {
     setErrors({});
     setIsSubmitting(true);
 
-    // Simulate clean client-side submission recording
+    // Record submission locally
     setTimeout(() => {
       try {
         const stored = JSON.parse(localStorage.getItem('proctornet_contact_submissions') || '[]');
@@ -66,7 +67,7 @@ export function ContactPage() {
         // Storage error fallback
       }
       setIsSubmitting(false);
-      navigate('/thank-you?type=contact');
+      setIsSubmitted(true);
     }, 400);
   };
 
@@ -93,7 +94,53 @@ export function ContactPage() {
         </p>
       </div>
 
-      <div className="card-interactive" style={{ padding: '36px' }}>
+      {isSubmitted ? (
+        <div className="card-interactive" style={{ padding: '40px 32px', textAlign: 'center' }}>
+          <div
+            style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '50%',
+              backgroundColor: '#f0fdf4',
+              border: '2px solid #86efac',
+              color: '#16a34a',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '1.5rem',
+              fontWeight: 700,
+              margin: '0 auto 16px',
+            }}
+          >
+            ✓
+          </div>
+          <h2 style={{ fontSize: '1.375rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: '0 0 10px' }}>
+            Message Sent Successfully
+          </h2>
+          <p style={{ fontSize: '0.95rem', color: 'var(--color-text-muted)', lineHeight: 1.6, maxWidth: '520px', margin: '0 auto 24px' }}>
+            Thank you for reaching out, <strong>{formData.name}</strong>. Your inquiry has been received. The project maintainers will review your message and reply to <strong>{formData.email}</strong>.
+          </p>
+          <button
+            type="button"
+            className="btn-academic-secondary"
+            onClick={() => {
+              setFormData({
+                name: '',
+                email: '',
+                inquiryType: 'general',
+                institution: '',
+                message: '',
+                privacyAccepted: false,
+              });
+              setIsSubmitted(false);
+            }}
+            style={{ padding: '10px 20px', fontSize: '0.9375rem' }}
+          >
+            Send Another Message
+          </button>
+        </div>
+      ) : (
+        <div className="card-interactive" style={{ padding: '36px' }}>
         <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           {/* Name Field */}
           <div>
@@ -278,6 +325,7 @@ export function ContactPage() {
           </div>
         </form>
       </div>
+      )}
     </div>
   );
 }

@@ -86,6 +86,7 @@ export function SessionMonitorPage() {
   // Modal and Drawer States
   const [selectedCandidateId, setSelectedCandidateId] = useState(null);
   const [activeModal, setActiveModal] = useState(null); // 'announcement' | 'message' | 'pause' | 'resume' | 'terminate' | 'evidence' | 'incident' | 'signoff'
+  const [liveEvidenceList, setLiveEvidenceList] = useState([]);
 
   const loadData = useCallback(
     async (isRefresh = false) => {
@@ -201,6 +202,11 @@ export function SessionMonitorPage() {
     loadData(true);
   }, [loadData]);
 
+  const handleLiveEvidenceRecorded = useCallback((payload) => {
+    if (!payload) return;
+    setLiveEvidenceList((prev) => [payload, ...prev]);
+  }, []);
+
   const realtimeHandlers = useMemo(
     () => ({
       'proctoring:risk_score_updated': handleRiskScoreUpdated,
@@ -212,6 +218,7 @@ export function SessionMonitorPage() {
       'candidate:terminated': handleInterventionEvent,
       'invigilator:intervention_logged': handleInterventionEvent,
       'session:concluded': handleInterventionEvent,
+      'VIOLATION_EVIDENCE_RECORDED': handleLiveEvidenceRecorded,
     }),
     [
       handleRiskScoreUpdated,
@@ -219,6 +226,7 @@ export function SessionMonitorPage() {
       handleFlagReviewed,
       handlePresenceChanged,
       handleInterventionEvent,
+      handleLiveEvidenceRecorded,
     ]
   );
 
@@ -521,7 +529,7 @@ export function SessionMonitorPage() {
                               </div>
                             </TableCell>
                             <TableCell className="text-xs text-slate-500 dark:text-slate-400 font-mono">
-                              {st.email || '—'}
+                              {st.email || '-'}
                             </TableCell>
                             <TableCell>
                               <Badge variant="outline" size="sm">
@@ -603,7 +611,7 @@ export function SessionMonitorPage() {
                         {r.score} / {r.total_marks}
                       </TableCell>
                       <TableCell className="text-xs text-slate-600 dark:text-slate-400">
-                        {r.percentage !== undefined ? `${Number(r.percentage).toFixed(2)}%` : '—'}
+                        {r.percentage !== undefined ? `${Number(r.percentage).toFixed(2)}%` : '-'}
                       </TableCell>
                       <TableCell>
                         <Badge variant={r.is_passed ? 'success' : 'destructive'} size="sm">
@@ -674,6 +682,7 @@ export function SessionMonitorPage() {
             onClose={() => setActiveModal(null)}
             attemptId={selectedCandidate.attemptId}
             candidateName={selectedCandidate.name}
+            liveEvidence={liveEvidenceList.filter((e) => e.attemptId === selectedCandidate.attemptId)}
           />
         </>
       )}

@@ -146,6 +146,7 @@ export function ExamTakingPage() {
   });
 
   const inputsDisabled =
+    !isFullscreen ||
     isExpired ||
     isSubmitting ||
     autoSubmittingBanner ||
@@ -249,6 +250,99 @@ export function ExamTakingPage() {
     attemptId,
     isActive: Boolean(attempt && attemptStatus === 'ACTIVE' && !isExpired && !isSubmitting),
   });
+
+  // Fullscreen Security & Violation Enforcement
+  const [isFullscreen, setIsFullscreen] = useState(
+    typeof document !== 'undefined' ? Boolean(document.fullscreenElement) : true
+  );
+  const [fullscreenExitCount, setFullscreenExitCount] = useState(0);
+
+  const captureViolationSnapshot = useCallback((violationType = 'FULLSCREEN_EXIT') => {
+    const videoTrack = (screenStream || mediaStream)?.getVideoTracks()?.[0];
+    const canvas = document.createElement('canvas');
+    canvas.width = 640;
+    canvas.height = 480;
+    const ctx = canvas.getContext('2d');
+
+    const dispatchSnapshot = (dataUrl) => {
+      if (send && attempt?.session_id) {
+        send({
+          type: 'VIOLATION_EVIDENCE_RECORDED',
+          payload: {
+            sessionId: attempt.session_id,
+            attemptId,
+            studentName: attempt.candidate_name || 'Candidate',
+            violationType,
+            timestamp: new Date().toISOString(),
+            screenshotUrl: dataUrl
+          }
+        });
+      }
+    };
+
+    if (videoTrack && typeof ImageCapture !== 'undefined') {
+      try {
+        const imageCapture = new ImageCapture(videoTrack);
+        imageCapture.grabFrame().then((imageBitmap) => {
+          ctx.drawImage(imageBitmap, 0, 0, 640, 480);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+          dispatchSnapshot(dataUrl);
+        }).catch(() => {
+          renderFallbackFrame();
+        });
+        return;
+      } catch {
+        // fallback
+      }
+    }
+
+    renderFallbackFrame();
+
+    function renderFallbackFrame() {
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(0, 0, 640, 480);
+      ctx.fillStyle = '#ef4444';
+      ctx.fillRect(0, 0, 640, 40);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 16px sans-serif';
+      ctx.fillText('SECURITY VIOLATION EVIDENCE: ' + violationType, 20, 26);
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '14px sans-serif';
+      ctx.fillText('Attempt: ' + (attemptId || 'Unknown'), 20, 80);
+      ctx.fillText('Time: ' + new Date().toLocaleTimeString(), 20, 110);
+      ctx.fillText('Violation Warning Count: ' + (fullscreenExitCount + 1), 20, 140);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+      dispatchSnapshot(dataUrl);
+    }
+  }, [screenStream, mediaStream, send, attempt, attemptId, fullscreenExitCount]);
+
+  useEffect(() => {
+    const handleFsChange = () => {
+      const inFs = Boolean(document.fullscreenElement);
+      setIsFullscreen(inFs);
+      if (!inFs && attempt && attemptStatus === 'ACTIVE' && !isExpired && !isSubmitting) {
+        setFullscreenExitCount((prev) => prev + 1);
+        captureViolationSnapshot('FULLSCREEN_EXIT');
+      }
+    };
+
+    document.addEventListener('fullscreenchange', handleFsChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFsChange);
+    };
+  }, [attempt, attemptStatus, isExpired, isSubmitting, captureViolationSnapshot]);
+
+  const handleReturnToFullscreen = async () => {
+    try {
+      if (document.documentElement.requestFullscreen) {
+        await document.documentElement.requestFullscreen();
+      }
+      setIsFullscreen(true);
+    } catch (e) {
+      console.warn('Could not re-enter fullscreen:', e);
+      setIsFullscreen(true);
+    }
+  };
 
   useEffect(() => {
     if (mediaVideoRef.current && mediaStream) {
@@ -566,6 +660,36 @@ export function ExamTakingPage() {
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold"
             >
               Resume Screen Sharing
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Fullscreen Mode Exit Mandatory Enforcement Modal */}
+      {!isFullscreen && attempt && attemptStatus === 'ACTIVE' && !isExpired && !isSubmitting && (
+        <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 border-2 border-red-600 rounded-2xl max-w-lg w-full p-8 text-center space-y-6 shadow-2xl">
+            <div className="w-16 h-16 bg-red-100 dark:bg-red-950/70 text-red-600 rounded-full flex items-center justify-center mx-auto ring-8 ring-red-50 dark:ring-red-950/30">
+              <AlertTriangle size={32} />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+                Fullscreen Mode Required
+              </h2>
+              <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                Leaving fullscreen mode violates exam security policy. Your exam inputs are paused, and a security incident snapshot has been transmitted to your invigilator.
+              </p>
+            </div>
+
+            <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 rounded-lg p-3 text-xs text-red-700 dark:text-red-300 font-medium">
+              Recorded Fullscreen Exits: <span className="font-bold text-sm">{fullscreenExitCount}</span>
+            </div>
+
+            <Button
+              onClick={handleReturnToFullscreen}
+              className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 text-sm shadow-md"
+            >
+              Return to Fullscreen Now
             </Button>
           </div>
         </div>

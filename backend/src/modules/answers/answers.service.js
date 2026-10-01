@@ -15,7 +15,6 @@ import { logger } from '../../utils/logger.js';
 import { AttemptStatus } from '../../domain/attempt/attemptStates.js';
 import { transitionAttemptState } from '../../domain/attempt/attemptStateMachine.js';
 import * as answersRepo from './answers.repository.js';
-import { finalizeAttempt } from '../submissions/submissions.service.js';
 import { answerSaveDuration, answerRevisionsConflictTotal } from '../../infrastructure/metrics/registry.js';
 
 /**

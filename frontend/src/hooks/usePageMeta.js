@@ -17,8 +17,8 @@ export function usePageMeta({ title, description, canonical }) {
   useEffect(() => {
     // 1. Update Document Title
     const formattedTitle = title
-      ? `${title} | ProctorNet — Academic Examination Platform`
-      : 'ProctorNet — Academic Online Examination & Ethical Remote Proctoring Platform';
+      ? `${title} | ProctorNet: Academic Examination Platform`
+      : 'ProctorNet: Academic Online Examination & Remote Proctoring Platform';
     document.title = formattedTitle;
 
     // Helper to get or create a meta tag

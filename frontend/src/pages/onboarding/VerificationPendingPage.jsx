@@ -85,7 +85,7 @@ export function VerificationPendingPage() {
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-slate-500 dark:text-slate-400 font-medium">Department:</span>
-                    <span className="font-semibold text-slate-900 dark:text-slate-100">{statusData.facultyProfile?.department || statusData.studentProfile?.department || statusData.department || '—'}</span>
+                    <span className="font-semibold text-slate-900 dark:text-slate-100">{statusData.facultyProfile?.department || statusData.studentProfile?.department || statusData.department || '-'}</span>
                   </div>
                   {(statusData.studentProfile?.enrollmentNumber) && (
                     <div className="flex justify-between items-center">

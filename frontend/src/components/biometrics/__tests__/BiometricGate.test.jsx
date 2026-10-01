@@ -15,7 +15,7 @@ describe('BiometricGate - parseBiometricError', () => {
       expect(parsed.category).toBe('reference_unavailable');
       expect(parsed.title).toBe('Reference Photo Missing');
       expect(parsed.message).toContain("We don't have a reference photo on file to check against");
-      expect(parsed.message).toContain("this isn't something retaking the photo will fix");
+      expect(parsed.message).toContain("this cannot be resolved by retaking the photo");
     });
 
     it('accurately resolves SIMILARITY_BELOW_THRESHOLD with lighting and invigilator guidance', () => {

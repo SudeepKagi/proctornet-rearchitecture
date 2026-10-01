@@ -44,7 +44,7 @@ export function parseBiometricError(err) {
       case 'REFERENCE_DATA_UNAVAILABLE':
         return {
           title: 'Reference Photo Missing',
-          message: "We don't have a reference photo on file to check against. Please contact your instructor or administrator — this isn't something retaking the photo will fix.",
+          message: "We don't have a reference photo on file to check against. Please contact your instructor or administrator; this cannot be resolved by retaking the photo.",
           category: 'reference_unavailable'
         };
 
@@ -130,7 +130,7 @@ export function parseBiometricError(err) {
   ) {
     return {
       title: 'Reference Photo Missing',
-      message: "We don't have a reference photo on file to check against. Please contact your instructor or administrator — this isn't something retaking the photo will fix.",
+      message: "We don't have a reference photo on file to check against. Please contact your instructor or administrator; this cannot be resolved by retaking the photo.",
       category: 'reference_unavailable'
     };
   }

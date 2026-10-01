@@ -141,20 +141,29 @@ export function CandidateProfilePage() {
         getEnrollmentStatus().catch(() => null)
       ]);
 
-      const p = profileRes?.userId
-        ? profileRes
-        : profileRes?.data?.profile || profileRes?.profile || null;
+      const raw = profileRes?.data?.profile || profileRes?.profile || profileRes?.data || profileRes;
+      const p = (raw?.user_id || raw?.userId) ? raw : null;
 
       if (!p) {
         throw new Error('Unable to retrieve candidate profile records.');
       }
 
-      setProfile(p);
+      const normalized = {
+        ...p,
+        userId: p.userId || p.user_id,
+        enrollmentNumber: p.enrollmentNumber || p.enrollment_number,
+        department: p.department || p.department_name,
+        verificationStatus: p.verificationStatus || p.verification_status,
+        enrolledFacePhotoUrl: p.face_photo_url || p.enrolledFacePhotoUrl || p.facePhotoUrl,
+        photoReviewStatus: p.photo_review_status || p.photoReviewStatus || 'NONE'
+      };
+
+      setProfile(normalized);
       setEnrollment(enrollRes);
 
       const formData = {
-        name: p.name || '',
-        phone: p.phone || ''
+        name: normalized.name || '',
+        phone: normalized.phone || ''
       };
       setForm(formData);
       setInitialForm(formData);
@@ -371,19 +380,16 @@ export function CandidateProfilePage() {
     try {
       const res = await reEnrollFacePhoto(capturedBlob);
       setPhotoSuccess(
-        `Biometric reference photo re-enrolled successfully (Version ${res.data?.version || 2})!`
+        'Photo submitted! Your updated photo is awaiting administrator approval before becoming your active reference.'
       );
-      if (res.data?.photoUrl) {
-        setProfile((prev) => ({
-          ...prev,
-          enrolledFacePhotoUrl: res.data.photoUrl,
-          verificationStatus: res.data.verificationStatus || prev.verificationStatus
-        }));
-      }
+      setProfile((prev) => ({
+        ...prev,
+        photoReviewStatus: 'PENDING'
+      }));
       setTimeout(() => {
         closePhotoModal();
         loadProfile();
-      }, 1500);
+      }, 2000);
     } catch (err) {
       const code = err?.data?.code || err?.code;
       let msg = err?.data?.message || err?.message || 'Biometric re-enrollment failed.';
@@ -929,7 +935,7 @@ export function CandidateProfilePage() {
               Capture Reference Face Photo
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Live webcam capture is required. This photo serves as your baseline reference for pre-exam identity verification.
+              Live webcam capture is required. To protect exam integrity, any updated photo must be reviewed and approved by an administrator before it becomes your active verification photo.
             </DialogDescription>
           </DialogHeader>
 
@@ -993,7 +999,7 @@ export function CandidateProfilePage() {
                   ) : (
                     <CheckCircle2 size={13} />
                   )}
-                  {photoProcessing ? 'Extracting & Enrolling…' : 'Save Reference Photo'}
+                  {photoProcessing ? 'Submitting Photo…' : 'Submit for Admin Review'}
                 </Button>
               </>
             ) : (

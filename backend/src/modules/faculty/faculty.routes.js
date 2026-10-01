@@ -13,7 +13,7 @@ import * as facultyController from './faculty.controller.js';
 
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 50 * 1024 * 1024 } // 50MB max PDF upload
+  limits: { fileSize: 100 * 1024 * 1024 } // 100MB max PDF upload
 });
 
 export const facultyRouter = Router();
@@ -26,18 +26,10 @@ facultyRouter.get('/dashboard/stats', facultyController.getDashboardStatsHandler
 
 // 2. Exams Management & Scheduling
 facultyRouter.get('/exams', facultyController.listFacultyExamsHandler);
+facultyRouter.get('/exams/:examId', facultyController.getExamDetailsHandler);
 facultyRouter.post('/exams/schedule', facultyController.scheduleExamHandler);
+facultyRouter.post('/exams', facultyController.scheduleExamHandler);
 facultyRouter.put('/exams/:examId', facultyController.updateFacultyExamHandler);
 facultyRouter.put('/exams/:examId/cancel', facultyController.cancelExamHandler);
 facultyRouter.get('/exams/:examId/analytics-summary', facultyController.getExamAnalyticsSummaryHandler);
-
-// 3. Question Pools & AI PDF Generation
-facultyRouter.get('/question-pools', facultyController.listQuestionPoolsHandler);
-facultyRouter.post('/question-pools', facultyController.createQuestionPoolHandler);
-facultyRouter.get('/question-pools/:topicId/questions', facultyController.getTopicPoolQuestionsHandler);
-facultyRouter.post(
-  '/question-pools/generate-from-pdf',
-  upload.single('pdf'),
-  facultyController.generateMCQsFromPdfHandler
-);
-facultyRouter.post('/question-pools/:topicId/save-questions', facultyController.saveQuestionsToPoolHandler);
+facultyRouter.post('/exams/generate-from-pdf', upload.single('pdf'), facultyController.generateMCQsFromPdfHandler);

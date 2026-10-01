@@ -21,7 +21,7 @@ import {
   Award,
   ChevronDown,
   GraduationCap,
-  UserCheck,
+  Terminal,
   Sparkles,
 } from 'lucide-react';
 
@@ -40,7 +40,6 @@ export function LandingPage() {
     if (user.roles?.includes('ADMIN')) return '/admin';
     if (user.roles?.includes('DEVELOPER')) return '/developer/overview';
     if (user.roles?.includes('FACULTY')) return '/faculty';
-    if (user.roles?.includes('INVIGILATOR')) return '/invigilator';
     return '/candidate';
   };
 
@@ -381,7 +380,7 @@ export function LandingPage() {
                   Monitor Active Sessions
                 </h3>
                 <p style={{ fontSize: '0.875rem', color: '#475569', lineHeight: 1.6, margin: 0 }}>
-                  Invigilators track session readiness, participant connectivity status, and submission progress in real time during live exam windows.
+                  Faculty oversee session readiness, participant connectivity status, and submission progress in real time during live exam windows.
                 </p>
               </div>
 
@@ -425,7 +424,7 @@ export function LandingPage() {
 
         {/* ================================================================ */}
         {/* 3. ROLES / USERS SECTION                                         */}
-        {/* Student, Faculty, Invigilator, Admin (No Developer)              */}
+        {/* Student, Faculty, Developer, Admin                               */}
         {/* ================================================================ */}
         <section
           id="roles"
@@ -520,15 +519,15 @@ export function LandingPage() {
                 >
                   <li style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
                     <CheckCircle2 size={16} color="#1d4ed8" style={{ marginTop: '2px', flexShrink: 0 }} />
-                    <span>View assigned tests & schedules</span>
+                    <span>View assigned tests for your branch and semester</span>
                   </li>
                   <li style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
                     <CheckCircle2 size={16} color="#1d4ed8" style={{ marginTop: '2px', flexShrink: 0 }} />
-                    <span>Take exams with continuous autosave</span>
+                    <span>Take exams with continuous autosave and timer</span>
                   </li>
                   <li style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
                     <CheckCircle2 size={16} color="#1d4ed8" style={{ marginTop: '2px', flexShrink: 0 }} />
-                    <span>Review scores and answer feedback</span>
+                    <span>View evaluated results and performance scores</span>
                   </li>
                 </ul>
               </div>
@@ -575,20 +574,20 @@ export function LandingPage() {
                 >
                   <li style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
                     <CheckCircle2 size={16} color="#1d4ed8" style={{ marginTop: '2px', flexShrink: 0 }} />
-                    <span>Author questions and question banks</span>
+                    <span>Create exams manually or generate questions from PDF</span>
                   </li>
                   <li style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
                     <CheckCircle2 size={16} color="#1d4ed8" style={{ marginTop: '2px', flexShrink: 0 }} />
-                    <span>Schedule exam sessions & durations</span>
+                    <span>Schedule exams assigned to specific branch and semester</span>
                   </li>
                   <li style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
                     <CheckCircle2 size={16} color="#1d4ed8" style={{ marginTop: '2px', flexShrink: 0 }} />
-                    <span>Perform manual grading on subjective answers</span>
+                    <span>Invigilate active exams, view violations, and review results</span>
                   </li>
                 </ul>
               </div>
 
-              {/* Role 3: Invigilator */}
+              {/* Role 3: Developer */}
               <div
                 style={{
                   border: '1px solid #e2e8f0',
@@ -610,10 +609,10 @@ export function LandingPage() {
                       color: '#1d4ed8',
                     }}
                   >
-                    <UserCheck size={18} />
+                    <Terminal size={18} />
                   </span>
                   <h3 style={{ fontSize: '1.0625rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
-                    Invigilator
+                    Developer
                   </h3>
                 </div>
                 <ul
@@ -630,15 +629,15 @@ export function LandingPage() {
                 >
                   <li style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
                     <CheckCircle2 size={16} color="#1d4ed8" style={{ marginTop: '2px', flexShrink: 0 }} />
-                    <span>Monitor live candidate connection status</span>
+                    <span>Monitor subsystem health and live telemetry</span>
                   </li>
                   <li style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
                     <CheckCircle2 size={16} color="#1d4ed8" style={{ marginTop: '2px', flexShrink: 0 }} />
-                    <span>Track real-time examination submissions</span>
+                    <span>Inspect real-time logs, errors, and system events</span>
                   </li>
                   <li style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
                     <CheckCircle2 size={16} color="#1d4ed8" style={{ marginTop: '2px', flexShrink: 0 }} />
-                    <span>Ensure test session protocol compliance</span>
+                    <span>View topology status, cache state, and audit feeds</span>
                   </li>
                 </ul>
               </div>
@@ -685,15 +684,15 @@ export function LandingPage() {
                 >
                   <li style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
                     <CheckCircle2 size={16} color="#1d4ed8" style={{ marginTop: '2px', flexShrink: 0 }} />
-                    <span>Manage user accounts & role provisioning</span>
+                    <span>Create and manage user accounts with strict single roles</span>
                   </li>
                   <li style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
                     <CheckCircle2 size={16} color="#1d4ed8" style={{ marginTop: '2px', flexShrink: 0 }} />
-                    <span>Configure institutional security policies</span>
+                    <span>Provision credentials directly for students, faculty, and developers</span>
                   </li>
                   <li style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
                     <CheckCircle2 size={16} color="#1d4ed8" style={{ marginTop: '2px', flexShrink: 0 }} />
-                    <span>Review system audit trails and logs</span>
+                    <span>Maintain institutional security and audit records</span>
                   </li>
                 </ul>
               </div>

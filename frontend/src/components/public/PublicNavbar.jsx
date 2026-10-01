@@ -32,7 +32,6 @@ export function PublicNavbar() {
     if (user.roles?.includes('ADMIN')) return '/admin';
     if (user.roles?.includes('DEVELOPER')) return '/developer/overview';
     if (user.roles?.includes('FACULTY')) return '/faculty';
-    if (user.roles?.includes('INVIGILATOR')) return '/invigilator';
     return '/candidate';
   };
 

@@ -7,7 +7,7 @@ import * as userService from './user.service.js';
 import * as userRepo from './user.repository.js';
 import * as orgSettingsService from './orgSettings.service.js';
 import { parseUserRoster } from './excelParser.service.js';
-import * as candidateIdentityService from '../candidate/candidateIdentity.service.js';
+import * as studentService from '../student/student.service.js';
 import {
   createUserSchema,
   updateUserStatusSchema,
@@ -173,8 +173,8 @@ export async function handleGetVerificationQueue(req, res, next) {
 
 export async function handleGetStudentVerificationDossier(req, res, next) {
   try {
-    const result = await candidateIdentityService.getStudentVerificationDossier(req.params.id);
-    res.status(200).json(result);
+    const profile = await studentService.getProfile(req.params.id);
+    res.status(200).json({ success: true, data: profile });
   } catch (err) {
     next(err);
   }
@@ -182,8 +182,8 @@ export async function handleGetStudentVerificationDossier(req, res, next) {
 
 export async function handleGetStudentDocumentPreview(req, res, next) {
   try {
-    const result = await candidateIdentityService.getDocumentPreviewUrl(req.params.id, req.user.userId);
-    res.status(200).json(result);
+    const profile = await studentService.getProfile(req.params.id);
+    res.status(200).json({ url: profile.college_id_url || profile.face_photo_url });
   } catch (err) {
     next(err);
   }
@@ -192,7 +192,7 @@ export async function handleGetStudentDocumentPreview(req, res, next) {
 export async function handleReviewStudentVerification(req, res, next) {
   try {
     const { decision, reviewNotes } = req.body;
-    const result = await candidateIdentityService.reviewStudentVerification({
+    const result = await userService.reviewVerificationStatus({
       targetUserId: req.params.id,
       decision,
       reviewNotes,

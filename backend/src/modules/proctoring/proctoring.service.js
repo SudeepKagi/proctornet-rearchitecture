@@ -8,8 +8,6 @@
 import { getPool } from '../../infrastructure/postgres/pool.js';
 import * as proctoringRepo from './proctoring.repository.js';
 import { EVENT_TAXONOMY, calculateNewRiskScore, evaluateFlagsToRaise, getEventWeight } from './anomalyScorer.js';
-import { insertOutboxEvent } from '../outbox/outbox.repository.js';
-import { triggerOutboxDispatch } from '../outbox/outbox.service.js';
 import { recordAuditEvent } from '../audit/audit.service.js';
 import {
   proctoringEventsTotal,
@@ -205,26 +203,6 @@ export async function ingestCandidateEvents(attemptId, user, events) {
             createdAt: createdFlag.created_at
           });
 
-          // Atomically insert PROCTORING_FLAG_RAISED into outbox_events
-          await insertOutboxEvent(
-            {
-              aggregateType: 'ATTEMPT',
-              aggregateId: attemptId,
-              eventType: 'PROCTORING_FLAG_RAISED',
-              payload: {
-                flagId: createdFlag.flag_id,
-                attemptId,
-                sessionId: attempt.session_id,
-                studentId: attempt.student_id,
-                flagType: flag.flagType,
-                severity: flag.severity,
-                details: flag.details,
-                createdAt: createdFlag.created_at
-              }
-            },
-            client
-          );
-
           proctoringFlagsTotal.inc({ flag_type: flag.flagType, severity: flag.severity });
         }
       }
@@ -273,15 +251,6 @@ export async function ingestCandidateEvents(attemptId, user, events) {
 
     for (const row of insertedRows) {
       proctoringEventsTotal.inc({ event_type: row.event_type, severity: row.severity });
-    }
-
-    // 9. Asynchronously trigger outbox poller if new flags were raised
-    if (flagsCreated > 0) {
-      setImmediate(() => {
-        triggerOutboxDispatch().catch((err) => {
-          logger.error({ err, attemptId }, 'Background outbox dispatch error after proctoring flag raised');
-        });
-      });
     }
 
     // Count active flags for response

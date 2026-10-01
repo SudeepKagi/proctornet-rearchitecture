@@ -10,7 +10,7 @@ import { PROJECT_INFO } from '../../content/projectInfo.js';
 
 export function AboutPage() {
   usePageMeta({
-    title: 'About ProctorNet — Educational Capstone Project',
+    title: 'About ProctorNet: Educational Capstone Project',
     description:
       'Learn about ProctorNet: an open-source online examination platform built for educational institutions with privacy-first student verification, autosave, and fair proctoring.',
     canonical: '/about',

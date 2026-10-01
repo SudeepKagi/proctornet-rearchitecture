@@ -122,3 +122,21 @@ export async function getMyAttempt(req, res, next) {
     return next(err);
   }
 }
+
+/**
+ * Submits an exam attempt.
+ * POST /api/v1/attempts/:attemptId/submit
+ */
+export async function submitAttempt(req, res, next) {
+  try {
+    const { attemptId } = attemptIdParamsSchema.parse(req.params);
+    const result = await attemptsService.submitAttempt(attemptId, req.body || {}, req.user, req.id);
+
+    return res.status(200).json({
+      success: true,
+      data: result
+    });
+  } catch (err) {
+    return next(err);
+  }
+}

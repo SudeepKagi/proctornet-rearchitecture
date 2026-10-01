@@ -71,7 +71,6 @@ export async function loadAttemptQuestionsWithAnswers(attemptId, client = null) 
       q.question_id,
       q.question_type,
       q.default_points,
-      q.correct_numeric_value,
       a.answer_id,
       a.answer_value,
       a.revision

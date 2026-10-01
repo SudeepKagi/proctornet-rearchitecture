@@ -14,8 +14,8 @@ export async function findUserByEmail(email) {
   const text = `
     SELECT u.user_id, u.name, u.email, u.phone, u.password_hash, u.status, u.must_change_password, u.verification_status,
            u.failed_login_attempts, u.locked_until, u.created_at, u.updated_at,
-           COALESCE(u.enrolled_face_photo_url, sp.enrolled_face_photo_url) AS enrolled_face_photo_url,
-           COALESCE(u.id_document_url, sp.id_document_url) AS id_document_url
+           COALESCE(u.enrolled_face_photo_url, sp.face_photo_url) AS enrolled_face_photo_url,
+           COALESCE(u.id_document_url, sp.college_id_url) AS id_document_url
     FROM users u
     LEFT JOIN student_profiles sp ON sp.user_id = u.user_id
     WHERE u.email = $1;
@@ -33,8 +33,8 @@ export async function findUserById(userId) {
   const text = `
     SELECT u.user_id, u.name, u.email, u.phone, u.status, u.must_change_password, u.verification_status,
            u.failed_login_attempts, u.locked_until, u.created_at, u.updated_at,
-           COALESCE(u.enrolled_face_photo_url, sp.enrolled_face_photo_url) AS enrolled_face_photo_url,
-           COALESCE(u.id_document_url, sp.id_document_url) AS id_document_url
+           COALESCE(u.enrolled_face_photo_url, sp.face_photo_url) AS enrolled_face_photo_url,
+           COALESCE(u.id_document_url, sp.college_id_url) AS id_document_url
     FROM users u
     LEFT JOIN student_profiles sp ON sp.user_id = u.user_id
     WHERE u.user_id = $1;
@@ -168,27 +168,25 @@ export async function createUser({
     // 3. Insert specific profile if provided
     if (role === 'STUDENT' && studentProfile) {
       const insertStudentText = `
-        INSERT INTO student_profiles (user_id, enrollment_number, department, semester, metadata)
-        VALUES ($1, $2, $3, $4, $5);
+        INSERT INTO student_profiles (user_id, enrollment_number, semester, department_id)
+        VALUES ($1, $2, $3, $4);
       `;
       await client.query(insertStudentText, [
         user.user_id,
         studentProfile.enrollment_number,
-        studentProfile.department,
-        studentProfile.semester,
-        JSON.stringify(studentProfile.metadata || {})
+        studentProfile.semester || null,
+        studentProfile.department_id || null
       ]);
-    } else if ((role === 'FACULTY' || role === 'INVIGILATOR') && facultyProfile) {
+    } else if (role === 'FACULTY' && facultyProfile) {
       const insertFacultyText = `
-        INSERT INTO faculty_profiles (user_id, employee_id, department, designation, metadata)
-        VALUES ($1, $2, $3, $4, $5);
+        INSERT INTO faculty_profiles (user_id, employee_id, designation, department_id)
+        VALUES ($1, $2, $3, $4);
       `;
       await client.query(insertFacultyText, [
         user.user_id,
         facultyProfile.employee_id,
-        facultyProfile.department,
-        facultyProfile.designation,
-        JSON.stringify(facultyProfile.metadata || {})
+        facultyProfile.designation || null,
+        facultyProfile.department_id || null
       ]);
     }
 

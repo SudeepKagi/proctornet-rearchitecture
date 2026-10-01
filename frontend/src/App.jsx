@@ -23,9 +23,8 @@ const lazyNamed = (load, name) => lazy(async () => {
 const LoginPage = lazyNamed(() => import('./pages/auth/LoginPage.jsx'), 'LoginPage');
 const RegisterPage = lazyNamed(() => import('./pages/auth/RegisterPage.jsx'), 'RegisterPage');
 const FirstLoginPasswordPage = lazyNamed(() => import('./pages/onboarding/FirstLoginPasswordPage.jsx'), 'FirstLoginPasswordPage');
-const StudentOnboardingPage = lazyNamed(() => import('./pages/onboarding/StudentOnboardingPage.jsx'), 'StudentOnboardingPage');
+const StudentSetupPage = lazyNamed(() => import('./pages/onboarding/StudentSetupPage.jsx'), 'StudentSetupPage');
 const FacultyOnboardingPage = lazyNamed(() => import('./pages/onboarding/FacultyOnboardingPage.jsx'), 'FacultyOnboardingPage');
-const CandidateDocumentUploadPage = lazyNamed(() => import('./pages/onboarding/CandidateDocumentUploadPage.jsx'), 'CandidateDocumentUploadPage');
 const VerificationPendingPage = lazyNamed(() => import('./pages/onboarding/VerificationPendingPage.jsx'), 'VerificationPendingPage');
 const VerificationRejectedPage = lazyNamed(() => import('./pages/onboarding/VerificationRejectedPage.jsx'), 'VerificationRejectedPage');
 const CandidateDashboardPage = lazyNamed(() => import('./pages/candidate/CandidateDashboardPage.jsx'), 'CandidateDashboardPage');
@@ -35,26 +34,17 @@ const PreExamReadinessPage = lazyNamed(() => import('./pages/candidate/PreExamRe
 const ExamLobbyPage = lazyNamed(() => import('./pages/candidate/ExamLobbyPage.jsx'), 'ExamLobbyPage');
 const ExamTakingPage = lazyNamed(() => import('./pages/candidate/ExamTakingPage.jsx'), 'ExamTakingPage');
 const CandidateResultPage = lazyNamed(() => import('./pages/candidate/CandidateResultPage.jsx'), 'CandidateResultPage');
-const CandidateFaceEnrollmentPage = lazy(() => import('./pages/candidate/CandidateFaceEnrollmentPage.jsx'));
-const CandidateEnrollmentPage = lazyNamed(() => import('./pages/candidate/CandidateEnrollmentPage.jsx'), 'CandidateEnrollmentPage');
 const FacultyDashboardPage = lazyNamed(() => import('./pages/faculty/FacultyDashboardPage.jsx'), 'FacultyDashboardPage');
 const FacultyExamsPage = lazyNamed(() => import('./pages/faculty/FacultyExamsPage.jsx'), 'FacultyExamsPage');
-const FacultyQuestionPoolsPage = lazyNamed(() => import('./pages/faculty/FacultyQuestionPoolsPage.jsx'), 'FacultyQuestionPoolsPage');
-const ExamEditorPage = lazyNamed(() => import('./pages/faculty/ExamEditorPage.jsx'), 'ExamEditorPage');
+const CreateExamPage = lazyNamed(() => import('./pages/faculty/CreateExamPage.jsx'), 'CreateExamPage');
 const FacultyResultsPage = lazyNamed(() => import('./pages/faculty/FacultyResultsPage.jsx'), 'FacultyResultsPage');
-const SessionManagerPage = lazyNamed(() => import('./pages/faculty/SessionManagerPage.jsx'), 'SessionManagerPage');
-const QuestionBankPage = lazyNamed(() => import('./pages/faculty/QuestionBankPage.jsx'), 'QuestionBankPage');
-const ManualGradingPage = lazyNamed(() => import('./pages/faculty/ManualGradingPage.jsx'), 'ManualGradingPage');
-const InvigilatorDashboardPage = lazyNamed(() => import('./pages/invigilator/InvigilatorDashboardPage.jsx'), 'InvigilatorDashboardPage');
 const SessionMonitorPage = lazyNamed(() => import('./pages/invigilator/SessionMonitorPage.jsx'), 'SessionMonitorPage');
 const AdminOverviewPage = lazyNamed(() => import('./pages/admin/AdminOverviewPage.jsx'), 'AdminOverviewPage');
 const UserManagementPage = lazyNamed(() => import('./pages/admin/UserManagementPage.jsx'), 'UserManagementPage');
 const CreateUserPage = lazyNamed(() => import('./pages/admin/CreateUserPage.jsx'), 'CreateUserPage');
 const BulkImportPage = lazyNamed(() => import('./pages/admin/BulkImportPage.jsx'), 'BulkImportPage');
 const AdminVerificationPage = lazyNamed(() => import('./pages/admin/AdminVerificationPage.jsx'), 'AdminVerificationPage');
-const StudentConfigurationPage = lazyNamed(() => import('./pages/admin/StudentConfigurationPage.jsx'), 'StudentConfigurationPage');
 const UserDetailPage = lazyNamed(() => import('./pages/admin/UserDetailPage.jsx'), 'UserDetailPage');
-const OrganizationSettingsPage = lazyNamed(() => import('./pages/admin/OrganizationSettingsPage.jsx'), 'OrganizationSettingsPage');
 const AdminAuditPage = lazyNamed(() => import('./pages/admin/AdminAuditPage.jsx'), 'AdminAuditPage');
 const DeveloperLayout = lazyNamed(() => import('./components/layout/DeveloperLayout.jsx'), 'DeveloperLayout');
 const ExamLayout = lazyNamed(() => import('./components/layout/ExamLayout.jsx'), 'ExamLayout');
@@ -114,45 +104,18 @@ export function App() {
           }
         />
         <Route
-          path="/candidate/enrollment"
-          element={
-            <ProtectedRoute>
-              <RoleRoute allowedRoles={['STUDENT', 'ADMIN']}>
-                <CandidateEnrollmentPage />
-              </RoleRoute>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/candidate/biometrics/enroll"
-          element={
-            <ProtectedRoute>
-              <RoleRoute allowedRoles={['STUDENT', 'ADMIN']}>
-                <CandidateEnrollmentPage />
-              </RoleRoute>
-            </ProtectedRoute>
-          }
-        />
-        <Route
           path="/onboarding/student"
           element={
             <ProtectedRoute>
               <RoleRoute allowedRoles={['STUDENT', 'ADMIN']}>
-                <Navigate to="/candidate/enrollment" replace />
+                <StudentSetupPage />
               </RoleRoute>
             </ProtectedRoute>
           }
         />
-        <Route
-          path="/onboarding/document-upload"
-          element={
-            <ProtectedRoute>
-              <RoleRoute allowedRoles={['STUDENT', 'ADMIN']}>
-                <Navigate to="/candidate/enrollment" replace />
-              </RoleRoute>
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/candidate/enrollment" element={<Navigate to="/onboarding/student" replace />} />
+        <Route path="/candidate/biometrics/enroll" element={<Navigate to="/onboarding/student" replace />} />
+        <Route path="/onboarding/document-upload" element={<Navigate to="/onboarding/student" replace />} />
         <Route
           path="/onboarding/faculty"
           element={
@@ -321,11 +284,11 @@ export function App() {
             }
           />
           <Route
-            path="/faculty/question-pools"
+            path="/faculty/exams/create"
             element={
               <RoleRoute allowedRoles={['FACULTY', 'ADMIN']}>
                 <VerifiedRoute>
-                  <FacultyQuestionPoolsPage />
+                  <CreateExamPage />
                 </VerifiedRoute>
               </RoleRoute>
             }
@@ -335,7 +298,17 @@ export function App() {
             element={
               <RoleRoute allowedRoles={['FACULTY', 'ADMIN']}>
                 <VerifiedRoute>
-                  <ExamEditorPage />
+                  <CreateExamPage />
+                </VerifiedRoute>
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/faculty/exams/:examId/edit"
+            element={
+              <RoleRoute allowedRoles={['FACULTY', 'ADMIN']}>
+                <VerifiedRoute>
+                  <CreateExamPage />
                 </VerifiedRoute>
               </RoleRoute>
             }
@@ -351,59 +324,27 @@ export function App() {
             }
           />
           <Route
-            path="/faculty/sessions"
+            path="/faculty/monitor/:sessionId"
             element={
               <RoleRoute allowedRoles={['FACULTY', 'ADMIN']}>
-                <VerifiedRoute>
-                  <SessionManagerPage />
-                </VerifiedRoute>
-              </RoleRoute>
-            }
-          />
-          <Route
-            path="/faculty/question-banks"
-            element={
-              <RoleRoute allowedRoles={['FACULTY', 'ADMIN']}>
-                <VerifiedRoute>
-                  <QuestionBankPage />
-                </VerifiedRoute>
-              </RoleRoute>
-            }
-          />
-          <Route
-            path="/faculty/questions"
-            element={
-              <RoleRoute allowedRoles={['FACULTY', 'ADMIN']}>
-                <VerifiedRoute>
-                  <QuestionBankPage />
-                </VerifiedRoute>
-              </RoleRoute>
-            }
-          />
-          <Route
-            path="/faculty/grading/:resultId"
-            element={
-              <RoleRoute allowedRoles={['FACULTY', 'ADMIN']}>
-                <VerifiedRoute>
-                  <ManualGradingPage />
-                </VerifiedRoute>
+                <SessionMonitorPage />
               </RoleRoute>
             }
           />
 
-          {/* Invigilator Routes */}
+          {/* Invigilator Route Alias (Faculty handles invigilation) */}
           <Route
             path="/invigilator"
             element={
-              <RoleRoute allowedRoles={['INVIGILATOR', 'FACULTY', 'ADMIN']}>
-                <InvigilatorDashboardPage />
+              <RoleRoute allowedRoles={['FACULTY', 'ADMIN']}>
+                <Navigate to="/faculty/exams" replace />
               </RoleRoute>
             }
           />
           <Route
             path="/invigilator/sessions/:sessionId"
             element={
-              <RoleRoute allowedRoles={['INVIGILATOR', 'FACULTY', 'ADMIN']}>
+              <RoleRoute allowedRoles={['FACULTY', 'ADMIN']}>
                 <SessionMonitorPage />
               </RoleRoute>
             }
@@ -455,22 +396,6 @@ export function App() {
             element={
               <RoleRoute allowedRoles={['ADMIN']}>
                 <AdminVerificationPage />
-              </RoleRoute>
-            }
-          />
-          <Route
-            path="/admin/students/:id/configuration"
-            element={
-              <RoleRoute allowedRoles={['ADMIN']}>
-                <StudentConfigurationPage />
-              </RoleRoute>
-            }
-          />
-          <Route
-            path="/admin/settings"
-            element={
-              <RoleRoute allowedRoles={['ADMIN']}>
-                <OrganizationSettingsPage />
               </RoleRoute>
             }
           />

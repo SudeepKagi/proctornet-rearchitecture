@@ -97,11 +97,24 @@ export const MediaCommandSchema = z
   })
   .passthrough();
 
+export const ViolationEvidenceCommandSchema = z.object({
+  type: z.literal('VIOLATION_EVIDENCE_RECORDED'),
+  payload: z.object({
+    sessionId: z.string().uuid(),
+    attemptId: z.string().uuid(),
+    studentName: z.string().optional(),
+    violationType: z.string(),
+    timestamp: z.string(),
+    screenshotUrl: z.string().optional()
+  })
+});
+
 export const ClientCommandSchema = z.union([
   SubscribeCommandSchema,
   UnsubscribeCommandSchema,
   HeartbeatCommandSchema,
-  MediaCommandSchema
+  MediaCommandSchema,
+  ViolationEvidenceCommandSchema
 ]);
 
 /**

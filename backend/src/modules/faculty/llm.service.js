@@ -16,21 +16,33 @@ export async function extractTextFromPdf(buffer) {
     throw new Error('Provided PDF file buffer is empty.');
   }
 
+  let parser = null;
   try {
     const { PDFParse } = await import('pdf-parse');
-    const parser = new PDFParse({ data: buffer });
+    parser = new PDFParse({ data: buffer });
     await parser.load();
-    const result = await parser.getText();
+    // Parse the first 25 pages only: prevents process OOM on 500+ page books/textbooks
+    // while providing ample (~50k+ chars) academic content for MCQs
+    const result = await parser.getText({ first: 25 });
     const text = typeof result === 'string' ? result : (result?.text || '');
-    if (text.trim().length > 0) {
+    if (text.trim().length > 30) {
       return text.trim();
     }
   } catch (err) {
-    logger.warn({ err: err.message }, 'pdf-parse extraction failed; trying raw text stream fallback');
+    logger.warn({ err: err.message }, 'pdf-parse extraction failed; trying bounded raw text fallback');
+  } finally {
+    if (parser) {
+      try {
+        await parser.destroy();
+      } catch {
+        // ignore destroy cleanup errors
+      }
+    }
   }
 
-  // Fallback: extract ASCII/printable text sequences from buffer
-  const raw = buffer.toString('latin1');
+  // Fallback: extract ASCII/printable text sequences from buffer (bounded to first 3MB to prevent OOM)
+  const sampleBuffer = buffer.subarray(0, Math.min(buffer.length, 3 * 1024 * 1024));
+  const raw = sampleBuffer.toString('latin1');
   const extracted = raw.replace(/[^\x20-\x7E\t\n\r]/g, ' ').replace(/\s+/g, ' ').trim();
   if (extracted.length < 50) {
     throw new Error('Could not extract readable text content from the uploaded PDF document.');
@@ -70,41 +82,67 @@ Document Material:
 function generateHeuristicMCQs({ text, topicName, questionCount, difficulty }) {
   // Clean sentences
   const cleaned = text.replace(/(\r\n|\n|\r)/gm, ' ').replace(/\s+/g, ' ');
-  const rawSentences = cleaned.split(/(?<=[.?!])\s+/).filter((s) => s.length > 35 && s.length < 220);
+  const rawSentences = cleaned.split(/(?<=[.?!])\s+/).filter((s) => s.length > 30 && s.length < 250);
 
-  // Extract key terms / noun phrases
+  // Extract key terms / domain terms
   const words = cleaned.match(/\b[A-Z][a-z]{3,}\b|\b[a-z]{4,}\b/g) || [];
   const freqMap = {};
   for (const w of words) {
     const lower = w.toLowerCase();
-    if (!['with', 'from', 'this', 'that', 'have', 'were', 'which', 'their', 'about', 'there'].includes(lower)) {
+    if (!['with', 'from', 'this', 'that', 'have', 'were', 'which', 'their', 'about', 'there', 'these', 'those', 'under', 'using'].includes(lower)) {
       freqMap[w] = (freqMap[w] || 0) + 1;
     }
   }
-  const domainTerms = Object.keys(freqMap).sort((a, b) => freqMap[b] - freqMap[a]).slice(0, 30);
+  const domainTerms = Object.keys(freqMap).sort((a, b) => freqMap[b] - freqMap[a]).slice(0, 40);
 
   const fallbackQuestions = [];
-  const needed = Math.min(questionCount, Math.max(rawSentences.length, 3));
+  const needed = Math.max(1, Math.min(30, Number(questionCount) || 5));
+
+  const stemTemplates = [
+    (term, sent) => `In the context of ${topicName}: What is the primary operational role or definition of "${term}"?`,
+    (term, sent) => `Which of the following best characterizes the function of "${term}" according to the syllabus material?`,
+    (term, sent) => `Regarding ${topicName} principles: How does "${term}" contribute to system architecture and performance?`,
+    (term, sent) => `Based on the course document excerpt ("${sent.slice(0, 85)}..."): What is the significance of "${term}"?`
+  ];
 
   for (let i = 0; i < needed; i++) {
-    const sentence = rawSentences[i % rawSentences.length];
+    const sentence = rawSentences.length > 0
+      ? rawSentences[i % rawSentences.length]
+      : `Core theoretical and practical principles of ${topicName}.`;
     const wordsInSentence = sentence.split(/\s+/).filter((w) => w.length > 4);
-    const keyTerm = wordsInSentence[wordsInSentence.length - 1]?.replace(/[^a-zA-Z]/g, '') || domainTerms[i % domainTerms.length] || topicName;
+    const keyTerm =
+      wordsInSentence[wordsInSentence.length - 1]?.replace(/[^a-zA-Z]/g, '') ||
+      domainTerms[i % Math.max(1, domainTerms.length)] ||
+      `${topicName} Component ${i + 1}`;
 
     // Plausible distractors
     const distractors = domainTerms
       .filter((t) => t.toLowerCase() !== keyTerm.toLowerCase())
       .slice(i * 3, i * 3 + 3);
+
+    const defaultDistractors = [
+      `Supplementary methodology in ${topicName}`,
+      `Heuristic optimization parameter`,
+      `Auxiliary validation metric`,
+      `Secondary computational component`,
+      `Alternative algorithm for ${topicName}`
+    ];
+    let dIdx = 0;
     while (distractors.length < 3) {
-      distractors.push(`Alternative ${distractors.length + 1} for ${topicName}`);
+      const fallback = defaultDistractors[dIdx++ % defaultDistractors.length];
+      if (!distractors.includes(fallback) && fallback.toLowerCase() !== keyTerm.toLowerCase()) {
+        distractors.push(fallback);
+      }
     }
 
     const options = [keyTerm, ...distractors.slice(0, 3)];
     // Shuffle options deterministically
     options.sort(() => (Math.sin(i * 17) > 0 ? 1 : -1));
 
+    const templateFn = stemTemplates[i % stemTemplates.length];
+
     fallbackQuestions.push({
-      question_text: `Based on the ${topicName} syllabus material: What is the primary significance of "${keyTerm}" in the context: "${sentence.slice(0, 100)}..."?`,
+      question_text: templateFn(keyTerm, sentence),
       options,
       correct_answer: keyTerm
     });
@@ -132,10 +170,10 @@ export async function generateMCQsFromText({ text, topicName, questionCount = 5,
     .replace('{DIFFICULTY}', difficulty)
     .replace('{DOCUMENT_TEXT}', truncatedText);
 
-  // 1. Check for Google Gemini API key
+  // 1. Check for Google Gemini API key with current active production models
   const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   if (geminiKey) {
-    const models = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'];
+    const models = ['gemini-3.1-flash-lite', 'gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-flash-latest'];
     for (const model of models) {
       try {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
@@ -158,7 +196,16 @@ export async function generateMCQsFromText({ text, topicName, questionCount = 5,
             const parsed = parseAndValidateMCQs(rawContent);
             if (parsed.length > 0) {
               logger.info({ model, count: parsed.length }, 'Successfully generated MCQs with Gemini');
-              return parsed.slice(0, count);
+              if (parsed.length >= count) {
+                return parsed.slice(0, count);
+              }
+              const additional = generateHeuristicMCQs({
+                text: truncatedText,
+                topicName,
+                questionCount: count - parsed.length,
+                difficulty
+              });
+              return [...parsed, ...additional].slice(0, count);
             }
           }
         } else {

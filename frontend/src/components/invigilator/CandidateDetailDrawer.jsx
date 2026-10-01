@@ -239,7 +239,7 @@ export function CandidateDetailDrawer({
               {candidate.name || candidate.student_name || 'Candidate Details'}
             </h3>
             <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted, #64748b)' }}>
-              {candidate.email || '—'}
+              {candidate.email || '-'}
             </span>
           </div>
           <button

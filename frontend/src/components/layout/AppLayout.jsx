@@ -35,18 +35,11 @@ const WORKSPACES = {
     ],
   },
   faculty: {
-    label: 'Faculty Workspace',
+    label: 'Teacher Workspace',
     links: [
       { to: '/faculty', label: 'Dashboard', icon: LayoutDashboard },
-      { to: '/faculty/exams', label: 'Exams & Schedules', icon: Calendar },
-      { to: '/faculty/question-pools', label: 'Question Pools (AI)', icon: Sparkles },
-      { to: '/invigilator', label: 'Live Invigilation', icon: Shield },
-    ],
-  },
-  invigilator: {
-    label: 'Invigilator Console',
-    links: [
-      { to: '/invigilator', label: 'Dashboard & Sessions', icon: Monitor },
+      { to: '/faculty/exams', label: 'My Exams', icon: Calendar },
+      { to: '/faculty/exams/create', label: 'Create Exam', icon: Sparkles },
     ],
   },
   admin: {
@@ -56,7 +49,6 @@ const WORKSPACES = {
       { to: '/admin/users', label: 'Users', icon: Users },
       { to: '/admin/verifications', label: 'Identity Verification', icon: FileCheck2 },
       { to: '/admin/audit', label: 'Audit Trail', icon: ScrollText },
-      { to: '/admin/settings', label: 'System Settings', icon: Settings },
     ],
   },
   developer: {
@@ -99,7 +91,6 @@ export function AppLayout() {
           end={
             to === '/candidate' ||
             to === '/faculty' ||
-            to === '/invigilator' ||
             to === '/admin' ||
             to === '/developer/overview'
           }

@@ -247,7 +247,7 @@ export function AdminVerificationPage() {
                       <div className="text-xs text-muted-foreground font-mono">{u.email}</div>
                     </TableCell>
                     <TableCell className="font-mono text-xs font-semibold text-foreground">
-                      {u.identifier || '—'}
+                      {u.identifier || '-'}
                     </TableCell>
                     <TableCell>
                       <Badge variant="secondary" className="text-xs font-mono">
@@ -255,9 +255,9 @@ export function AdminVerificationPage() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <div className="text-foreground text-xs font-medium">{u.department || '—'}</div>
+                      <div className="text-foreground text-xs font-medium">{u.department || '-'}</div>
                       <div className="text-[11px] text-muted-foreground">
-                        {u.semester ? `Semester ${u.semester}` : u.designation || '—'}
+                        {u.semester ? `Semester ${u.semester}` : u.designation || '-'}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -384,16 +384,16 @@ export function AdminVerificationPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Identifier:</span>
-                <span className="font-mono font-semibold text-foreground">{selectedUser?.identifier || '—'}</span>
+                <span className="font-mono font-semibold text-foreground">{selectedUser?.identifier || '-'}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Department:</span>
-                <span className="text-foreground">{selectedUser?.department || '—'}</span>
+                <span className="text-foreground">{selectedUser?.department || '-'}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Affiliation:</span>
                 <span className="text-foreground">
-                  {selectedUser?.semester ? `Semester ${selectedUser.semester}` : selectedUser?.designation || '—'}
+                  {selectedUser?.semester ? `Semester ${selectedUser.semester}` : selectedUser?.designation || '-'}
                 </span>
               </div>
             </div>

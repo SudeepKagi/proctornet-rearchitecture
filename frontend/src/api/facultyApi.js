@@ -18,50 +18,22 @@ export async function listFacultyExams(params = {}) {
   return res?.data || res;
 }
 
-export async function listQuestionPools() {
-  const res = await apiClient('/api/v1/faculty/question-pools');
-  return res?.data || res;
-}
-
-export async function createQuestionPool(data) {
-  const res = await apiClient('/api/v1/faculty/question-pools', {
-    method: 'POST',
-    body: data
-  });
-  return res?.data || res;
-}
-
-export async function getTopicPoolQuestions(topicId) {
-  const res = await apiClient(`/api/v1/faculty/question-pools/${topicId}/questions`);
-  return res?.data || res;
-}
-
-export async function generateMCQsFromPdf({ file, topicName, questionCount, difficulty }) {
-  const formData = new FormData();
-  formData.append('pdf', file);
-  formData.append('topicName', topicName);
-  formData.append('questionCount', String(questionCount));
-  formData.append('difficulty', difficulty);
-
-  const res = await apiClient('/api/v1/faculty/question-pools/generate-from-pdf', {
-    method: 'POST',
-    body: formData
-  });
-
-  return res?.data || res;
-}
-
-export async function saveQuestionsToPool(topicId, questions) {
-  const res = await apiClient(`/api/v1/faculty/question-pools/${topicId}/save-questions`, {
-    method: 'POST',
-    body: { questions }
-  });
+export async function getExamDetails(examId) {
+  const res = await apiClient(`/api/v1/faculty/exams/${examId}`);
   return res?.data || res;
 }
 
 export async function scheduleExam(payload) {
   const res = await apiClient('/api/v1/faculty/exams/schedule', {
     method: 'POST',
+    body: payload
+  });
+  return res?.data || res;
+}
+
+export async function updateExam(examId, payload) {
+  const res = await apiClient(`/api/v1/faculty/exams/${examId}`, {
+    method: 'PUT',
     body: payload
   });
   return res?.data || res;
@@ -77,4 +49,33 @@ export async function cancelExam(examId) {
 export async function getExamAnalyticsSummary(examId) {
   const res = await apiClient(`/api/v1/faculty/exams/${examId}/analytics-summary`);
   return res?.data || res;
+}
+
+export async function generateMCQsFromPdf({ file, topicName = 'General', questionCount = 5, difficulty = 'MEDIUM' }) {
+  const formData = new FormData();
+  formData.append('pdf', file);
+  formData.append('topicName', topicName);
+  formData.append('questionCount', String(questionCount));
+  formData.append('difficulty', difficulty);
+
+  const res = await apiClient('/api/v1/faculty/exams/generate-from-pdf', {
+    method: 'POST',
+    body: formData
+  });
+
+  return res?.data || res;
+}
+
+// Backward-compatible question pool shims
+export async function listQuestionPools() {
+  return [];
+}
+export async function createQuestionPool() {
+  return {};
+}
+export async function getTopicPoolQuestions() {
+  return [];
+}
+export async function saveQuestionsToPool() {
+  return { savedCount: 0 };
 }

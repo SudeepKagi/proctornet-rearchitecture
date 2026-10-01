@@ -9,14 +9,14 @@ import { requireRole } from '../../middleware/authorize.js';
 import {
   startAttempt,
   getAttemptById,
-  getAttemptQuestions
+  getAttemptQuestions,
+  submitAttempt
 } from './attempts.controller.js';
 import { answersRouter } from '../answers/answers.routes.js';
-import { submitAttempt } from '../submissions/submissions.controller.js';
 import { candidateResultsRouter } from '../results/results.routes.js';
 import { createRateLimiter } from '../../middleware/rateLimiter.js';
 import { attemptEventsRouter, attemptProctoringFlagsRouter } from '../proctoring/proctoring.routes.js';
-import { evidenceRouter } from '../evidence/evidence.routes.js';
+import { evidenceRouter } from '../proctoring/evidence.routes.js';
 
 export const attemptsRouter = Router();
 

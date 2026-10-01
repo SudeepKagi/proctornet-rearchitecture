@@ -18,7 +18,8 @@ export async function findSessionById(sessionId, client = null, forShare = false
     SELECT 
       session_id, 
       exam_id, 
-      room_id, 
+      department_id,
+      target_semester,
       scheduled_start_time, 
       scheduled_end_time, 
       status,
@@ -45,12 +46,14 @@ export async function findExamById(examId, client = null, forShare = false) {
       exam_id, 
       title, 
       description,
+      subject_name,
       duration_minutes, 
       total_marks, 
       passing_marks, 
+      department_id,
+      target_semester,
       status, 
-      created_by, 
-      subject_id
+      created_by
     FROM exams
     WHERE exam_id = $1
     ${forShare ? 'FOR SHARE' : ''};
@@ -189,44 +192,20 @@ export async function findAttemptById(attemptId, client = null) {
 export async function getQuestionsForExam(examId, client = null) {
   const sql = `
     SELECT 
-      eq.exam_id,
-      eq.question_id,
-      eq.display_order,
-      eq.points,
-      q.topic_id,
+      q.question_id,
+      COALESCE(eq.display_order, 1) AS display_order,
+      COALESCE(eq.points, q.default_points, 1.0) AS points,
       q.question_type,
       q.prompt_text,
       q.default_points
-    FROM exam_questions eq
-    JOIN questions q ON eq.question_id = q.question_id
-    WHERE eq.exam_id = $1
-    ORDER BY eq.display_order ASC;
+    FROM questions q
+    LEFT JOIN exam_questions eq ON q.question_id = eq.question_id AND eq.exam_id = q.exam_id
+    WHERE q.exam_id = $1
+    ORDER BY COALESCE(eq.display_order, 1), q.created_at;
   `;
   const executor = client ? client.query.bind(client) : query;
   const result = await executor(sql, [examId]);
-
-  if (result.rows.length > 0) {
-    return result.rows;
-  }
-
-  // Fallback: If exam has pool_id, fetch all published questions from that pool statically
-  const poolSql = `
-    SELECT 
-      e.exam_id,
-      q.question_id,
-      ROW_NUMBER() OVER (ORDER BY q.created_at ASC, q.question_id ASC) AS display_order,
-      COALESCE(q.default_points, 1.00) AS points,
-      q.topic_id,
-      q.question_type,
-      q.prompt_text,
-      q.default_points
-    FROM exams e
-    JOIN questions q ON (e.pool_id = q.topic_id OR e.pool_id IS NULL)
-    WHERE e.exam_id = $1 AND q.status = 'PUBLISHED'
-    ORDER BY q.created_at ASC, q.question_id ASC;
-  `;
-  const poolRes = await executor(poolSql, [examId]);
-  return poolRes.rows;
+  return result.rows;
 }
 
 /**
@@ -375,7 +354,6 @@ export async function getAttemptQuestionsSanitized(attemptId, client = null) {
       aq.attempt_question_id,
       aq.display_order,
       q.question_id,
-      q.topic_id,
       q.question_type,
       q.prompt_text,
       q.default_points,
@@ -402,7 +380,6 @@ export async function getAttemptQuestionsSanitized(attemptId, client = null) {
         id: row.attempt_question_id,
         display_order: Number(row.display_order),
         question_id: row.question_id,
-        topic_id: row.topic_id,
         question_type: row.question_type,
         type: row.question_type,
         prompt_text: row.prompt_text,
@@ -446,7 +423,8 @@ export async function countAttemptQuestions(attemptId, client = null) {
 }
 
 /**
- * Checks if a user is an assigned invigilator for a session.
+ * Checks if a user is an invigilator/faculty for a session.
+ * Any faculty or admin can invigilate exam sessions.
  * @param {string} sessionId
  * @param {string} userId
  * @param {import('pg').PoolClient} [client=null]
@@ -454,13 +432,182 @@ export async function countAttemptQuestions(attemptId, client = null) {
  */
 export async function isUserInvigilatorForSession(sessionId, userId, client = null) {
   const sql = `
-    SELECT 1 FROM session_invigilators
-    WHERE session_id = $1 AND user_id = $2
+    SELECT 1 FROM user_roles
+    WHERE user_id = $2 AND role IN ('FACULTY', 'ADMIN', 'DEVELOPER')
     LIMIT 1;
   `;
   const executor = client ? client.query.bind(client) : query;
   const result = await executor(sql, [sessionId, userId]);
   return (result.rowCount || 0) > 0;
+}
+
+/**
+ * Finds an exam attempt by ID with row locking (FOR UPDATE) inside a transaction.
+ * @param {string} attemptId
+ * @param {import('pg').PoolClient} client
+ * @returns {Promise<object|null>}
+ */
+export async function findAttemptForUpdate(attemptId, client) {
+  const sql = `
+    SELECT 
+      ea.attempt_id, 
+      ea.session_id, 
+      ea.student_id, 
+      ea.status, 
+      ea.started_at, 
+      ea.expires_at, 
+      ea.submitted_at,
+      e.created_by AS exam_created_by,
+      CURRENT_TIMESTAMP AS server_now
+    FROM exam_attempts ea
+    JOIN exam_sessions es ON ea.session_id = es.session_id
+    JOIN exams e ON es.exam_id = e.exam_id
+    WHERE ea.attempt_id = $1
+    FOR UPDATE OF ea;
+  `;
+  const result = await client.query(sql, [attemptId]);
+  return result.rows[0] || null;
+}
+
+/**
+ * Updates attempt status to SUBMITTED and sets submitted_at to current server time.
+ * @param {string} attemptId
+ * @param {import('pg').PoolClient} client
+ * @returns {Promise<object>}
+ */
+export async function updateAttemptToSubmitted(attemptId, client) {
+  const sql = `
+    UPDATE exam_attempts
+    SET 
+      status = 'SUBMITTED',
+      submitted_at = CURRENT_TIMESTAMP,
+      updated_at = CURRENT_TIMESTAMP
+    WHERE attempt_id = $1
+    RETURNING attempt_id, session_id, student_id, status, started_at, expires_at, submitted_at, updated_at;
+  `;
+  const result = await client.query(sql, [attemptId]);
+  return result.rows[0];
+}
+
+/**
+ * Updates attempt status to EXPIRED.
+ * @param {string} attemptId
+ * @param {import('pg').PoolClient} client
+ * @returns {Promise<object>}
+ */
+export async function updateAttemptToExpired(attemptId, client) {
+  const sql = `
+    UPDATE exam_attempts
+    SET 
+      status = 'EXPIRED',
+      updated_at = CURRENT_TIMESTAMP
+    WHERE attempt_id = $1
+    RETURNING attempt_id, session_id, student_id, status, started_at, expires_at, submitted_at, updated_at;
+  `;
+  const result = await client.query(sql, [attemptId]);
+  return result.rows[0];
+}
+
+/**
+ * Finds attempt question mapping for dirty answer validation.
+ * @param {string} attemptId
+ * @param {string} attemptQuestionId
+ * @param {import('pg').PoolClient} client
+ * @returns {Promise<object|null>}
+ */
+export async function findAttemptQuestion(attemptId, attemptQuestionId, client) {
+  const sql = `
+    SELECT 
+      aq.attempt_question_id,
+      aq.attempt_id,
+      aq.question_id,
+      aq.display_order,
+      q.question_type,
+      q.default_points
+    FROM attempt_questions aq
+    JOIN questions q ON aq.question_id = q.question_id
+    WHERE aq.attempt_id = $1 AND aq.attempt_question_id = $2;
+  `;
+  const result = await client.query(sql, [attemptId, attemptQuestionId]);
+  return result.rows[0] || null;
+}
+
+/**
+ * Gets question options for validation.
+ * @param {string} questionId
+ * @param {import('pg').PoolClient} client
+ * @returns {Promise<Array<{ option_id: string }>>}
+ */
+export async function getQuestionOptions(questionId, client) {
+  const sql = `
+    SELECT option_id
+    FROM question_options
+    WHERE question_id = $1;
+  `;
+  const result = await client.query(sql, [questionId]);
+  return result.rows;
+}
+
+/**
+ * Finds answer by attempt_question_id.
+ * @param {string} attemptQuestionId
+ * @param {import('pg').PoolClient} client
+ * @returns {Promise<object|null>}
+ */
+export async function findAnswerByAttemptQuestionId(attemptQuestionId, client) {
+  const sql = `
+    SELECT answer_id, attempt_question_id, answer_value, revision, saved_at
+    FROM answers
+    WHERE attempt_question_id = $1;
+  `;
+  const result = await client.query(sql, [attemptQuestionId]);
+  return result.rows[0] || null;
+}
+
+/**
+ * Inserts a new answer at revision 1.
+ * @param {string} attemptQuestionId
+ * @param {object} answerValue
+ * @param {import('pg').PoolClient} client
+ * @returns {Promise<object>}
+ */
+export async function insertAnswer(attemptQuestionId, answerValue, client) {
+  const sql = `
+    INSERT INTO answers (
+      attempt_question_id,
+      answer_value,
+      revision,
+      saved_at,
+      created_at,
+      updated_at
+    ) VALUES ($1, $2, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    RETURNING answer_id, attempt_question_id, answer_value, revision, saved_at;
+  `;
+  const result = await client.query(sql, [attemptQuestionId, JSON.stringify(answerValue)]);
+  return result.rows[0];
+}
+
+/**
+ * Updates an existing answer and increments revision with OCC check.
+ * @param {string} attemptQuestionId
+ * @param {object} answerValue
+ * @param {number} expectedRevision
+ * @param {import('pg').PoolClient} client
+ * @returns {Promise<object|null>}
+ */
+export async function updateAnswer(attemptQuestionId, answerValue, expectedRevision, client) {
+  const sql = `
+    UPDATE answers
+    SET 
+      answer_value = $2,
+      revision = revision + 1,
+      saved_at = CURRENT_TIMESTAMP,
+      updated_at = CURRENT_TIMESTAMP
+    WHERE attempt_question_id = $1 AND revision = $3
+    RETURNING answer_id, attempt_question_id, answer_value, revision, saved_at;
+  `;
+  const result = await client.query(sql, [attemptQuestionId, JSON.stringify(answerValue), expectedRevision]);
+  return result.rows[0] || null;
 }
 
 /**

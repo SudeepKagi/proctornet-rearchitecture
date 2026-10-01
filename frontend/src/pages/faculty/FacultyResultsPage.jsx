@@ -247,7 +247,7 @@ export function FacultyResultsPage() {
               <Award size={16} className="text-amber-500" />
             </div>
             <p className="text-2xl font-black text-slate-900">
-              {summary?.highest_score ?? '—'} <span className="text-xs text-slate-400 font-medium">/ {exam?.total_marks}</span>
+              {summary?.highest_score ?? '-'} <span className="text-xs text-slate-400 font-medium">/ {exam?.total_marks}</span>
             </p>
             <p className="text-[11px] text-slate-400">Top candidate score</p>
           </CardContent>
@@ -263,7 +263,7 @@ export function FacultyResultsPage() {
               <TrendingUp size={16} className="text-blue-500" />
             </div>
             <p className="text-2xl font-black text-blue-600">
-              {summary?.average_score ?? '—'} <span className="text-xs text-slate-400 font-medium">/ {exam?.total_marks}</span>
+              {summary?.average_score ?? '-'} <span className="text-xs text-slate-400 font-medium">/ {exam?.total_marks}</span>
             </p>
             <p className="text-[11px] text-slate-400">Class mean score</p>
           </CardContent>
@@ -523,7 +523,7 @@ export function FacultyResultsPage() {
                       </TableCell>
 
                       <TableCell className="text-xs font-bold text-slate-800 text-right">
-                        {st.percentage !== undefined ? `${st.percentage}%` : '—'}
+                        {st.percentage !== undefined ? `${st.percentage}%` : '-'}
                       </TableCell>
 
                       <TableCell className="text-center">

@@ -29,16 +29,17 @@ const ROLE_NAV_ITEMS = {
   FACULTY: [
     { to: '/faculty', label: 'Dashboard', end: true },
     { to: '/faculty/exams', label: 'Exams' },
-    { to: '/faculty/question-pools', label: 'Question Pools' },
-    { to: '/invigilator', label: 'Live Invigilation' },
-  ],
-  INVIGILATOR: [
-    { to: '/invigilator', label: 'Dashboard', end: true },
+    { to: '/faculty/exams/create', label: 'Create Exam' },
   ],
   ADMIN: [
     { to: '/admin', label: 'Dashboard', end: true },
     { to: '/admin/users', label: 'Users' },
     { to: '/admin/verifications', label: 'Verifications' },
+  ],
+  DEVELOPER: [
+    { to: '/developer/overview', label: 'Dashboard', end: true },
+    { to: '/developer/health', label: 'System Health' },
+    { to: '/developer/logs', label: 'Live Logs' },
   ],
 };
 
@@ -71,10 +72,10 @@ export function Navbar({ onMenuToggle }) {
     ? '/candidate'
     : user?.roles?.includes('FACULTY')
     ? '/faculty'
+    : user?.roles?.includes('DEVELOPER')
+    ? '/developer/overview'
     : user?.roles?.includes('ADMIN')
     ? '/admin'
-    : user?.roles?.includes('INVIGILATOR')
-    ? '/invigilator'
     : '/dashboard';
 
   const verificationStatus = user?.verificationStatus || user?.verification_status || 'PENDING';
@@ -158,7 +159,7 @@ export function Navbar({ onMenuToggle }) {
                   )}
                 </div>
                 <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
-                  {primaryRole}
+                  {primaryRole === 'FACULTY' ? 'Teacher' : primaryRole}
                 </span>
               </div>
               <ChevronDown size={14} className="text-slate-400 dark:text-slate-500 hidden sm:inline" />

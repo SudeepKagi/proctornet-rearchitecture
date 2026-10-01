@@ -105,7 +105,7 @@ export function CandidateResultPage() {
         </Button>
       </div>
 
-      {/* State 1: 200 OK — Released Results Scorecard */}
+      {/* State 1: 200 OK: Released Results Scorecard */}
       {statusState === 200 && resultData && (
         <div className="space-y-6">
           {/* Header */}
@@ -158,7 +158,7 @@ export function CandidateResultPage() {
                     Final Percentage
                   </span>
                   <div className="text-2xl font-bold text-slate-900 mt-1">
-                    {resultData.percentage !== undefined ? `${Number(resultData.percentage).toFixed(2)}%` : '—'}
+                    {resultData.percentage !== undefined ? `${Number(resultData.percentage).toFixed(2)}%` : '-'}
                   </div>
                 </div>
 
@@ -167,7 +167,7 @@ export function CandidateResultPage() {
                     Passing Threshold
                   </span>
                   <div className="text-2xl font-bold text-slate-600 mt-1">
-                    {resultData.passing_marks || '—'}
+                    {resultData.passing_marks || '-'}
                   </div>
                 </div>
               </div>

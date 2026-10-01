@@ -208,10 +208,10 @@ export function AdminOverviewPage() {
                     return (
                       <TableRow key={sid || Math.random()} className="transition-colors">
                         <TableCell className="font-mono text-xs text-muted-foreground">
-                          {sid ? `${sid.slice(0, 8)}...` : '—'}
+                          {sid ? `${sid.slice(0, 8)}...` : '-'}
                         </TableCell>
                         <TableCell className="font-medium text-foreground">
-                          {s.exam_title || '—'}
+                          {s.exam_title || '-'}
                         </TableCell>
                         <TableCell className="text-muted-foreground">
                           {s.room_name || 'Virtual'}

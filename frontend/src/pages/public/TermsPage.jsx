@@ -9,7 +9,7 @@ import { POLICY_DATA } from '../../content/policyData.js';
 
 export function TermsPage() {
   usePageMeta({
-    title: 'Terms of Use — Educational Project Guidelines',
+    title: 'Terms of Use: Educational Project Guidelines',
     description:
       'Educational Terms of Use for ProctorNet: academic demonstration status, disclaimer of commercial warranties, and acceptable user conduct rules.',
     canonical: '/terms',

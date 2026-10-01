@@ -1,7 +1,6 @@
 /**
  * @file blueprintValidator.js
- * @description Validates exam blueprint topic rules against question inventory and point allocations.
- * Validates exam blueprint integrity, question coverage, and point distribution.
+ * @description Validates exam question inventory and point allocations.
  */
 
 import { query } from '../../infrastructure/postgres/pool.js';
@@ -9,28 +8,10 @@ import * as examsRepo from './exams.repository.js';
 import { NotFoundError } from '../../utils/errors.js';
 
 /**
- * Validates the entire blueprint configuration for an exam.
+ * Validates question coverage and marks allocation for an exam.
  * @param {string} examId
  * @param {object} [client]
- * @returns {Promise<{
- *   isValid: boolean,
- *   examId: string,
- *   totalMarks: number,
- *   blueprintMarks: number,
- *   ruleCount: number,
- *   issues: string[],
- *   ruleEvaluations: Array<{
- *     ruleId: string,
- *     topicId: string,
- *     topicName: string,
- *     requiredCount: number,
- *     pointsPerQuestion: number,
- *     difficulty: string,
- *     bloomLevel: string,
- *     availableCount: number,
- *     isSatisfied: boolean
- *   }>
- * }>}
+ * @returns {Promise<object>}
  */
 export async function validateExamBlueprint(examId, client = null) {
   const exam = await examsRepo.findExamById(examId);
@@ -38,81 +19,27 @@ export async function validateExamBlueprint(examId, client = null) {
     throw new NotFoundError(`Exam with ID '${examId}' not found`);
   }
 
-  const topicRules = await examsRepo.getExamQuestionsAsBlueprintRows(examId, client);
+  const countSql = `
+    SELECT COUNT(*)::int AS count, COALESCE(SUM(default_points), 0)::float AS total_points
+    FROM questions
+    WHERE exam_id = $1;
+  `;
+  const res = client ? await client.query(countSql, [examId]) : await query(countSql, [examId]);
+  const questionCount = res.rows[0]?.count || 0;
+  const totalPoints = Number(res.rows[0]?.total_points) || 0;
+
   const issues = [];
-  const ruleEvaluations = [];
-
-  if (!topicRules || topicRules.length === 0) {
-    issues.push('At least one topic rule must be configured for the exam blueprint');
+  if (questionCount === 0) {
+    issues.push('At least one question must be added to the exam');
   }
-
-  let totalBlueprintPoints = 0;
-
-  for (const rule of topicRules || []) {
-    const requiredCount = Number(rule.question_count);
-    const pointsPerQuestion = Number(rule.points_per_question);
-    const rulePoints = requiredCount * pointsPerQuestion;
-    totalBlueprintPoints += rulePoints;
-
-    // Build query for available published questions matching topic, difficulty, and bloom level
-    const conditions = ['topic_id = $1', "status = 'PUBLISHED'"];
-    const params = [rule.topic_id];
-
-    if (rule.difficulty && rule.difficulty !== 'ANY') {
-      params.push(rule.difficulty);
-      conditions.push(`difficulty = $${params.length}`);
-    }
-
-    if (rule.bloom_level && rule.bloom_level !== 'ANY') {
-      params.push(rule.bloom_level);
-      conditions.push(`bloom_level = $${params.length}`);
-    }
-
-    const countSql = `
-      SELECT COUNT(*)::int AS count
-      FROM questions
-      WHERE ${conditions.join(' AND ')};
-    `;
-
-    const res = client ? await client.query(countSql, params) : await query(countSql, params);
-    const availableCount = res.rows[0]?.count || 0;
-    const isSatisfied = availableCount >= requiredCount;
-
-    if (!isSatisfied) {
-      const diffStr = rule.difficulty && rule.difficulty !== 'ANY' ? ` (${rule.difficulty})` : '';
-      const bloomStr = rule.bloom_level && rule.bloom_level !== 'ANY' ? ` [Bloom: ${rule.bloom_level}]` : '';
-      issues.push(
-        `Insufficient question inventory for topic '${rule.topic_name || rule.topic_id}'${diffStr}${bloomStr}. Required: ${requiredCount}, Available: ${availableCount}`
-      );
-    }
-
-    ruleEvaluations.push({
-      ruleId: rule.rule_id,
-      topicId: rule.topic_id,
-      topicName: rule.topic_name || '',
-      requiredCount,
-      pointsPerQuestion,
-      difficulty: rule.difficulty || 'ANY',
-      bloomLevel: rule.bloom_level || 'ANY',
-      availableCount,
-      isSatisfied
-    });
-  }
-
-  const examTotalMarks = Number(exam.total_marks) || totalBlueprintPoints;
-  if (totalBlueprintPoints <= 0 && (!topicRules || topicRules.length === 0)) {
-    issues.push('Exam must have at least one question assigned or selected question pool');
-  }
-
-  const isValid = issues.length === 0;
 
   return {
-    isValid,
+    isValid: issues.length === 0,
     examId,
-    totalMarks: examTotalMarks,
-    blueprintMarks: Number(totalBlueprintPoints.toFixed(2)),
-    ruleCount: (topicRules || []).length,
+    totalMarks: Number(exam.total_marks),
+    blueprintMarks: totalPoints,
+    ruleCount: questionCount,
     issues,
-    ruleEvaluations
+    ruleEvaluations: []
   };
 }

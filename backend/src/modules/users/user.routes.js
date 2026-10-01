@@ -9,7 +9,6 @@ import { authenticate } from '../../middleware/authenticate.js';
 import { requireRole } from '../../middleware/authorize.js';
 import * as userController from './user.controller.js';
 import * as auditController from '../audit/audit.controller.js';
-import * as studentConfigController from '../candidate/studentConfig.controller.js';
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -42,8 +41,6 @@ adminRouter.patch('/users/:id/verification', userController.handleReviewVerifica
 adminRouter.get('/students/:id/verification', userController.handleGetStudentVerificationDossier);
 adminRouter.get('/students/:id/document-preview', userController.handleGetStudentDocumentPreview);
 adminRouter.patch('/students/:id/verification', userController.handleReviewStudentVerification);
-adminRouter.get('/students/:id/configuration', studentConfigController.handleGetStudentConfiguration);
-adminRouter.put('/students/:id/configuration', studentConfigController.handleUpdateStudentConfiguration);
 
 // Bulk spreadsheet ingestion
 adminRouter.post(
@@ -56,10 +53,6 @@ adminRouter.post(
   upload.single('file'),
   userController.handleBulkImport
 );
-
-// Organization settings
-adminRouter.get('/organization', userController.handleGetOrganizationSettings);
-adminRouter.put('/organization', userController.handleUpdateOrganizationSettings);
 
 // Administrative audit feed
 adminRouter.get('/audit', auditController.handleGetAuditLogs);

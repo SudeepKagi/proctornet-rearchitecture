@@ -74,6 +74,10 @@ export function RealtimeProvider({ children }) {
     realtimeClient.sendHeartbeat(attemptId);
   }, []);
 
+  const send = useCallback((type, payload) => {
+    realtimeClient.send(type, payload);
+  }, []);
+
   const value = useMemo(
     () => ({
       client: realtimeClient,
@@ -81,9 +85,10 @@ export function RealtimeProvider({ children }) {
       isDegraded,
       subscribe,
       unsubscribe,
-      sendHeartbeat
+      sendHeartbeat,
+      send
     }),
-    [status, isDegraded, subscribe, unsubscribe, sendHeartbeat]
+    [status, isDegraded, subscribe, unsubscribe, sendHeartbeat, send]
   );
 
   return <RealtimeContext.Provider value={value}>{children}</RealtimeContext.Provider>;

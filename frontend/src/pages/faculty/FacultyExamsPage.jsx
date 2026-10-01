@@ -112,7 +112,7 @@ export function FacultyExamsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 pb-5">
         <div>
           <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
-            <span>Faculty Workspace</span> &bull; <span>Governance</span>
+            <span>Teacher Workspace</span> &bull; <span>Examinations</span>
           </div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">
             Exams Management
@@ -135,10 +135,10 @@ export function FacultyExamsPage() {
 
           <Button
             size="sm"
-            onClick={() => setIsScheduleOpen(true)}
-            className="gap-1.5 h-9 text-xs bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-xs"
+            onClick={() => navigate('/faculty/exams/create')}
+            className="gap-1.5 h-9 text-xs bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-xs cursor-pointer"
           >
-            <Plus size={14} /> Schedule New Exam
+            <Plus size={14} /> Create Exam
           </Button>
         </div>
       </div>
@@ -177,7 +177,7 @@ export function FacultyExamsPage() {
             isEmpty={exams.length === 0}
             loadingMessage="Loading upcoming examinations..."
             emptyTitle="No Upcoming Exams Scheduled"
-            emptyDescription="Schedule a new examination targeting a semester cohort using questions from your topic pools."
+            emptyDescription="Create an examination targeting a department and semester cohort with inline questions or AI generation."
             onRetry={() => loadExams(activeTab)}
           >
             <div className="grid grid-cols-1 gap-3.5">
@@ -219,10 +219,10 @@ export function FacultyExamsPage() {
                       {ex.session_id && (
                         <Button
                           size="sm"
-                          onClick={() => navigate(`/invigilator/sessions/${ex.session_id}`)}
-                          className="h-9 px-3.5 text-xs font-semibold gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
+                          onClick={() => navigate(`/faculty/monitor/${ex.session_id}`)}
+                          className="h-9 px-3.5 text-xs font-semibold gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs cursor-pointer"
                         >
-                          <Shield size={13} /> Invigilate Live
+                          <Shield size={13} /> Live Monitor
                         </Button>
                       )}
 
@@ -232,7 +232,7 @@ export function FacultyExamsPage() {
                           size="sm"
                           onClick={() => handleCancelExam(ex.exam_id)}
                           disabled={cancellingId === ex.exam_id}
-                          className="h-9 px-3 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 border-rose-200 gap-1.5"
+                          className="h-9 px-3 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 border-rose-200 gap-1.5 cursor-pointer"
                         >
                           <Ban size={13} /> {cancellingId === ex.exam_id ? 'Cancelling...' : 'Cancel Exam'}
                         </Button>
@@ -240,10 +240,10 @@ export function FacultyExamsPage() {
 
                       <Button
                         size="sm"
-                        onClick={() => navigate(`/faculty/exams/${ex.exam_id}`)}
-                        className="h-9 px-4 text-xs font-semibold gap-1 bg-slate-900 text-white hover:bg-slate-800"
+                        onClick={() => navigate(`/faculty/exams/${ex.exam_id}/edit`)}
+                        className="h-9 px-4 text-xs font-semibold gap-1 bg-slate-900 text-white hover:bg-slate-800 cursor-pointer"
                       >
-                        <FileEdit size={13} /> Blueprint Details
+                        <FileEdit size={13} /> Edit Exam
                       </Button>
                     </div>
                   </CardContent>
@@ -309,10 +309,10 @@ export function FacultyExamsPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => navigate(`/faculty/exams/${ex.exam_id}`)}
-                        className="h-9 px-3.5 text-xs font-semibold gap-1 bg-white text-slate-700 hover:bg-slate-50 border-slate-200"
+                        onClick={() => navigate(`/faculty/exams/${ex.exam_id}/edit`)}
+                        className="h-9 px-3.5 text-xs font-semibold gap-1 bg-white text-slate-700 hover:bg-slate-50 border-slate-200 cursor-pointer"
                       >
-                        <FileEdit size={13} /> Blueprint Details
+                        <FileEdit size={13} /> View Exam Details
                       </Button>
                       <Button
                         size="sm"

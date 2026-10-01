@@ -7,7 +7,7 @@
 import React, { useState, useEffect } from 'react';
 import { listEvidence, getPlaybackUrl } from '../../api/evidenceApi.js';
 
-export default function EvidenceModal({ isOpen, onClose, attemptId, candidateName }) {
+export default function EvidenceModal({ isOpen, onClose, attemptId, candidateName, liveEvidence = [] }) {
   const [evidenceList, setEvidenceList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -28,8 +28,13 @@ export default function EvidenceModal({ isOpen, onClose, attemptId, candidateNam
       setLoading(true);
       setError(null);
       try {
-        const data = await listEvidence(attemptId);
-        setEvidenceList(data?.evidence || []);
+        const data = await listEvidence(attemptId).catch(() => ({ evidence: [] }));
+        const scopedLive = liveEvidence.filter(e => !attemptId || e.attemptId === attemptId);
+        const combined = [...scopedLive, ...(data?.evidence || [])];
+        setEvidenceList(combined);
+        if (combined.length > 0) {
+          handleSelectItem(combined[0]);
+        }
       } catch (err) {
         setError(err.message || 'Failed to load evidence records');
       } finally {
@@ -42,6 +47,11 @@ export default function EvidenceModal({ isOpen, onClose, attemptId, candidateNam
 
   const handleSelectItem = async (item) => {
     setSelectedItem(item);
+    if (item.screenshotUrl || item.payload_url) {
+      setPlaybackUrl(item.screenshotUrl || item.payload_url);
+      setLoadingUrl(false);
+      return;
+    }
     setLoadingUrl(true);
     setPlaybackUrl(null);
     try {

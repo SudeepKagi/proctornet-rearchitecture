@@ -35,8 +35,8 @@ attemptEventsRouter.get('/', authenticate, handleGetAttemptTimeline);
 
 // Router mounted on attemptsRouter at '/:attemptId/proctoring/flags'
 export const attemptProctoringFlagsRouter = Router({ mergeParams: true });
-attemptProctoringFlagsRouter.post('/', authenticate, requireRole('INVIGILATOR', 'FACULTY', 'ADMIN'), handleCreateManualFlag);
-attemptProctoringFlagsRouter.patch('/:flagId', authenticate, requireRole('INVIGILATOR', 'FACULTY', 'ADMIN'), handleUpdateFlagStatus);
+attemptProctoringFlagsRouter.post('/', authenticate, requireRole('FACULTY', 'ADMIN'), handleCreateManualFlag);
+attemptProctoringFlagsRouter.patch('/:flagId', authenticate, requireRole('FACULTY', 'ADMIN'), handleUpdateFlagStatus);
 
 // Handler for session proctoring summary
 export { handleGetSessionSummary };

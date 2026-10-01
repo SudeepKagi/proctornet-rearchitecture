@@ -107,7 +107,7 @@ export function getClientIp(req, trustedHopsOverride) {
   const trustedHops = trustedHopsOverride !== undefined ? trustedHopsOverride : config.WS_TRUSTED_PROXY_COUNT;
 
   if (trustedHops === 0) {
-    // No trusted proxy in front — use direct TCP connection address; ignore XFF completely.
+    // No trusted proxy in front: use direct TCP connection address; ignore XFF completely.
     return req.socket?.remoteAddress || '127.0.0.1';
   }
 
@@ -336,7 +336,7 @@ export class ProctorNetWebSocketServer {
     //    CORS_ORIGIN to prevent cross-site WebSocket hijacking (CSWSH).
     //    Non-browser tooling (CLI, automated test harnesses) typically omits the
     //    Origin header. Those requests are intentionally permitted here because
-    //    subprotocol JWT authentication still applies at step 4-6 below — an
+    //    subprotocol JWT authentication still applies at step 4-6 below; an
     //    unauthenticated origin-less connection is rejected at the token stage.
     const origin = req.headers.origin;
     const isAllowedOrigin = config.CORS_ALLOWED_ORIGINS?.includes(origin) || origin === config.CORS_ORIGIN;
@@ -695,6 +695,17 @@ export class ProctorNetWebSocketServer {
         break;
       }
 
+      case 'VIOLATION_EVIDENCE_RECORDED': {
+        if (command.payload?.sessionId) {
+          this.broadcaster
+            .broadcastToSession(command.payload.sessionId, 'VIOLATION_EVIDENCE_RECORDED', command.payload)
+            .catch((err) => {
+              logger.warn({ err }, 'Failed to broadcast VIOLATION_EVIDENCE_RECORDED');
+            });
+        }
+        break;
+      }
+
       default:
         this.broadcaster.sendDirect(ws, 'error', {
           code: 'UNSUPPORTED_COMMAND',
@@ -708,10 +719,10 @@ export class ProctorNetWebSocketServer {
    * authoritative PostgreSQL data.
    *
    * Access rules (in priority order):
-   *  ADMIN   — global access to all rooms
-   *  FACULTY — must own the exam that owns the session/attempt (exam.created_by)
-   *  INVIGILATOR — must be assigned to the session (session_invigilators)
-   *  STUDENT — must be enrolled in the session / own the attempt (exam_attempts)
+   *  ADMIN   : global access to all rooms
+   *  FACULTY : must own the exam that owns the session/attempt (exam.created_by)
+   *  INVIGILATOR : must be assigned to the session (session_invigilators)
+   *  STUDENT : must be enrolled in the session / own the attempt (exam_attempts)
    *
    * @param {string} room
    * @param {object} context
@@ -742,10 +753,6 @@ export class ProctorNetWebSocketServer {
           [sessionId, context.userId]
         );
         return result.rows.length > 0;
-      }
-
-      if (roles.includes('INVIGILATOR')) {
-        return (this.deps?.isInvigilatorAssignedToSession || isInvigilatorAssignedToSession)(sessionId, context.userId);
       }
 
       // Students are strictly forbidden from invigilator rooms
@@ -823,16 +830,6 @@ export class ProctorNetWebSocketServer {
         return false;
       }
 
-      if (roles.includes('INVIGILATOR')) {
-        if (!pool) return true;
-        const result = await pool.query(
-          `SELECT 1 FROM exam_attempts ea
-           JOIN session_invigilators si ON ea.session_id = si.session_id
-           WHERE ea.attempt_id = $1 AND si.user_id = $2 LIMIT 1;`,
-          [attemptId, context.userId]
-        );
-        return result.rows.length > 0;
-      }
     }
 
     return false;

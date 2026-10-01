@@ -55,7 +55,7 @@ export function FacultyVerificationModal({ user, isOpen, onClose, onReviewSucces
     user.identifier ||
     user.employeeId ||
     user.facultyProfile?.employeeId ||
-    '—';
+    '-';
 
   const department =
     user.department ||

@@ -283,7 +283,7 @@ export function BulkImportPage() {
                       <ul className="space-y-1 text-xs text-muted-foreground list-disc pl-5">
                         {previewData.errors.map((err, idx) => (
                           <li key={idx}>
-                            Row {err.row}: <span className="font-semibold text-foreground">{err.email || 'Unknown'}</span> — {err.error}
+                            Row {err.row}: <span className="font-semibold text-foreground">{err.email || 'Unknown'}</span>: {err.error}
                           </li>
                         ))}
                       </ul>

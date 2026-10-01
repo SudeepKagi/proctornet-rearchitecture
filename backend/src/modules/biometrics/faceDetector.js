@@ -6,7 +6,7 @@
  * Performs bounding-box facial detection, landmark extraction, and head-pose estimation.
  */
 
-import { validateDocumentMagicBytes } from '../candidate/candidateIdentity.schemas.js';
+import { validateDocumentMagicBytes } from '../student/student.schemas.js';
 
 export class FaceDetectionError extends Error {
   constructor(message, code = 'FACE_DETECTION_ERROR') {

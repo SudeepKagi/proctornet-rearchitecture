@@ -1,11 +1,9 @@
 /**
  * @file index.js
- * @description Public module exports for Proctoring Control Plane.
+ * @description Evidence Storage module export.
  */
 
-export * from './anomalyScorer.js';
-export * from './proctoring.schemas.js';
-export * as proctoringRepository from './proctoring.repository.js';
-export * as proctoringService from './proctoring.service.js';
-export * as proctoringController from './proctoring.controller.js';
-export * from './proctoring.routes.js';
+export * as evidenceService from './evidence.service.js';
+export * as evidenceRepository from './evidence.repository.js';
+export * as evidenceSchemas from './evidence.schemas.js';
+export { evidenceRouter } from './evidence.routes.js';

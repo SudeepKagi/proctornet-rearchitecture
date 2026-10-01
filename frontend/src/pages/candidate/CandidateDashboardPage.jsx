@@ -1,3 +1,11 @@
+/**
+ * @file CandidateDashboardPage.jsx
+ * @description Simplified Student Dashboard with exactly three capabilities:
+ * 1. Upcoming assigned exams
+ * 2. Attend live exam
+ * 3. Results of finished exams
+ */
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -6,28 +14,28 @@ import {
   CheckCircle2,
   BookOpen,
   ArrowRight,
-  TrendingUp,
   AlertCircle,
   RefreshCw,
-  ChevronRight,
   Award,
-  Layers,
   Timer,
+  Play,
 } from 'lucide-react';
 import * as sessionsApi from '../../api/sessionsApi.js';
-import { getEnrollmentStatus } from '../../api/biometricsApi.js';
 import { useAuth } from '../../hooks/useAuth.js';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card.jsx';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card.jsx';
 import { Button } from '../../components/ui/button.jsx';
 import { Badge } from '../../components/ui/badge.jsx';
 import { Alert, AlertDescription } from '../../components/ui/alert.jsx';
 import { StateBoundary } from '../../components/common/StateBoundary.jsx';
 
 function formatDateTime(val) {
-  if (!val) return 'TBA';
+  if (!val) return 'To be announced';
   return new Date(val).toLocaleDateString(undefined, {
-    weekday: 'short', month: 'short', day: 'numeric',
-    hour: '2-digit', minute: '2-digit',
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
   });
 }
 
@@ -37,7 +45,10 @@ function useCountdown(targetDate) {
     if (!targetDate) return;
     const tick = () => {
       const diff = new Date(targetDate) - new Date();
-      if (diff <= 0) { setRemaining('Now'); return; }
+      if (diff <= 0) {
+        setRemaining('Starting now');
+        return;
+      }
       const h = Math.floor(diff / 3600000);
       const m = Math.floor((diff % 3600000) / 60000);
       const s = Math.floor((diff % 60000) / 1000);
@@ -57,76 +68,55 @@ function useCountdown(targetDate) {
   return remaining;
 }
 
-function NextExamCard({ session, onEnter, onViewResult }) {
-  const id = session.session_id || session.id;
-  const isCompleted = ['SUBMITTED', 'EXPIRED', 'COMPLETED'].includes(session.my_attempt_status);
-  const isActive = session.status === 'ACTIVE' && !isCompleted;
-  const countdown = useCountdown(isActive || isCompleted ? null : session.scheduled_start_time);
+function UpcomingExamCard({ session, onAttend }) {
+  const sid = session.session_id || session.id;
+  const isLive = session.status === 'ACTIVE';
+  const countdown = useCountdown(session.scheduled_start_time);
 
   return (
-    <Card className={`border-2 ${isCompleted ? 'border-slate-300 bg-white' : isActive ? 'border-emerald-400 bg-emerald-50/60' : 'border-blue-200 bg-blue-50/40'} shadow-sm`}>
-      <CardContent className="p-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              {isCompleted ? (
-                <Badge variant="outline" className="gap-1 border-emerald-300 text-emerald-700">
-                  <CheckCircle2 size={12} />
-                  Completed
-                </Badge>
-              ) : isActive ? (
-                <Badge variant="success" className="gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  Live Now
-                </Badge>
-              ) : (
-                <Badge variant="secondary">Upcoming</Badge>
-              )}
-              <span className="text-xs text-slate-500 font-medium">
-                {isCompleted
-                  ? 'Exam submitted & evaluated'
-                  : isActive
-                  ? `Closes at ${new Date(session.scheduled_end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-                  : formatDateTime(session.scheduled_start_time)}
-              </span>
-            </div>
-            <h3 className="text-lg font-bold text-slate-900 leading-snug">
-              {session.exam_title || 'Assigned Examination'}
-            </h3>
-            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-600">
-              <span className="flex items-center gap-1.5">
-                <Timer size={12} className="text-slate-400" />
-                {session.exam_duration_minutes || 60} min duration
-              </span>
-              {!isActive && !isCompleted && (
-                <span className="flex items-center gap-1.5 font-semibold text-blue-700">
-                  <Clock size={12} />
-                  Starts in {countdown}
-                </span>
-              )}
-            </div>
-          </div>
-          {isCompleted ? (
-            <Button
-              onClick={() => onViewResult?.(session)}
-              className="shrink-0 h-10 px-6 font-semibold text-sm bg-blue-600 hover:bg-blue-700 text-white gap-2"
-            >
-              <Award size={15} />
-              View Results
-            </Button>
-          ) : (
-            <Button
-              onClick={() => onEnter(id)}
-              className={`shrink-0 h-10 px-6 font-semibold text-sm ${isActive
-                ? 'bg-emerald-700 hover:bg-emerald-800 text-white'
-                : 'bg-blue-700 hover:bg-blue-800 text-white'
-              }`}
-            >
-              {isActive ? 'Enter Exam' : 'View Details'}
-              <ArrowRight size={15} />
-            </Button>
-          )}
+    <Card className="border border-slate-200 bg-white hover:border-blue-300 transition-colors shadow-xs">
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between gap-2">
+          <Badge variant="outline" className="text-xs border-blue-200 text-blue-700 bg-blue-50/50">
+            Scheduled
+          </Badge>
+          <span className="text-xs font-medium text-slate-500 flex items-center gap-1">
+            <Clock size={12} />
+            {formatDateTime(session.scheduled_start_time)}
+          </span>
         </div>
+        <CardTitle className="text-base font-bold text-slate-900 mt-2">
+          {session.exam_title || 'Assigned Examination'}
+        </CardTitle>
+        {session.subject_name && (
+          <CardDescription className="text-xs text-slate-500">
+            {session.subject_name}
+          </CardDescription>
+        )}
+      </CardHeader>
+      <CardContent className="pt-0 space-y-4">
+        <div className="flex items-center justify-between text-xs text-slate-600 border-t border-slate-100 pt-3">
+          <span className="flex items-center gap-1.5">
+            <Timer size={13} className="text-slate-400" />
+            {session.exam_duration_minutes || 60} Minutes
+          </span>
+          <span className="text-xs font-semibold text-blue-700">
+            Starts in {countdown}
+          </span>
+        </div>
+
+        <Button
+          onClick={() => onAttend(sid)}
+          variant={isLive ? 'default' : 'outline'}
+          className={`w-full text-xs font-semibold h-9 gap-1.5 ${
+            isLive
+              ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+              : 'border-slate-300 text-slate-700 hover:bg-slate-50'
+          }`}
+        >
+          {isLive ? 'Attend Exam Now' : 'View Exam Details'}
+          <ArrowRight size={13} />
+        </Button>
       </CardContent>
     </Card>
   );
@@ -136,7 +126,6 @@ export function CandidateDashboardPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [sessions, setSessions] = useState([]);
-  const [enrollment, setEnrollment] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -144,62 +133,63 @@ export function CandidateDashboardPage() {
     setLoading(true);
     setError('');
     try {
-      const [sessionData, enrollmentData] = await Promise.all([
-        sessionsApi.listSessions(),
-        getEnrollmentStatus().catch(() => null),
-      ]);
+      const sessionData = await sessionsApi.listSessions();
       setSessions(Array.isArray(sessionData) ? sessionData : []);
-      setEnrollment(enrollmentData);
     } catch (err) {
-      setError(err?.message || 'Failed to load dashboard. Please refresh.');
+      setError(err?.message || 'Failed to load your examination dashboard. Please refresh.');
     } finally {
       setLoading(false);
     }
   }
 
-  useEffect(() => { loadDashboard(); }, []);
+  useEffect(() => {
+    loadDashboard();
+  }, []);
 
-  const completed = sessions.filter(s => s.status === 'COMPLETED' || ['SUBMITTED', 'EXPIRED', 'COMPLETED'].includes(s.my_attempt_status));
-  const upcoming = sessions.filter(s => !['COMPLETED', 'CANCELLED'].includes(s.status) && !['SUBMITTED', 'EXPIRED', 'COMPLETED'].includes(s.my_attempt_status));
-  const active = sessions.filter(s => s.status === 'ACTIVE' && !['SUBMITTED', 'EXPIRED', 'COMPLETED'].includes(s.my_attempt_status));
-  const nextExam = active[0] || upcoming.sort((a, b) => new Date(a.scheduled_start_time) - new Date(b.scheduled_start_time))[0];
-  const recentCompleted = [...completed].sort((a, b) => new Date(b.scheduled_end_time || b.updated_at) - new Date(a.scheduled_end_time || a.updated_at)).slice(0, 3);
+  const completed = sessions.filter(
+    (s) => s.status === 'COMPLETED' || ['SUBMITTED', 'EXPIRED', 'COMPLETED'].includes(s.my_attempt_status)
+  );
+  const upcoming = sessions.filter(
+    (s) =>
+      !['COMPLETED', 'CANCELLED'].includes(s.status) &&
+      !['SUBMITTED', 'EXPIRED', 'COMPLETED'].includes(s.my_attempt_status)
+  );
+  const activeExams = sessions.filter(
+    (s) => s.status === 'ACTIVE' && !['SUBMITTED', 'EXPIRED', 'COMPLETED'].includes(s.my_attempt_status)
+  );
+
+  const firstName = (user?.name || 'Student').split(' ')[0];
+
+  function handleAttendExam(sessionId) {
+    navigate(`/candidate/readiness/${sessionId}`);
+  }
 
   function handleViewResult(session) {
     if (session?.my_attempt_id) {
       navigate(`/candidate/attempts/${session.my_attempt_id}/result`);
       return;
     }
-    navigate('/candidate/exams');
+    navigate('/candidate/results');
   }
 
-  const isEnrolled = Boolean(
-    enrollment?.isEnrolled &&
-    (user?.isVerified === true || user?.verificationStatus === 'VERIFIED') &&
-    Boolean(user?.enrolledFacePhotoUrl)
-  );
-  const firstName = (user?.name || 'Student').split(' ')[0];
-
-  const stats = [
-    { label: 'Total Assigned', value: sessions.length, icon: Layers, color: 'text-blue-600', bg: 'bg-blue-50' },
-    { label: 'Upcoming', value: upcoming.length, icon: Calendar, color: 'text-amber-600', bg: 'bg-amber-50' },
-    { label: 'Completed', value: completed.length, icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-    { label: 'Pass Rate', value: completed.length > 0 ? `${Math.round((completed.length / sessions.length) * 100)}%` : '—', icon: TrendingUp, color: 'text-purple-600', bg: 'bg-purple-50' },
-  ];
-
   return (
-    <div className="space-y-7 pb-16">
+    <div className="space-y-8 max-w-5xl mx-auto pb-16">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-200 pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 pb-5">
         <div>
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-1">Student Portal</p>
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+            Student Examination Portal
+          </p>
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
-            Welcome back, {firstName} 👋
+            Welcome, {firstName}
           </h1>
-          <p className="text-sm text-slate-500 mt-1">Here's your exam overview for today.</p>
+          <p className="text-sm text-slate-600 mt-1">
+            Here are your upcoming examinations, active sessions, and test results.
+          </p>
         </div>
         <Button
-          variant="outline" size="sm"
+          variant="outline"
+          size="sm"
           onClick={loadDashboard}
           disabled={loading}
           className="self-start sm:self-auto text-xs h-9 gap-1.5"
@@ -211,156 +201,178 @@ export function CandidateDashboardPage() {
 
       {error && (
         <Alert variant="destructive">
-          <AlertCircle size={15} />
+          <AlertCircle size={16} />
           <AlertDescription className="flex items-center justify-between gap-4">
-            {error}
-            <Button size="sm" variant="outline" onClick={loadDashboard}>Retry</Button>
+            <span>{error}</span>
+            <Button size="sm" variant="outline" onClick={loadDashboard}>
+              Retry
+            </Button>
           </AlertDescription>
         </Alert>
       )}
 
-      {/* Stats Row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map(({ label, value, icon: Icon, color, bg }) => (
-          <Card key={label} className="border-slate-200 bg-white shadow-xs">
-            <CardContent className="p-5 flex items-center gap-4">
-              <div className={`${bg} ${color} p-3 rounded-xl shrink-0`}>
-                <Icon size={20} />
-              </div>
-              <div>
-                <p className="text-xs text-slate-500 font-medium">{label}</p>
-                <p className="text-2xl font-bold text-slate-900 leading-tight">{loading ? '…' : value}</p>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Next Exam / No Exams */}
-      <div>
-        <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-wider mb-3">
-          {active.length > 0 ? '🔴 Active Now' : '📅 Next Exam'}
-        </h2>
-        {loading ? (
-          <Card className="border-slate-200 animate-pulse"><CardContent className="p-6 h-24" /></Card>
-        ) : nextExam ? (
-          <NextExamCard session={nextExam} onEnter={(id) => navigate(`/candidate/readiness/${id}`)} onViewResult={handleViewResult} />
-        ) : (
-          <Card className="border-slate-200 bg-white">
-            <CardContent className="p-8 text-center space-y-2">
-              <BookOpen size={32} className="mx-auto text-slate-300 stroke-1" />
-              <p className="text-sm font-semibold text-slate-700">No upcoming exams scheduled</p>
-              <p className="text-xs text-slate-400 max-w-xs mx-auto">
-                You'll see your next exam here once one is assigned to you.
-              </p>
-            </CardContent>
-          </Card>
-        )}
-      </div>
-
-      {/* Recent Results + Identity Status */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Recent Completed */}
-        <Card className="lg:col-span-2 border-slate-200 bg-white shadow-xs">
-          <CardHeader className="pb-3 flex flex-row items-center justify-between">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <Award size={15} className="text-slate-500" />
-              Recent Results
-            </CardTitle>
-            <Button
-              variant="ghost" size="sm"
-              className="text-xs h-7 text-blue-600 hover:text-blue-700 gap-1"
-              onClick={() => navigate('/candidate/exams')}
-            >
-              View All <ChevronRight size={13} />
-            </Button>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <StateBoundary
-              isLoading={loading}
-              error={error}
-              isEmpty={recentCompleted.length === 0}
-              loadingMessage="Loading recent completed exams..."
-              emptyTitle="No Completed Exams Yet"
-              emptyDescription="Your completed exams and published scorecards will appear here after submission."
-              onRetry={loadDashboard}
-            >
-              <div className="divide-y divide-slate-100">
-                {recentCompleted.map(s => {
-                  const id = s.session_id || s.id;
-                  return (
-                    <div key={id} className="py-3 flex items-center justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-semibold text-slate-800">{s.exam_title || 'Exam'}</p>
-                        <p className="text-xs text-slate-400">{formatDateTime(s.scheduled_end_time || s.updated_at)}</p>
+      {/* 1. Attend Live Exam Section (Displayed prominently when an exam is currently active) */}
+      {activeExams.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+            <h2 className="text-base font-bold text-slate-900">
+              Live Examination Ready to Attend
+            </h2>
+          </div>
+          {activeExams.map((session) => {
+            const sid = session.session_id || session.id;
+            return (
+              <Card
+                key={sid}
+                className="border-2 border-emerald-500 bg-emerald-50/70 shadow-md transition-all hover:shadow-lg"
+              >
+                <CardContent className="p-6">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="success" className="gap-1 font-semibold text-xs px-2.5 py-0.5">
+                          Active Now
+                        </Badge>
+                        <span className="text-xs text-slate-600 font-medium">
+                          Closes at{' '}
+                          {new Date(session.scheduled_end_time).toLocaleTimeString([], {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </span>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <Badge variant="outline" className="text-xs">Completed</Badge>
-                        <Button
-                          size="sm" variant="ghost"
-                          className="h-7 text-xs text-blue-600 hover:text-blue-700 gap-1 px-2"
-                          onClick={() => handleViewResult(s)}
-                        >
-                          Results <ChevronRight size={12} />
-                        </Button>
+                      <h3 className="text-xl font-bold text-slate-900">
+                        {session.exam_title || 'Assigned Examination'}
+                      </h3>
+                      <div className="flex flex-wrap items-center gap-4 text-xs text-slate-600">
+                        <span className="flex items-center gap-1.5 font-medium">
+                          <Timer size={14} className="text-emerald-700" />
+                          {session.exam_duration_minutes || 60} Minutes Duration
+                        </span>
+                        {session.subject_name && (
+                          <span className="flex items-center gap-1.5 text-slate-600">
+                            Subject: <strong className="text-slate-800">{session.subject_name}</strong>
+                          </span>
+                        )}
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            </StateBoundary>
-          </CardContent>
-        </Card>
-
-        {/* Identity / Quick Links */}
-        <div className="space-y-4">
-          <Card className={`border-2 shadow-xs ${isEnrolled ? 'border-emerald-200 bg-emerald-50/40' : 'border-amber-200 bg-amber-50/40'}`}>
-            <CardContent className="p-5">
-              <div className="flex items-center gap-2 mb-1.5">
-                <CheckCircle2 size={16} className={isEnrolled ? 'text-emerald-600' : 'text-amber-600'} />
-                <p className="text-xs font-semibold text-slate-700">
-                  {isEnrolled ? 'Identity Confirmed' : 'Verification Pending'}
-                </p>
-              </div>
-              <p className="text-xs text-slate-500 leading-relaxed">
-                {isEnrolled
-                  ? 'Your photo is on file. You are cleared to take exams.'
-                  : 'Complete photo setup to unlock exam access.'}
-              </p>
-              {!isEnrolled && (
-                <Button
-                  size="sm" className="mt-3 h-8 text-xs w-full bg-blue-600 hover:bg-blue-700 text-white font-medium"
-                  onClick={() => navigate('/candidate/enrollment')}
-                >
-                  Complete Setup
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card className="border-slate-200 bg-white shadow-xs">
-            <CardContent className="p-5 space-y-2">
-              <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Quick Links</p>
-              {[
-                { label: 'My Exams', path: '/candidate/exams', icon: BookOpen },
-                { label: 'Profile & Verification', path: '/candidate/profile', icon: Award },
-              ].map(({ label, path, icon: Icon }) => (
-                <button
-                  key={path}
-                  onClick={() => navigate(path)}
-                  className="w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg text-sm text-slate-700 hover:bg-slate-50 hover:text-blue-700 transition-colors text-left"
-                >
-                  <span className="flex items-center gap-2.5">
-                    <Icon size={14} className="text-slate-400" />
-                    {label}
-                  </span>
-                  <ChevronRight size={14} className="text-slate-300" />
-                </button>
-              ))}
-            </CardContent>
-          </Card>
+                    <Button
+                      onClick={() => handleAttendExam(sid)}
+                      className="shrink-0 h-11 px-8 font-bold text-sm bg-emerald-700 hover:bg-emerald-800 text-white gap-2 shadow-sm"
+                    >
+                      <Play size={16} className="fill-white" />
+                      Attend Exam Now
+                      <ArrowRight size={16} />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
+      )}
+
+      {/* 2. Upcoming Assigned Exams Section */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Calendar size={18} className="text-blue-600" />
+            <h2 className="text-lg font-bold text-slate-900">Upcoming Assigned Exams</h2>
+          </div>
+          <span className="text-xs font-medium text-slate-500">
+            {upcoming.length} {upcoming.length === 1 ? 'Exam' : 'Exams'} Scheduled
+          </span>
+        </div>
+
+        <StateBoundary
+          isLoading={loading}
+          error={error}
+          isEmpty={upcoming.length === 0}
+          loadingMessage="Loading assigned exams..."
+          emptyTitle="No Upcoming Exams Assigned"
+          emptyDescription="You currently have no scheduled examinations assigned to your branch and semester. New assignments will appear here."
+          onRetry={loadDashboard}
+        >
+          <div className="grid gap-4 sm:grid-cols-2">
+            {upcoming.map((session) => (
+              <UpcomingExamCard
+                key={session.session_id || session.id}
+                session={session}
+                onAttend={handleAttendExam}
+              />
+            ))}
+          </div>
+        </StateBoundary>
+      </div>
+
+      {/* 3. Results of Finished Exams Section */}
+      <div className="space-y-4 pt-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Award size={18} className="text-purple-600" />
+            <h2 className="text-lg font-bold text-slate-900">Results of Finished Exams</h2>
+          </div>
+          <span className="text-xs font-medium text-slate-500">
+            {completed.length} {completed.length === 1 ? 'Result' : 'Results'} Available
+          </span>
+        </div>
+
+        <StateBoundary
+          isLoading={loading}
+          error={error}
+          isEmpty={completed.length === 0}
+          loadingMessage="Loading completed examination results..."
+          emptyTitle="No Finished Exams Yet"
+          emptyDescription="When you submit an examination and scores are finalized, your results and performance scorecards will appear here."
+          onRetry={loadDashboard}
+        >
+          <div className="border border-slate-200 rounded-xl bg-white overflow-hidden shadow-xs divide-y divide-slate-100">
+            {completed.map((session) => {
+              const sid = session.session_id || session.id;
+              const hasScore = session.my_score !== undefined && session.my_score !== null;
+              return (
+                <div
+                  key={sid}
+                  className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50/60 transition-colors"
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-bold text-slate-900">
+                        {session.exam_title || 'Completed Examination'}
+                      </h3>
+                      <Badge variant="outline" className="text-[11px] border-emerald-300 text-emerald-800 bg-emerald-50">
+                        <CheckCircle2 size={11} className="mr-1 text-emerald-600" />
+                        Finished
+                      </Badge>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-x-4 text-xs text-slate-500">
+                      <span>Submitted: {formatDateTime(session.scheduled_end_time || session.updated_at)}</span>
+                      {hasScore && (
+                        <span className="font-semibold text-slate-800">
+                          Score: {session.my_score} / {session.total_marks || 100}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <Button
+                    onClick={() => handleViewResult(session)}
+                    size="sm"
+                    className="shrink-0 h-9 px-4 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white gap-1.5"
+                  >
+                    <Award size={14} />
+                    View Scorecard
+                    <ArrowRight size={13} />
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        </StateBoundary>
       </div>
     </div>
   );
 }
+
+export default CandidateDashboardPage;

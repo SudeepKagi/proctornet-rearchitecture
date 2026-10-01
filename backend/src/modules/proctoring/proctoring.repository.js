@@ -385,9 +385,8 @@ export async function updateFlagStatus(flagId, updateData, client) {
 export async function isInvigilatorAssignedToSession(sessionId, userId, client = null) {
   const sql = `
     SELECT 1 FROM exam_sessions es
-    LEFT JOIN exams e ON es.exam_id = e.exam_id
-    LEFT JOIN session_invigilators si ON es.session_id = si.session_id AND si.user_id = $2
-    WHERE es.session_id = $1 AND (si.user_id IS NOT NULL OR e.created_by = $2)
+    JOIN user_roles ur ON ur.user_id = $2
+    WHERE es.session_id = $1 AND ur.role IN ('FACULTY', 'ADMIN', 'DEVELOPER')
     LIMIT 1;
   `;
   const executor = client ? client.query.bind(client) : query;

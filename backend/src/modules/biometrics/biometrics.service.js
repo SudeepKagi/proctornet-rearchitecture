@@ -25,7 +25,7 @@ import {
 } from '../../infrastructure/storage/s3Storage.js';
 import { compareFacesWithRekognition } from '../../infrastructure/ai/rekognitionClient.js';
 import { logger } from '../../utils/logger.js';
-import { validateDocumentMagicBytes } from '../candidate/candidateIdentity.schemas.js';
+import { validateDocumentMagicBytes } from '../student/student.schemas.js';
 import { recordAuditEvent } from '../audit/audit.service.js';
 import {
   BadRequestError,
@@ -1009,7 +1009,7 @@ export async function verifyIdentitySnapshot({ userId, sessionId, image, imageBu
       u.user_id,
       u.name,
       u.email,
-      COALESCE(u.enrolled_face_photo_url, sp.enrolled_face_photo_url, sp.metadata->>'enrolledFacePhotoUrl') AS enrolled_face_photo_url
+      COALESCE(u.enrolled_face_photo_url, sp.face_photo_url) AS enrolled_face_photo_url
     FROM users u
     LEFT JOIN student_profiles sp ON sp.user_id = u.user_id
     WHERE u.user_id = $1

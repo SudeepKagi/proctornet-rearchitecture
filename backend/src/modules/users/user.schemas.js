@@ -7,11 +7,7 @@ import { z } from 'zod';
 
 export const createUserSchema = z
   .object({
-    name: z
-      .string({ required_error: 'Name is required' })
-      .trim()
-      .min(2, 'Name must be at least 2 characters')
-      .max(255),
+    name: z.string().trim().max(255).optional().nullable(),
     email: z
       .string({ required_error: 'Email is required' })
       .trim()
@@ -19,10 +15,14 @@ export const createUserSchema = z
       .toLowerCase()
       .max(255),
     phone: z.string().trim().max(32).optional().nullable(),
-    role: z.enum(['STUDENT', 'FACULTY', 'INVIGILATOR', 'ADMIN', 'DEVELOPER'], {
-      required_error: 'Role is required'
+    role: z.enum(['STUDENT', 'FACULTY'], {
+      required_error: 'Role is required and must be either STUDENT or FACULTY'
     }),
-    identifier: z.string().trim().max(64).optional().nullable()
+    identifier: z
+      .string({ required_error: 'Identifier (USN or Employee ID) is required' })
+      .trim()
+      .min(2, 'Identifier must be at least 2 characters')
+      .max(64)
   })
   .superRefine((data, ctx) => {
     const trimmed = typeof data.identifier === 'string' ? data.identifier.trim() : '';
@@ -33,24 +33,12 @@ export const createUserSchema = z
           message: 'USN / Enrollment Number is required for student accounts',
           path: ['identifier']
         });
-      } else if (trimmed.length < 2) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'Identifier must be at least 2 characters',
-          path: ['identifier']
-        });
       }
     } else if (data.role === 'FACULTY') {
       if (!trimmed || trimmed.length === 0) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: 'Employee / Faculty ID is required for faculty accounts',
-          path: ['identifier']
-        });
-      } else if (trimmed.length < 2) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'Identifier must be at least 2 characters',
+          message: 'Employee / Faculty ID is required for teacher accounts',
           path: ['identifier']
         });
       }
@@ -89,6 +77,8 @@ export const firstLoginPasswordSchema = z.object({
 
 export const onboardingProfileSchema = z.object({
   department: z.string().trim().min(2).max(128).optional(),
+  departmentId: z.string().uuid().optional(),
+  department_id: z.string().uuid().optional(),
   semester: z.number().int().min(1).max(12).optional(),
   designation: z.string().trim().min(2).max(128).optional(),
   phone: z.string().trim().max(32).optional().nullable(),
@@ -101,7 +91,7 @@ export const updateUserProfileSchema = z.object({
 });
 
 export const assignRoleSchema = z.object({
-  role: z.enum(['STUDENT', 'FACULTY', 'INVIGILATOR', 'ADMIN', 'DEVELOPER'], {
+  role: z.enum(['STUDENT', 'FACULTY', 'ADMIN', 'DEVELOPER'], {
     required_error: 'Role is required'
   })
 });

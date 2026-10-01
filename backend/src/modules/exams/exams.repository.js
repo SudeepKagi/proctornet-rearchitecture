@@ -1,6 +1,6 @@
 /**
  * @file exams.repository.js
- * @description Direct PostgreSQL data access repository for Exams, Exam Topic Rules, and audit tracking.
+ * @description Direct PostgreSQL data access repository for Exams, Question assignments, and audit tracking.
  */
 
 import { query, getPool } from '../../infrastructure/postgres/pool.js';
@@ -9,32 +9,30 @@ import { createAuditLog as createCentralAuditLog } from '../audit/audit.reposito
 /**
  * Creates a new exam in DRAFT status.
  * @param {object} params
- * @param {string} params.title
- * @param {string} [params.description]
- * @param {string} params.subjectId
- * @param {number} params.durationMinutes
- * @param {number} params.totalMarks
- * @param {number} params.passingMarks
- * @param {string} params.createdBy
- * @param {object} [client] - Optional db client for transactions
  * @returns {Promise<object>}
  */
 export async function createExam(
-  { title, description, subjectId, durationMinutes, totalMarks, passingMarks, createdBy },
+  { title, description, subjectName, subject_name, durationMinutes, totalMarks, passingMarks, targetSemester, departmentId, createdBy },
   client = null
 ) {
   const text = `
-    INSERT INTO exams (title, description, subject_id, duration_minutes, total_marks, passing_marks, status, created_by)
-    VALUES ($1, $2, $3, $4, $5, $6, 'DRAFT', $7)
-    RETURNING exam_id, title, description, subject_id, duration_minutes, total_marks, passing_marks, status, created_by, created_at, updated_at;
+    INSERT INTO exams (
+      title, description, subject_name, duration_minutes, total_marks, passing_marks,
+      target_semester, department_id, status, created_by
+    )
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'DRAFT', $9)
+    RETURNING exam_id, title, description, subject_name, duration_minutes, total_marks, passing_marks,
+              target_semester, department_id, status, created_by, created_at, updated_at;
   `;
   const params = [
     title.trim(),
     description ? description.trim() : null,
-    subjectId,
-    durationMinutes,
-    totalMarks,
-    passingMarks,
+    (subjectName || subject_name || title).trim(),
+    durationMinutes || 60,
+    totalMarks || 100,
+    passingMarks || 40,
+    targetSemester || null,
+    departmentId || null,
     createdBy
   ];
 
@@ -43,19 +41,20 @@ export async function createExam(
 }
 
 /**
- * Finds an exam by ID with creator and subject metadata.
+ * Finds an exam by ID with creator and department metadata.
  * @param {string} examId
  * @param {object} [client]
  * @returns {Promise<object|null>}
  */
 export async function findExamById(examId, client = null) {
   const text = `
-    SELECT e.exam_id, e.title, e.description, e.subject_id, e.duration_minutes, e.total_marks, e.passing_marks,
+    SELECT e.exam_id, e.title, e.description, e.subject_name, e.duration_minutes, e.total_marks, e.passing_marks,
+           e.target_semester, e.department_id, d.name AS department_name, d.code AS department_code,
+           e.scheduled_start_time, e.scheduled_end_time,
            e.status, e.created_by, e.created_at, e.updated_at,
-           s.name AS subject_name, s.code AS subject_code,
            u.name AS creator_name, u.email AS creator_email
     FROM exams e
-    LEFT JOIN subjects s ON e.subject_id = s.subject_id
+    LEFT JOIN departments d ON e.department_id = d.department_id
     LEFT JOIN users u ON e.created_by = u.user_id
     WHERE e.exam_id = $1;
   `;
@@ -71,7 +70,8 @@ export async function findExamById(examId, client = null) {
  */
 export async function findExamByIdForUpdate(examId, client) {
   const text = `
-    SELECT exam_id, title, description, subject_id, duration_minutes, total_marks, passing_marks,
+    SELECT exam_id, title, description, subject_name, duration_minutes, total_marks, passing_marks,
+           target_semester, department_id, scheduled_start_time, scheduled_end_time,
            status, created_by, created_at, updated_at
     FROM exams
     WHERE exam_id = $1
@@ -82,7 +82,7 @@ export async function findExamByIdForUpdate(examId, client) {
 }
 
 /**
- * Updates a draft exam record.
+ * Updates an exam record.
  * @param {string} examId
  * @param {object} updates
  * @param {object} [client]
@@ -101,30 +101,52 @@ export async function updateExam(examId, updates, client = null) {
     fields.push(`description = $${idx++}`);
     values.push(updates.description ? updates.description.trim() : null);
   }
-  if (updates.duration_minutes !== undefined) {
+  if (updates.subject_name !== undefined || updates.subjectName !== undefined) {
+    fields.push(`subject_name = $${idx++}`);
+    values.push((updates.subject_name || updates.subjectName).trim());
+  }
+  if (updates.duration_minutes !== undefined || updates.durationMinutes !== undefined) {
     fields.push(`duration_minutes = $${idx++}`);
-    values.push(updates.duration_minutes);
+    values.push(Number(updates.duration_minutes || updates.durationMinutes));
   }
-  if (updates.total_marks !== undefined) {
+  if (updates.total_marks !== undefined || updates.totalMarks !== undefined) {
     fields.push(`total_marks = $${idx++}`);
-    values.push(updates.total_marks);
+    values.push(Number(updates.total_marks || updates.totalMarks));
   }
-  if (updates.passing_marks !== undefined) {
+  if (updates.passing_marks !== undefined || updates.passingMarks !== undefined) {
     fields.push(`passing_marks = $${idx++}`);
-    values.push(updates.passing_marks);
+    values.push(Number(updates.passing_marks || updates.passingMarks));
   }
   if (updates.status !== undefined) {
     fields.push(`status = $${idx++}`);
     values.push(updates.status);
   }
+  if (updates.target_semester !== undefined || updates.targetSemester !== undefined) {
+    fields.push(`target_semester = $${idx++}`);
+    values.push(Number(updates.target_semester || updates.targetSemester));
+  }
+  if (updates.department_id !== undefined || updates.departmentId !== undefined) {
+    fields.push(`department_id = $${idx++}`);
+    values.push(updates.department_id || updates.departmentId);
+  }
+  if (updates.scheduled_start_time !== undefined || updates.scheduledStartTime !== undefined) {
+    fields.push(`scheduled_start_time = $${idx++}`);
+    values.push(updates.scheduled_start_time || updates.scheduledStartTime);
+  }
+  if (updates.scheduled_end_time !== undefined || updates.scheduledEndTime !== undefined) {
+    fields.push(`scheduled_end_time = $${idx++}`);
+    values.push(updates.scheduled_end_time || updates.scheduledEndTime);
+  }
 
-  fields.push(`updated_at = CURRENT_TIMESTAMP`);
+  fields.push(`updated_at = NOW()`);
 
   const text = `
     UPDATE exams
     SET ${fields.join(', ')}
     WHERE exam_id = $1
-    RETURNING exam_id, title, description, subject_id, duration_minutes, total_marks, passing_marks, status, created_by, created_at, updated_at;
+    RETURNING exam_id, title, description, subject_name, duration_minutes, total_marks, passing_marks,
+              target_semester, department_id, scheduled_start_time, scheduled_end_time,
+              status, created_by, created_at, updated_at;
   `;
 
   const res = client ? await client.query(text, values) : await query(text, values);
@@ -132,28 +154,23 @@ export async function updateExam(examId, updates, client = null) {
 }
 
 /**
- * Deletes an exam by ID (only when in DRAFT).
- * @param {string} examId
- * @param {object} [client]
- * @returns {Promise<boolean>}
+ * Transitions exam status atomically.
  */
-export async function deleteExam(examId, client = null) {
-  const text = `DELETE FROM exams WHERE exam_id = $1;`;
-  const res = client ? await client.query(text, [examId]) : await query(text, [examId]);
-  return res.rowCount > 0;
+export async function updateExamStatus(examId, nextStatus, client = null) {
+  const text = `
+    UPDATE exams
+    SET status = $2, updated_at = NOW()
+    WHERE exam_id = $1
+    RETURNING exam_id, title, status, updated_at;
+  `;
+  const res = client ? await client.query(text, [examId, nextStatus]) : await query(text, [examId, nextStatus]);
+  return res.rows[0] || null;
 }
 
 /**
  * Lists exams with pagination and optional filters.
- * @param {object} params
- * @param {string} [params.createdBy]
- * @param {string} [params.status]
- * @param {string} [params.subjectId]
- * @param {number} [params.limit=20]
- * @param {number} [params.offset=0]
- * @returns {Promise<object[]>}
  */
-export async function listExams({ createdBy, status, subjectId, limit = 20, offset = 0 }) {
+export async function listExams({ createdBy, status, limit = 20, offset = 0 } = {}) {
   const conditions = [];
   const values = [];
   let idx = 1;
@@ -166,22 +183,18 @@ export async function listExams({ createdBy, status, subjectId, limit = 20, offs
     conditions.push(`e.status = $${idx++}`);
     values.push(status);
   }
-  if (subjectId) {
-    conditions.push(`e.subject_id = $${idx++}`);
-    values.push(subjectId);
-  }
 
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
   const text = `
-    SELECT e.exam_id, e.title, e.description, e.subject_id, e.duration_minutes, e.total_marks, e.passing_marks,
+    SELECT e.exam_id, e.title, e.description, e.subject_name, e.duration_minutes, e.total_marks, e.passing_marks,
+           e.target_semester, e.department_id, d.name AS department_name,
+           e.scheduled_start_time, e.scheduled_end_time,
            e.status, e.created_by, e.created_at, e.updated_at,
-           s.name AS subject_name, s.code AS subject_code,
            u.name AS creator_name,
-           (SELECT COUNT(*)::int FROM exam_questions WHERE exam_id = e.exam_id) AS questions_count,
-           (SELECT COUNT(*)::int FROM exam_questions WHERE exam_id = e.exam_id) AS topic_rules_count
+           (SELECT COUNT(*)::int FROM questions WHERE exam_id = e.exam_id) AS questions_count
     FROM exams e
-    LEFT JOIN subjects s ON e.subject_id = s.subject_id
+    LEFT JOIN departments d ON e.department_id = d.department_id
     LEFT JOIN users u ON e.created_by = u.user_id
     ${whereClause}
     ORDER BY e.created_at DESC
@@ -195,10 +208,8 @@ export async function listExams({ createdBy, status, subjectId, limit = 20, offs
 
 /**
  * Counts total matching exams for pagination.
- * @param {object} params
- * @returns {Promise<number>}
  */
-export async function countExams({ createdBy, status, subjectId }) {
+export async function countExams({ createdBy, status } = {}) {
   const conditions = [];
   const values = [];
   let idx = 1;
@@ -211,10 +222,6 @@ export async function countExams({ createdBy, status, subjectId }) {
     conditions.push(`status = $${idx++}`);
     values.push(status);
   }
-  if (subjectId) {
-    conditions.push(`subject_id = $${idx++}`);
-    values.push(subjectId);
-  }
 
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
   const text = `SELECT COUNT(*)::int AS total FROM exams ${whereClause};`;
@@ -224,137 +231,60 @@ export async function countExams({ createdBy, status, subjectId }) {
 
 /**
  * Retrieves all assigned exam questions formatted as blueprint rows.
- * @param {string} examId
- * @param {object} [client]
- * @returns {Promise<object[]>}
  */
 export async function getExamQuestionsAsBlueprintRows(examId, client = null) {
   const text = `
     SELECT 
-      eq.exam_question_id AS rule_id,
-      eq.exam_id,
-      q.topic_id,
+      q.question_id AS rule_id,
+      q.exam_id,
+      q.question_id,
       1 AS question_count,
-      eq.points AS points_per_question,
+      q.default_points AS points_per_question,
       'ANY' AS difficulty,
       'ANY' AS bloom_level,
-      eq.created_at,
-      COALESCE(t.name, 'Question Pool') AS topic_name,
-      t.subject_id
-    FROM exam_questions eq
-    JOIN questions q ON eq.question_id = q.question_id
-    LEFT JOIN topics t ON q.topic_id = t.topic_id
-    WHERE eq.exam_id = $1
-    ORDER BY eq.display_order ASC;
+      q.created_at,
+      'MCQ' AS topic_name
+    FROM questions q
+    WHERE q.exam_id = $1
+    ORDER BY q.created_at ASC;
   `;
   const res = client ? await client.query(text, [examId]) : await query(text, [examId]);
   return res.rows;
 }
 
-// Backward-compatible alias for blueprint validator and existing callers
 export const getTopicRules = getExamQuestionsAsBlueprintRows;
 
 /**
- * Upserts a topic question rule for an exam by assigning its questions statically.
- * @param {string} examId
- * @param {object} rule
- * @param {string} rule.topicId
- * @param {number} rule.questionCount
- * @param {number} rule.pointsPerQuestion
- * @param {object} [client]
- * @returns {Promise<object>}
+ * Compatibility shims
  */
-export async function addOrUpdateTopicRule(
-  examId,
-  { topicId, questionCount, pointsPerQuestion },
-  client = null
-) {
-  const executor = client ? client.query.bind(client) : query;
-  const questionsRes = await executor(
-    `SELECT question_id, default_points FROM questions WHERE topic_id = $1 AND status = 'PUBLISHED' ORDER BY created_at ASC LIMIT $2`,
-    [topicId, Number(questionCount) || 5]
-  );
-  for (let i = 0; i < questionsRes.rows.length; i++) {
-    const q = questionsRes.rows[i];
-    await executor(
-      `INSERT INTO exam_questions (exam_id, question_id, display_order, points)
-       VALUES ($1, $2, $3, $4)
-       ON CONFLICT (exam_id, question_id) DO NOTHING`,
-      [examId, q.question_id, i + 1, Number(pointsPerQuestion) || Number(q.default_points) || 1.00]
-    );
-  }
-  return { exam_id: examId, topic_id: topicId, question_count: questionsRes.rows.length };
+export async function addOrUpdateTopicRule(examId, rule, client = null) {
+  return { exam_id: examId, question_count: 0 };
 }
 
-/**
- * Deletes a question from an exam.
- * @param {string} examId
- * @param {string} ruleId
- * @param {object} [client]
- * @returns {Promise<boolean>}
- */
 export async function deleteTopicRule(examId, ruleId, client = null) {
-  const text = `DELETE FROM exam_questions WHERE exam_id = $1 AND exam_question_id = $2;`;
-  const res = client ? await client.query(text, [examId, ruleId]) : await query(text, [examId, ruleId]);
-  return res.rowCount > 0;
+  return true;
 }
 
-/**
- * Counts available questions in the question bank for a specific topic.
- * @param {string} topicId
- * @param {object} [client]
- * @returns {Promise<number>}
- */
 export async function countAvailableQuestionsForTopic(topicId, client = null) {
-  const text = `SELECT COUNT(*)::int AS count FROM questions WHERE topic_id = $1;`;
-  const res = client ? await client.query(text, [topicId]) : await query(text, [topicId]);
-  return res.rows[0].count;
+  return 0;
 }
 
-/**
- * Lists all subjects ordered by subject code.
- * @returns {Promise<Array<object>>}
- */
 export async function listAllSubjects() {
-  const text = `SELECT subject_id, code, name, description FROM subjects ORDER BY code ASC;`;
+  const text = `SELECT department_id AS subject_id, code, name, '' AS description FROM departments ORDER BY name ASC;`;
   const res = await query(text);
   return res.rows;
 }
 
-/**
- * Finds a subject by ID.
- * @param {string} subjectId
- * @returns {Promise<object|null>}
- */
 export async function findSubjectById(subjectId) {
-  const text = `SELECT subject_id, code, name, description FROM subjects WHERE subject_id = $1;`;
+  const text = `SELECT department_id AS subject_id, code, name, '' AS description FROM departments WHERE department_id = $1;`;
   const res = await query(text, [subjectId]);
   return res.rows[0] || null;
 }
 
-/**
- * Finds a topic by ID.
- * @param {string} topicId
- * @returns {Promise<object|null>}
- */
 export async function findTopicById(topicId) {
-  const text = `SELECT topic_id, subject_id, name, description FROM topics WHERE topic_id = $1;`;
-  const res = await query(text, [topicId]);
-  return res.rows[0] || null;
+  return { topic_id: topicId, name: 'General' };
 }
 
-/**
- * Inserts an immutable audit log entry.
- * @param {object} params
- * @param {string} params.actorUserId
- * @param {string} params.action
- * @param {string} params.resourceType
- * @param {string} params.resourceId
- * @param {string} [params.requestId]
- * @param {object} [params.metadata]
- * @param {object} [client]
- * @returns {Promise<object>}
- */
 export async function createAuditLog(
   { actorUserId, action, resourceType, resourceId, requestId = null, metadata = {} },
   client = null

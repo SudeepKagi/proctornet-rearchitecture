@@ -151,11 +151,11 @@ export async function getSessionById(sessionId, user) {
     if (!studentIds.includes(user.userId)) {
       const pool = getPool();
       const profileRes = await pool.query(
-        `SELECT department, semester FROM student_profiles WHERE user_id = $1`,
+        `SELECT department_id, semester FROM student_profiles WHERE user_id = $1`,
         [user.userId]
       );
       const studentProfile = profileRes.rows[0];
-      const deptMatch = !session.target_department || (studentProfile && studentProfile.department === session.target_department);
+      const deptMatch = !session.department_id || (studentProfile && studentProfile.department_id === session.department_id);
       const semMatch = !session.target_semester || (studentProfile && Number(studentProfile.semester) === Number(session.target_semester));
 
       if (deptMatch && semMatch) {
@@ -238,54 +238,12 @@ export async function updateSession(sessionId, updates, user, requestId = null) 
     }
 
     // Validate room capacity if changing room
-    if (updates.room_id !== undefined && updates.room_id !== null) {
-      const room = await sessionsRepo.findRoomByIdForUpdate(updates.room_id, client);
-      if (!room) {
-        throw new NotFoundError(`Room with ID '${updates.room_id}' not found`);
-      }
-
-      const enrolledCount = await sessionsRepo.countSessionStudents(sessionId, client);
-      if (enrolledCount > room.capacity) {
-        throw new ConflictError(
-          `Cannot assign room '${room.name}': Room capacity (${room.capacity}) is less than current student roster (${enrolledCount})`
-        );
-      }
-    }
-
-    // Resolve canonical department if target_department is updated
-    let deptId = updates.department_id;
-    let deptName = updates.target_department;
-    if (deptName && deptId === undefined) {
-      const deptRes = await client.query(
-        `SELECT department_id, name FROM departments 
-         WHERE LOWER(REPLACE(name, '&', 'and')) = LOWER(REPLACE($1, '&', 'and'))
-            OR LOWER(name) = LOWER($1)
-            OR LOWER(code) = LOWER($1)
-            OR LOWER(REPLACE(name, '&', 'and')) ILIKE '%' || LOWER(REPLACE($1, '&', 'and')) || '%'
-            OR LOWER(REPLACE($1, '&', 'and')) ILIKE '%' || LOWER(REPLACE(name, '&', 'and')) || '%'
-            OR name ILIKE '%' || split_part($1, ' ', 1) || '%'
-         LIMIT 1`,
-        [deptName.trim()]
-      );
-      if (deptRes.rows.length > 0) {
-        deptId = deptRes.rows[0].department_id;
-        deptName = deptRes.rows[0].name;
-      }
-    }
-    if (deptId !== undefined) {
-      updates.department_id = deptId;
-    }
-    if (deptName !== undefined) {
-      updates.target_department = deptName;
-    }
-
     const updatedSession = await sessionsRepo.updateSession(sessionId, updates, client);
 
     // If target branch or semester changed, re-sync the unstarted candidate roster
-    if (updates.target_semester !== undefined || updates.target_department !== undefined) {
+    if (updates.target_semester !== undefined || updates.department_id !== undefined) {
       const finalSemester = updates.target_semester !== undefined ? Number(updates.target_semester) : session.target_semester;
-      const finalDeptName = deptName !== undefined ? deptName : session.target_department;
-      const finalDeptId = deptId !== undefined ? deptId : session.department_id;
+      const finalDeptId = updates.department_id !== undefined ? updates.department_id : session.department_id;
 
       // 1. Delete unstarted assigned candidates
       await client.query(
@@ -294,30 +252,26 @@ export async function updateSession(sessionId, updates, user, requestId = null) 
       );
 
       // 2. Re-insert eligible active students matching the new department and semester
-      if (finalSemester && (finalDeptName || finalDeptId)) {
+      if (finalSemester && finalDeptId) {
         await client.query(
           `INSERT INTO session_students (session_id, student_id, status)
            SELECT $1, sp.user_id, 'ASSIGNED'
            FROM student_profiles sp
            JOIN users u ON sp.user_id = u.user_id
            WHERE sp.semester = $2
-             AND (
-               ($3::uuid IS NOT NULL AND sp.department_id = $3)
-               OR LOWER(sp.department) = LOWER($4)
-               OR sp.department ILIKE '%' || $4 || '%'
-             )
+             AND sp.department_id = $3
              AND u.status = 'ACTIVE'
            ON CONFLICT (session_id, student_id) DO NOTHING`,
-          [sessionId, finalSemester, finalDeptId || null, finalDeptName || '']
+          [sessionId, finalSemester, finalDeptId]
         );
       }
 
       // 3. Keep associated exams table synchronized
       await client.query(
         `UPDATE exams 
-         SET target_semester = $1, target_department = $2, department_id = $3, updated_at = NOW() 
-         WHERE exam_id = $4`,
-        [finalSemester, finalDeptName, finalDeptId || null, session.exam_id]
+         SET target_semester = $1, department_id = $2, updated_at = NOW() 
+         WHERE exam_id = $3`,
+        [finalSemester, finalDeptId, session.exam_id]
       );
     }
 
@@ -696,14 +650,14 @@ export async function listSessions(params, user) {
   if (isStudent && user?.userId) {
     const pool = getPool();
     const profRes = await pool.query(
-      'SELECT department, semester FROM student_profiles WHERE user_id = $1',
+      'SELECT department_id, semester FROM student_profiles WHERE user_id = $1',
       [user.userId]
     );
     if (profRes.rows.length > 0) {
       studentTarget = {
         studentId: user.userId,
         semester: profRes.rows[0].semester,
-        department: profRes.rows[0].department
+        departmentId: profRes.rows[0].department_id
       };
     } else {
       studentTarget = { studentId: user.userId };
